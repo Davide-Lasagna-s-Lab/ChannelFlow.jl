@@ -50,8 +50,8 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT}
             throw(ArgumentError("baseflow is currently supported only for ConvectiveForm"))
 
         cache = _gencache(form, u, U)
-        ifft = InverseFFT!(U, fftwflags, fftwtimelimit)
-        fft = ForwardFFT!(u, fftwflags, fftwtimelimit)
+        ifft = InverseFFT!(U; flags=fftwflags, timelimit=fftwtimelimit)
+        fft = ForwardFFT!(u; flags=fftwflags, timelimit=fftwtimelimit)
         new{T, FORM, typeof(cache), typeof(ifft), typeof(fft)}(
             cache, Ref{Symbol}(:DivergenceForm), ifft, fft)
     end

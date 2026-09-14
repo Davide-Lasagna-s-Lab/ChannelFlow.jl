@@ -14,8 +14,7 @@ struct PhysicalField{T<:AbstractFloat,
     function PhysicalField(data::A, grid::G) where {T<:AbstractFloat,
                                                     A<:DenseArray{T, 3},
                                                     G<:Grid}
-        Nx, Ny, Nz = gridsize(grid)
-        size(data) == (Ny, Nx, Nz) ||
+        size(data) == gridsize(grid) ||
             throw(DimensionMismatch("data must have size (Ny, Nx, Nz)"))
         return new{T, A, G}(data, grid)
     end

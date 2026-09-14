@@ -1,5 +1,4 @@
 import FFTW
-import MPI
 
 abstract type SolutionMode end
 struct ConstantPressureGradient <: SolutionMode end
@@ -13,10 +12,7 @@ struct ChannelFlow{NLT<:NonLinearTerm}
 end
 
 
-function ChannelFlow(comm::MPI.Comm,
-               domainsize::NTuple{2, Real},
-                     grid::FDGrid,
-                 gridsize::NTuple{3, Int},
+function ChannelFlow(grid::Grid,
                      mode::SolutionMode = ConstantPressureGradient,
                      form::NonLinearityForm = AlternatingForm,
                          ::Type{T<:AbstractFloat} = Float64,
@@ -24,9 +20,11 @@ function ChannelFlow(comm::MPI.Comm,
             fftwtimelimit::Real = -1.0) where {T}
     
     # define nonlinear term
-    u = PhysicalField(comm, gridsize, T)
-    U = SpectralField(comm, domainsize, gridsize, grid, T)
-    nlterm = NonLinearTerm(u, U, fftwflags, fftwtimelimit, form)
+    u = PhysicalField(grid, T)
+    Ny, Nx, Nz = gridsize(grid)
+    U = SpectralField(Array{Complex{T}}(undef, Ny, Nx, Nz ÷ 2 + 1), grid)
+    nlterm = NonLinearTerm(u, U;
+        fftwflags=fftwflags, fftwtimelimit=fftwtimelimit, form=form)
 
     # define poisson solver
 
