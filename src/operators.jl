@@ -12,9 +12,9 @@ is true, or just overwritten in the output argument otherwise.
 function ddx1!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     α = 2π/domainsize(grid(OUT), 1)
     if add
-        @loop_jk_i size(OUT) OUT[_j, _k, _i] += im * j * α * U[_j, _k, _i]
+        @loop_jk_i size(OUT) OUT[_i, _j, _k] += im * j * α * U[_i, _j, _k]
     else
-        @loop_jk_i size(OUT) OUT[_j, _k, _i]  = im * j * α * U[_j, _k, _i]
+        @loop_jk_i size(OUT) OUT[_i, _j, _k]  = im * j * α * U[_i, _j, _k]
     end
     return OUT
 end
@@ -27,7 +27,7 @@ direction, i.e. the wall-normal direction. The result is added to `OUT` when
 `add=true` and overwrites it otherwise.
 """
 function ddx2!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
-    LinearAlgebra.mul!(parent(OUT), grid(OUT).D1, parent(U), Val(3), Val(add))
+    LinearAlgebra.mul!(parent(OUT), grid(OUT).D1, parent(U), Val(1), Val(add))
     return OUT
 end
 
@@ -41,9 +41,9 @@ direction, i.e. the spanwise direction. The result is added to `OUT` when
 function ddx3!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     β = 2π/domainsize(grid(OUT), 2)
     if add
-        @loop_jk_i size(U) OUT[_j, _k, _i] += im * k * β * U[_j, _k, _i]
+        @loop_jk_i size(U) OUT[_i, _j, _k] += im * k * β * U[_i, _j, _k]
     else
-        @loop_jk_i size(U) OUT[_j, _k, _i]  = im * k * β * U[_j, _k, _i]
+        @loop_jk_i size(U) OUT[_i, _j, _k]  = im * k * β * U[_i, _j, _k]
     end
     return OUT
 end
@@ -61,29 +61,13 @@ end
 # end
 
 
-function laplacian!(OUT::SpectralField{T},
-                      U::SpectralField{T}, 
-                  cache::TransposeCache) where {T}
-
-    # TODO: overlap transpose and jk derivatives
+function laplacian!(OUT::S, U::S) where {S<:SpectralField}
     α² = (2π/domainsize(grid(OUT), 1))^2
     β² = (2π/domainsize(grid(OUT), 2))^2
 
-    # check input state
-    (slabdim(OUT) == 3) && (slabdim(U) == 3) ||
-        throw(ArgumentError("invalid slab state"))
-
-    # differentiate along wall parallel directions first
-    @loop_jk_i size(U) OUT[_j, _k, _i]  =  - (α²*j^2 + β²*k^2) * U[_j, _k, _i]
-
-    # transpose
-    transpose!(cache.TMP_IN, cache.plan, U)
-
-    # differentiate along direction 3
-    mul!(cache.TMP_OUT, OUT.grid.D2, cache.TMP_IN, Val(3))
-
-    # then transpose back to OUT
-    transpose!(OUT, cache.plan, cache.TMP_OUT)
+    @loop_jk_i size(U) OUT[_i, _j, _k] =
+        -(α²*j^2 + β²*k^2) * U[_i, _j, _k]
+    LinearAlgebra.mul!(parent(OUT), grid(OUT).D2, parent(U), Val(1), Val(true))
 
     return OUT
 end
