@@ -10,7 +10,7 @@ direction. The result is added in the output argument `OUT` if `add`
 is true, or just overwritten in the output argument otherwise.
 """
 function ddx1!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
-    α = 2π/domainsize(OUT, 1)
+    α = 2π/domainsize(grid(OUT), 1)
     if add
         @loop_jk_i size(OUT) OUT[_j, _k, _i] += im * j * α * U[_j, _k, _i]
     else
@@ -23,16 +23,11 @@ end
     ddx2!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
 
 Compute the derivative of the scalar field `U` along the second spatial
-direction. The result is added to the output argument `OUT` if `add`
-is true, or just overwritten in the output argument otherwise.
+direction, i.e. the wall-normal direction. The result is added to `OUT` when
+`add=true` and overwrites it otherwise.
 """
 function ddx2!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
-    β = 2π/domainsize(OUT, 2)
-    if add
-        @loop_jk_i size(U) OUT[_j, _k, _i] += im * k * β * U[_j, _k, _i]
-    else
-        @loop_jk_i size(U) OUT[_j, _k, _i]  = im * k * β * U[_j, _k, _i]
-    end
+    LinearAlgebra.mul!(parent(OUT), grid(OUT).D1, parent(U), Val(3), Val(add))
     return OUT
 end
 
@@ -40,28 +35,16 @@ end
     ddx3!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
 
 Compute the derivative of the scalar field `U` along the third spatial
-direction, i.e. the wall normal direction. The result is written
-in the output argument `OUT`. The type parameter `SIZE` is assumed to
-describe the global size of the physical grid.
+direction, i.e. the spanwise direction. The result is added to `OUT` when
+`add=true` and overwrites it otherwise.
 """
-function ddx3!(OUT::S,
-                 U::S,
-            tcache::TransposeCache) where {T, A, S<:SpectralField{T, A}}
-    if A <: DecomposedArray
-        # transpose
-        transpose!(parent(tcache.tmp[1]), tcache.plan, parent(U))
-
-        # differentiate along direction 3
-        mul!(parent(tcache.tmp[2]),
-             diffmat(grid(OUT), 1),
-             parent(tcache.tmp[1]), Val(3))
-
-        # then transpose back to OUT
-        transpose!(parent(OUT), tcache.plan, tcache.TMP_OUT)
+function ddx3!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
+    β = 2π/domainsize(grid(OUT), 2)
+    if add
+        @loop_jk_i size(U) OUT[_j, _k, _i] += im * k * β * U[_j, _k, _i]
     else
-        mul!(parent(OUT), diffmat(grid(OUT), 1), parent(U), Val(3))
+        @loop_jk_i size(U) OUT[_j, _k, _i]  = im * k * β * U[_j, _k, _i]
     end
-
     return OUT
 end
 
@@ -83,8 +66,8 @@ function laplacian!(OUT::SpectralField{T},
                   cache::TransposeCache) where {T}
 
     # TODO: overlap transpose and jk derivatives
-    α² = (2π/domainsize(OUT, 2))^2
-    β² = (2π/domainsize(OUT, 2))^2
+    α² = (2π/domainsize(grid(OUT), 1))^2
+    β² = (2π/domainsize(grid(OUT), 2))^2
 
     # check input state
     (slabdim(OUT) == 3) && (slabdim(U) == 3) ||
