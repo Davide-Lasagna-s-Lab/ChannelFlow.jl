@@ -1,43 +1,18 @@
-using DecomposedArrays
-using FDGrids
-
-import MPI
-
 export SpectralField
 
 struct SpectralField{T<:AbstractFloat,
                      A<:DenseArray{Complex{T}, 3},
-                     G<:FDGrid} <: DenseArray{Complex{T}, 3}
-    data::A                        # the underlying storage
-    grid::G                        # an object describing the grid in the wall normal direction
-    domainsize::NTuple{2, Float64} # domain size along the homogeneous dimensions
-    SpectralField(data::A,
-            domainsize::NTuple{2, Reak},
-                  grid::G) where {T,
-                                  G<:Grid,
-                                  A<:DenseArray{Complex{T}, 3}} =
-        new{T, A, G}(data, grid, Float64.(domainsize))
-end
+                     G<:Grid} <: DenseArray{Complex{T}, 3}
+    data::A
+    grid::G
 
-# constructors
-function SpectralField(comm::MPI.Comm,
-                   gridsize::NTuple{3, Integer},
-                 domainsize::NTuple{2, Real},
-                       grid::FDGrid,
-                           ::Type{T<:AbstractFloat} = Float64) where {T}
-    # size of global data after transform
-    gsize = (gridsize[1], gridsize[2]>>1+1, gridsize[3])
-    return SpectralField(SlabArray(comm, gsize, Complex{T}, 3), domainsize, grid)
+    SpectralField(data::A, grid::G) where {
+        T<:AbstractFloat, A<:DenseArray{Complex{T}, 3}, G<:Grid} =
+        new{T, A, G}(data, grid)
 end
 
 # Accessor functions
 grid(U::SpectralField) = U.grid
-domainsize(U::SpectralField) = U.domainsize
-domainsize(U::SpectralField, i::Int) = U.domainsize[i]
-
-# what is this for ?
-gridsize(U::SpectralField{T, <:DecomposedArray}) where {T} = globalsize(parent(U))
-gridsize(U::SpectralField{T, <:DenseArray})      where {T} =       size(parent(U))
 
 # copy and similar
 Base.copy(   U::SpectralField) = SpectralField(   copy(parent(U)), grid(U))
@@ -59,7 +34,7 @@ Base.@propagate_inbounds function Base.setindex!(U::SpectralField, val, I::Integ
     return val
 end
 
-# size of data local to this processor
+# size of the spectral data
 Base.size(U::SpectralField) = size(parent(U))
 
 # get underlying storage

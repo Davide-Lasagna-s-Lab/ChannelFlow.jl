@@ -8,8 +8,7 @@ differentiate in the wall-normal direction at the nodes `y`. `Nx` and `Nz` are
 the numbers of points in the periodic directions, `domainsize` contains
 `(Lx, Lz)`, and `baseflow` is the streamwise reference profile.
 """
-struct Grid{M1<:AbstractMatrix, M2<:AbstractMatrix,
-            Y<:AbstractVector, B<:AbstractVector}
+struct Grid{M1<:AbstractMatrix, M2<:AbstractMatrix, Y<:AbstractVector, B<:AbstractVector}
             D1::M1                 # first derivative in the wall-normal direction
             D2::M2                 # second derivative in the wall-normal direction
              y::Y                  # wall-normal grid points
