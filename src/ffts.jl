@@ -1,6 +1,6 @@
 import FFTW
 
-export ForwardFFT!, InverseFFT!
+export ForwardFFT!, InverseFFT!, FFT, IFFT
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                   FOURIER-CHEBYSHEV TRANSFORM LAYOUT                   ///#
@@ -161,6 +161,50 @@ function (ifft::InverseFFT!)(grad::GradientField,
         ifft(grad[i], GRAD[i])
     end
     return grad
+end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                         ALLOCATING TRANSFORMS                          ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+"""
+    FFT(u::PhysicalField; flags=FFTW.ESTIMATE, kwargs...)
+    FFT(u::VectorField{<:PhysicalField}; flags=FFTW.ESTIMATE, kwargs...)
+
+Allocate and return the resolved Fourier-Chebyshev spectrum of padded physical
+input `u`, preserving its values and grid. Follow the same padding and Nyquist
+conventions as [`ForwardFFT!`](@ref). Vector components share one transform plan.
+Forward planning keywords to `ForwardFFT!`; use cached plans for repeated calls.
+"""
+function FFT(u::PhysicalField{T}; flags=FFTW.ESTIMATE, kwargs...) where {T}
+    U = SpectralField(zeros(Complex{T}, spectralsize(grid(u), NotPadded())), grid(u))
+    return ForwardFFT!(u; flags=flags, kwargs...)(U, u)
+end
+
+function FFT(u::VectorField{F}; flags=FFTW.ESTIMATE, kwargs...) where {T, F<:PhysicalField{T}}
+    g = grid(u[1])
+    U = VectorField(SpectralField(zeros(Complex{T}, spectralsize(g, NotPadded())), g))
+    return ForwardFFT!(u[1]; flags=flags, kwargs...)(U, u)
+end
+
+"""
+    IFFT(U::SpectralField; flags=FFTW.ESTIMATE, kwargs...)
+    IFFT(U::VectorField{<:SpectralField}; flags=FFTW.ESTIMATE, kwargs...)
+
+Allocate and return the padded physical field reconstructed from resolved
+spectrum `U`, preserving its values and grid. Vector components share one plan.
+Forward planning keywords to [`InverseFFT!`](@ref). The output is suitable for
+`FFT`; excluded Nyquist modes are not reconstructed.
+"""
+function IFFT(U::SpectralField{T}; flags=FFTW.ESTIMATE, kwargs...) where {T}
+    u = PhysicalField(zeros(T, physicalsize(grid(U), Padded())), grid(U))
+    return InverseFFT!(U; flags=flags, kwargs...)(u, U)
+end
+
+function IFFT(U::VectorField{F}; flags=FFTW.ESTIMATE, kwargs...) where {T, F<:SpectralField{T}}
+    g = grid(U[1])
+    u = VectorField(PhysicalField(zeros(T, physicalsize(g, Padded())), g))
+    return InverseFFT!(U[1]; flags=flags, kwargs...)(u, U)
 end
 
 #//////////////////////////////////////////////////////////////////////////////#
