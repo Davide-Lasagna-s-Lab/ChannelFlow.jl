@@ -80,12 +80,14 @@ end
 
 @testset "Reproducible random initialization" begin
     g = Grid(9, 5, 5, 2π, 2π)
-    # Separate generators with the same seed must reproduce both velocity and
+    # Reseeding the default generator with the same seed must reproduce both velocity and
     # auxiliary pressure exactly. Nonzero output rules out a trivial zero
     # initializer; the shared checks verify projection onto the constrained
     # subspace.
-    a = random_state(g; amplitude=0.1, rng=MersenneTwister(17))
-    b = random_state(g; amplitude=0.1, rng=MersenneTwister(17))
+    Random.seed!(17)
+    a = random_state(g; amplitude=0.1)
+    Random.seed!(17)
+    b = random_state(g; amplitude=0.1)
     @test all(parent(velocity(a)[i]) == parent(velocity(b)[i]) for i=1:3)
     @test parent(pressure(a)) == parent(pressure(b))
     @test any(norm(parent(component)) > 0 for component in velocity(a).components)

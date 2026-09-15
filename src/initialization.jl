@@ -21,22 +21,22 @@ end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    random_state(grid::Grid; amplitude=1, rng=Random.default_rng())
+    random_state(grid::Grid; amplitude=1)
 
 Create a random real-space perturbation velocity, transform it to spectral
 storage, project it onto the divergence-free no-slip space, and return the
-coupled state `(U, P)`.
+coupled state `(U, P)`. Use Julia's default RNG; call `Random.seed!`
+beforehand for reproducible initialization.
 """
 function random_state(grid::Grid;
-                      amplitude::Real=1,
-                      rng::Random.AbstractRNG=Random.default_rng())
+                      amplitude::Real=1)
     amplitude >= 0 || throw(ArgumentError("amplitude must be non-negative"))
     physical = PhysicalField(zeros(Float64, physicalsize(grid, Padded())), grid)
     prototype = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
     U = VectorField(prototype)
     fft = ForwardFFT!(physical)
     for component in U.components
-        parent(physical) .= amplitude .* Random.randn(rng, size(physical))
+        parent(physical) .= amplitude .* Random.randn(size(physical))
         fft(component, physical)
     end
     return project!(U)
