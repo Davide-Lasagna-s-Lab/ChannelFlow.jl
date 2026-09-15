@@ -14,7 +14,7 @@ function zero_rhs!(t, U, N)
     return N
 end
 
-@testset "Gibson CN-RK2" begin
+@testset "Channelflow CNRK2" begin
     nu, dt = 0.03, 0.05
     for (profile, base_mean, gradient) in ((y -> y, 0.0, 0.0), (y -> 1-y^2, 2/3, -2nu)),
         form in (CanonicalFlows.ConvectiveForm(), RotatingForm())

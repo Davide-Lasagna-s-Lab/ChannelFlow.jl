@@ -1,12 +1,12 @@
 import FFTW
 
-export Grid, points, Padded, NotPadded, physicalsize, spectralsize
+export Grid, points, Padded, NotPadded, physicalsize, spectralsize, chebyshev_coefficients
 
 struct Padded end
 struct NotPadded end
 
 """
-    Grid(Ny, Nx, Nz, Lx, Lz, baseflow)
+    Grid(Ny, Nx, Nz, Lx, Lz)
 
 Grid for a Fourier--Chebyshev--Fourier discretisation.
 `Ny` is the number of Chebyshev--Lobatto nodes, ordered from the upper wall to
@@ -14,38 +14,25 @@ the lower wall, as in Channelflow. `Nx` and `Nz` are the resolved periodic
 point counts, and `Lx` and `Lz` are the corresponding domain lengths. The
 wall-normal domain is fixed to `[-1,1]`; `domainsize` stores `(Lx, 2, Lz)`.
 
-Pass the streamwise reference profile as a function of `y`. The grid stores
-its ordinary Chebyshev coefficients, obtained once with a DCT-I, for addition
-to the zero Fourier mode.
+The base flow is a property of a physical problem and belongs to
+`ChannelFlow`, not to the grid.
 """
-struct Grid{Y<:AbstractVector, B<:AbstractVector}
+struct Grid{Y<:AbstractVector}
              y::Y                  # Lobatto nodes, upper wall first
             Nx::Int                # resolved streamwise extent
             Nz::Int                # resolved spanwise extent
     domainsize::NTuple{3, Float64} # lengths (x, y, z)
-      baseflow::B                  # Chebyshev coefficients of the base velocity
 
     function Grid(      Ny::Int,
                         Nx::Int,
                         Nz::Int,
                         Lx::Real,
-                        Lz::Real,
-                  baseflow::Function)
+                        Lz::Real)
         Ny ≥ 3 || throw(ArgumentError("at least three Lobatto nodes are required"))
 
         # Gibson's convention uses Lobatto points from +1 to -1.
         y = [cospi(n/(Ny-1)) for n = 0:Ny-1]
-        values = baseflow.(y)
-
-        # Channelflow's ChebyCoeff::chebyfft convention: unweighted series
-        # coefficients, including half the raw DCT weights at degrees 0 and P.
-        coefficients = FFTW.r2r(float.(values), FFTW.REDFT00)
-        coefficients ./= Ny-1
-        coefficients[1] /= 2
-        coefficients[end] /= 2
-
-        return new{typeof(y), typeof(coefficients)}(
-            y, Nx, Nz, (Float64(Lx), 2.0, Float64(Lz)), coefficients)
+        return new{typeof(y)}(y, Nx, Nz, (Float64(Lx), 2.0, Float64(Lz)))
     end
 
 end
@@ -75,8 +62,20 @@ end
 """Return the domain lengths `(Lx, 2, Lz)`."""
 domainsize(grid::Grid) = grid.domainsize
 
-"""Return ordinary Chebyshev coefficients of the streamwise base profile."""
-baseflow(grid::Grid) = grid.baseflow
+"""
+    chebyshev_coefficients(grid, profile)
+
+Return ordinary Chebyshev coefficients of `profile(y)` on the grid's
+wall-normal Lobatto points. The profile itself is not stored by `Grid`.
+"""
+function chebyshev_coefficients(grid::Grid, profile::Function)
+    values = profile.(grid.y)
+    coefficients = FFTW.r2r(float.(values), FFTW.REDFT00)
+    coefficients ./= length(grid.y) - 1
+    coefficients[1] /= 2
+    coefficients[end] /= 2
+    return coefficients
+end
 
 """
     points(grid::Grid)

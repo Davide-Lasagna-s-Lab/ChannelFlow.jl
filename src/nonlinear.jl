@@ -15,7 +15,7 @@ struct RotatingForm    <: NonlinearityForm end
 # using a pseudo-spectral approach
 
 """
-    NonLinearTerm(u, U;
+    NonLinearTerm(u, U, baseflow;
                   fftwflags=FFTW.EXHAUSTIVE,
                   fftwtimelimit=FFTW.NO_TIMELIMIT,
                   form=ConvectiveForm())
@@ -24,7 +24,7 @@ Construct a pseudo-spectral convection operator using scalar physical/spectral
 fields `u` and `U` as allocation and transform prototypes.
 
 The Chebyshev coefficients of the stationary streamwise profile `Ub(y)` are
-taken from `grid(U)`. The evaluation
+passed explicitly as `baseflow`. The evaluation
 `Eq(t, Upert, rhs)` accepts spectral vector fields and computes the selected
 nonlinear form using `utotal = upert + Ub(y) e_x`. The rotational form returns
 `FFT(utotal × curl(utotal))`; the other forms return negative advection.
@@ -34,14 +34,16 @@ form instead contributes a pressure gradient that is absorbed into its modified
 pressure variable. The sustaining viscous and pressure-gradient balance,
 additional forcing and pressure projection are handled outside this operator.
 """
-struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT}
+struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B}
        cache::CACHE       # cache specific to the selected nonlinear form
         flag::Ref{Bool}   # toggled at every call in the AlternatingForm
         ifft::IFFT        # concrete callable inverse transform
-         fft::FFT         # concrete callable forward transform
+        fft::FFT         # concrete callable forward transform
+    baseflow::B          # Chebyshev coefficients of the stationary profile
 
     function NonLinearTerm(            u::PhysicalField{T},
-                                       U::S;
+                                       U::S,
+                               baseflow::AbstractVector;
                                fftwflags::Integer=FFTW.EXHAUSTIVE,
                            fftwtimelimit::Real=FFTW.NO_TIMELIMIT,
                                     form::FORM=ConvectiveForm()
@@ -49,8 +51,8 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT}
         cache = _gencache(form, u, U)
         ifft = InverseFFT!(U; flags=fftwflags, timelimit=fftwtimelimit)
         fft = ForwardFFT!(u; flags=fftwflags, timelimit=fftwtimelimit)
-        return new{T, FORM, typeof(cache), typeof(ifft), typeof(fft)}(
-            cache, Ref(false), ifft, fft)
+        return new{T, FORM, typeof(cache), typeof(ifft), typeof(fft), typeof(baseflow)}(
+            cache, Ref(false), ifft, fft, baseflow)
     end
 end
 
@@ -128,7 +130,7 @@ function _convectiveform!(  Eq::NonLinearTerm,
     # before either gradient evaluation or inverse transformation. Adding it
     # only to the physical advecting velocity would omit the v*Ub' shear term.
     TMP .= U
-    @views TMP[1][:, 1, 1] .+= baseflow(grid(TMP[1]))
+    @views TMP[1][:, 1, 1] .+= Eq.baseflow
 
     grad!(GRAD, TMP)
 
@@ -169,7 +171,7 @@ function _divergenceform!(  Eq::NonLinearTerm,
 
     # Form the total velocity, including the base profile in the zero mode.
     N .= U
-    @views N[1][:, 1, 1] .+= baseflow(grid(N[1]))
+    @views N[1][:, 1, 1] .+= Eq.baseflow
 
     # transform to physical space
     Eq.ifft(u, N)
@@ -230,7 +232,7 @@ function _rotatingform!(  Eq::NonLinearTerm,
     u, n, ω, TMP, Ω = Eq.cache
 
     TMP .= U
-    @views TMP[1][:, 1, 1] .+= baseflow(grid(TMP[1]))
+    @views TMP[1][:, 1, 1] .+= Eq.baseflow
 
     # Compute the three curl components directly in spectral space.
     ddx3!(Ω[1], TMP[2])

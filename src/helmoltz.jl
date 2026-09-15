@@ -490,7 +490,7 @@ _chebcolumn(U::SpectralField, ix::Int, iz::Int) =
 
 """
     solve!(solver::FourierStokesSolver, U, P, R;
-           pressuregradient=nothing, bulkvelocity=nothing)
+           pressuregradient=nothing, bulkvelocity=nothing, baseflow=nothing)
 
 Overwrite the perturbation velocity `U::VectorField` and pressure
 `P::SpectralField` from the momentum source `R::VectorField`. All component
@@ -505,9 +505,10 @@ the conjugate symmetry required for real physical fields.
 
 Return `(dPdx, dPdz)`. The mutually exclusive keywords have the same meaning
 as in [`solve!(::MeanModeSolver, u, v, w, p, Rx, Ry, Rz)`](@ref), except that
-`bulkvelocity=(Ubulk, Wbulk)` specifies TOTAL bulk velocities here. Subtract
-the streamwise base-flow mean stored in `grid` to obtain the perturbation
-target; the current base profile has no spanwise component.
+`bulkvelocity=(Ubulk, Wbulk)` specifies TOTAL bulk velocities here. If
+`baseflow` is supplied as ordinary Chebyshev coefficients, its streamwise mean
+is subtracted to obtain the perturbation target; otherwise the target is
+interpreted as a perturbation target. The grid itself has no base flow.
 
 The stage assembly remains responsible for placing base-flow viscous terms
 and any explicit forcing in `R`. This solve does not add them or advance time.
@@ -517,7 +518,8 @@ function solve!(          solver::FourierStokesSolver,
                                P::F,
                                R::VectorField{F};
                 pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
-                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {F<:SpectralField{Float64}}
+                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing,
+                         baseflow=nothing) where {F<:SpectralField{Float64}}
     fields = (U.components..., P, R.components...)
     expected = spectralsize(solver.grid, NotPadded())
     for field in fields
@@ -527,7 +529,8 @@ function solve!(          solver::FourierStokesSolver,
 
     # Only the mean mode sees the uniform pressure gradient or bulk target.
     target = isnothing(bulkvelocity) ? nothing :
-             (bulkvelocity[1] - _bulkmean(ChebyshevHelmoltzSolvers.ChebCoeffs(baseflow(solver.grid))),
+             (bulkvelocity[1] - (isnothing(baseflow) ? 0.0 :
+                _bulkmean(ChebyshevHelmoltzSolvers.ChebCoeffs(baseflow))),
               bulkvelocity[2])
     gradients = solve!(solver.mean, map(field -> _chebcolumn(field, 1, 1), fields)...;
                        pressuregradient=pressuregradient, bulkvelocity=target)

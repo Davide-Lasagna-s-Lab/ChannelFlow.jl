@@ -7,13 +7,14 @@ end
 """
     VectorField(u::AbstractField)
 
-Allocate three independent components from the scalar-field prototype `u`.
+Allocate three independent, zero-initialised components with the size, element
+type and grid of the scalar-field prototype `u`. Its values are not copied.
 """
 VectorField(u::F) where {F<:AbstractField} =
-    VectorField((similar(u), similar(u), similar(u)))
+    VectorField(ntuple(_ -> fill!(similar(u), zero(eltype(u))), 3))
 
-"""Allocate a `VectorField` similar to `U`."""
-Base.similar(U::VectorField) = VectorField(U[1])
+"""Allocate independent, uninitialised components with the same sizes and grids."""
+Base.similar(U::VectorField) = VectorField(map(similar, U.components))
 
 """Copy all three components, retaining the grid and owning independent data."""
 Base.copy(U::VectorField) = VectorField(map(copy, U.components))

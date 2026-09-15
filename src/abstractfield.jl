@@ -1,1 +1,0 @@
-abstract type AbstractField{T, SIZE} end

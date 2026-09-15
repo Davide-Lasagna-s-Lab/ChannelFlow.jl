@@ -1,56 +1,84 @@
 export CNRK2, step!
 
-# Channelflow's RungeKuttaDNS coefficients (dnsalgo.cpp), for signed N = -u⋅∇u.
+# -----------------------------------------------------------------------------
+# Scheme coefficients
+# -----------------------------------------------------------------------------
+# The coefficients are those of Channelflow's RungeKuttaDNS implementation.
+# A controls the explicit-history update, while B and C determine the
+# Crank--Nicolson shift and the stage weight.
+
+# Channelflow's CNRK2 coefficients (RungeKuttaDNS, dnsalgo.cpp), for N = -u⋅∇u.
 const CNRK2_A = (0.0, -5/9, -153/128)
 const CNRK2_B = (1/3, 15/16, 8/15)
 const CNRK2_C = (1/6, 5/24, 1/8)
 
-"""
-    CNRK2(U::VectorField, nu, dt)
+# -----------------------------------------------------------------------------
+# CNRK2 cache and construction
+# -----------------------------------------------------------------------------
 
-Allocate Gibson's three-stage CN-RK2 time-stepper for spectral velocity `U`,
-viscosity `nu > 0` and fixed, finite `dt > 0`. `U` supplies the grid and
-`ComplexF64` storage type; its values are preserved.
+"""
+    CNRK2(grid, baseflow, nu, dt)
+
+Allocate Channelflow's three-stage CNRK2 time-stepper for `grid`, stationary
+Chebyshev coefficients `baseflow`, viscosity `nu > 0` and fixed, finite
+`dt > 0`. Temporary spectral prototypes are created internally from `grid`.
 
 Cache three [`FourierStokesSolver`](@ref) instances with temporal shifts
 `1/(C_j*dt)`, the accumulated explicit term `Q`, the current explicit term
 `N`, the stage source `R`, and the stationary base-flow term `nu*Ub''`.
 `N` is reused for pressure derivatives after updating `Q`.
 
-This is the three-stage RK/CN algorithm in Channelflow's `RungeKuttaDNS`,
-with overall order two. Rebuild the cache when `dt`, viscosity, grid or base
+`baseflow` contains the ordinary Chebyshev coefficients of the stationary
+streamwise profile and is owned by the enclosing `ChannelFlow`.
+
+`CNRK2` is Channelflow's `TimeStepMethod` name; its implementation is in
+`RungeKuttaDNS`. It combines Crank-Nicolson and Runge-Kutta with three
+substeps and overall order two. Rebuild the cache when `dt`, viscosity, grid or base
 profile changes. The caller retains velocity and stage pressure between steps.
 """
-struct CNRK2{S, F<:SpectralField{Float64}, C} <: Flows.AbstractMethod{Flows.Coupled{2, Tuple{VectorField{F}, F}}, Flows.NormalMode, 3}
+struct CNRK2{S, F<:SpectralField{Float64}, B, C} <: Flows.AbstractMethod{Flows.Coupled{2, Tuple{VectorField{F}, F}}, Flows.NormalMode, 3}
              nu::Float64
              dt::Float64
         solvers::NTuple{3, S}
               Q::VectorField{F}
               N::VectorField{F}
               R::VectorField{F}
+       baseflow::B
     baseviscous::C
 
-    function CNRK2( U::VectorField{F},
+    function CNRK2( grid::Grid,
+                   baseflow::B,
                    nu::Real,
-                   dt::Real) where {F<:SpectralField{Float64}}
+                   dt::Real) where {B<:AbstractVector}
         nu, dt = Float64(nu), Float64(dt)
         isfinite(dt) && dt > 0 || throw(ArgumentError("dt must be finite and positive"))
-        g = grid(U[1])
-        for field in U.components
-            grid(field) === g || throw(ArgumentError("velocity components must share a grid"))
-            size(field) == spectralsize(g, NotPadded()) ||
-                throw(DimensionMismatch("velocity must have the resolved spectral size"))
-        end
+        g = grid
+        P = SpectralField(zeros(ComplexF64, spectralsize(g, NotPadded())), g)
+        U = VectorField(P)
+        # Each stage has a different implicit shift λⱼ = 1/(Cⱼ Δt), hence a
+        # separate factorisation and influence matrix.
         solvers = ntuple(j -> FourierStokesSolver(g, nu, inv(CNRK2_C[j]*dt)), 3)
+
+        # Q is the accumulated explicit history; N is the current nonlinear
+        # acceleration; R is the right-hand side passed to the Stokes solve.
         Q, N, R = ntuple(_ -> similar(U), 3)
-        baseviscous = ChebyshevHelmoltzSolvers.ChebCoeffs(copy(baseflow(g)))
+
+        # The base profile is stationary. Store ν U_b'' once, in Chebyshev
+        # coefficient form, so it can be inserted into every stage RHS.
+        length(baseflow) == first(spectralsize(g, NotPadded())) ||
+            throw(DimensionMismatch("baseflow must have one coefficient per wall-normal point"))
+        baseviscous = ChebyshevHelmoltzSolvers.ChebCoeffs(copy(baseflow))
         ChebyshevHelmoltzSolvers.diff!(baseviscous, baseviscous)
         ChebyshevHelmoltzSolvers.diff!(baseviscous, baseviscous)
         parent(baseviscous) .*= nu
-        return new{typeof(solvers[1]), F, typeof(baseviscous)}(
-            nu, dt, solvers, Q, N, R, baseviscous)
+        return new{typeof(solvers[1]), typeof(P), typeof(baseflow), typeof(baseviscous)}(
+            nu, dt, solvers, Q, N, R, baseflow, baseviscous)
     end
 end
+
+# -----------------------------------------------------------------------------
+# Constant-bulk-flow pressure gradient
+# -----------------------------------------------------------------------------
 
 """
     _bulkpressuregradient(scheme, U, N)
@@ -74,10 +102,13 @@ function _bulkpressuregradient(scheme::CNRK2,
     end
 end
 
+# -----------------------------------------------------------------------------
+# Three-stage CNRK2 advance
+# -----------------------------------------------------------------------------
+
 """
     step!(scheme::CNRK2, nonlinear, U, P, t;
-          forcing=nothing, pressuregradient=nothing, bulkvelocity=nothing,
-          stagecache=nothing)
+          forcing=nothing, pressuregradient=nothing, bulkvelocity=nothing)
 
 Advance perturbation velocity `U` and stage pressure `P` by `scheme.dt`.
 Return `(t + scheme.dt, (dPdx, dPdz))`, with the uniform pressure derivatives
@@ -111,11 +142,6 @@ Supply a consistent initial pressure for accuracy from the first step. For
 [`RotatingForm`](@ref), `P` is the modified pressure including total kinetic
 energy per unit mass; otherwise it is the ordinary kinematic pressure.
 The scheme's workspaces and callbacks must not be used concurrently.
-
-If `stagecache` is a `Flows.AbstractStageCache{3}`, save independent copies
-of `Flows.couple(U, P)` before the three explicit evaluations. Stage recording
-allocates snapshots only when requested; it does not enable tangent or adjoint
-integration, which requires separate implementations.
 """
 function step!(          scheme::CNRK2{S, F},
                       nonlinear,
@@ -124,8 +150,7 @@ function step!(          scheme::CNRK2{S, F},
                               t::Real;
                         forcing=nothing,
                pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
-                   bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing,
-                     stagecache::Union{Nothing, Flows.AbstractStageCache{3}}=nothing) where {S, F<:SpectralField{Float64}}
+                   bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {S, F<:SpectralField{Float64}}
     isnothing(pressuregradient) || isnothing(bulkvelocity) ||
         throw(ArgumentError("specify either pressuregradient or bulkvelocity"))
     g = scheme.solvers[1].grid
@@ -134,20 +159,23 @@ function step!(          scheme::CNRK2{S, F},
         size(field) == spectralsize(g, NotPadded()) ||
             throw(DimensionMismatch("fields must have the resolved spectral size"))
     end
+    # Workspaces belong to the scheme and are reused on every call.
     Q, N, R = scheme.Q, scheme.N, scheme.R
     gradients = isnothing(pressuregradient) ? (0.0, 0.0) : pressuregradient
-    state = Flows.couple(U, P)
-    stages = isnothing(stagecache) ? nothing : Vector{typeof(state)}(undef, 3)
 
+    # The stage times are those used by Gibson's RungeKuttaDNS split.
     for j = 1:3
-        isnothing(stagecache) || (stages[j] = copy(state))
         tstage = t + (0.0, 1/3, 3/4)[j]*scheme.dt
+
+        # Evaluate the signed nonlinear acceleration and add any optional
+        # forcing. Both callbacks overwrite their output buffers.
         nonlinear(tstage, U, N)
         if !isnothing(forcing)
             forcing(tstage, U, R)
             N .+= R
         end
-        oldgradient = isnothing(bulkvelocity) ? gradients : _bulkpressuregradient(scheme, U, N)
+        oldgradient = isnothing(bulkvelocity) ? gradients :
+                      _bulkpressuregradient(scheme, U, N)
 
         # The first stage must overwrite Q: 0*uninitialised storage is unsafe,
         # and nonlinear history from the previous step must not survive.
@@ -157,6 +185,8 @@ function step!(          scheme::CNRK2{S, F},
             Q .= CNRK2_A[j] .* Q .+ N
         end
 
+        # Assemble the implicit Crank--Nicolson right-hand side. The previous
+        # pressure gradient is explicit; the new one is determined by solve!.
         lambda = inv(CNRK2_C[j]*scheme.dt)
         weight = CNRK2_B[j]/CNRK2_C[j]
         for (i, derivative!) in enumerate((ddx1!, ddx2!, ddx3!))
@@ -169,8 +199,9 @@ function step!(          scheme::CNRK2{S, F},
         R[3][1, 1, 1] -= oldgradient[2]
 
         gradients = solve!(scheme.solvers[j], U, P, R;
-                           pressuregradient=pressuregradient, bulkvelocity=bulkvelocity)
+                           pressuregradient=pressuregradient,
+                           bulkvelocity=bulkvelocity,
+                           baseflow=scheme.baseflow)
     end
-    isnothing(stagecache) || push!(stagecache, t, scheme.dt, Tuple(stages))
     return t+scheme.dt, gradients
 end

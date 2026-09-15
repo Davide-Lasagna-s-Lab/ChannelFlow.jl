@@ -66,18 +66,6 @@ function ddx3!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     return OUT
 end
 
-# function invlaplacian!(OUT::FTField{T, SIZE}, U::FTField{T, SIZE}) where {T, SIZE}
-#     @loop_jk n m OUT[_k, _j] = - U[_k, _j] / (j^2 + k^2)
-#     @inbounds OUT[WaveNumber(0, 0)] = 0
-#     return OUT
-# end
-
-# function invlaplacian!(OUT::FTField{T, SIZE}, U::FTField{T, SIZE}, c::Real) where {T, SIZE}
-#     @loop_jk n m OUT[_k, _j] = U[_k, _j] / (1 + c * (j^2 + k^2))
-#     @inbounds OUT[WaveNumber(0, 0)] = 0
-#     return OUT
-# end
-
 
 """
     laplacian!(OUT::S, U::S) where {S<:SpectralField}
