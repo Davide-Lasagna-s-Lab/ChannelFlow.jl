@@ -1,6 +1,6 @@
 import ChebyshevHelmoltzSolvers
 
-export InfluenceModeSolver, solve!
+export InfluenceModeSolver, MeanModeSolver, FourierStokesSolver, solve!
 
 """
     InfluenceModeSolver
@@ -32,110 +32,110 @@ struct InfluenceModeSolver{H, C}
                    kx::Float64          # physical streamwise wavenumber
                    kz::Float64          # physical spanwise wavenumber
                 cache::NTuple{4, C}     # real p, v, div(R), Ry for complex solves
-end
 
-"""
-    InfluenceModeSolver(Ny, kx, kz, nu, lambda)
+    """
+        InfluenceModeSolver(Ny, kx, kz, nu, lambda)
 
-Construct and factorise the pressure/velocity systems for a fixed Fourier mode
-and time-stepping coefficient. `Ny ≥ 3` is the odd number of Chebyshev
-coefficients, `kx` and `kz` are physical wavenumbers (including the factors
-`2π/Lx` and `2π/Lz`), `nu` is viscosity, and `lambda` is the temporal shift.
-The mode must be nonzero; its squared wavenumber is `kappa2 = kx² + kz²`.
+    Construct and factorise the pressure/velocity systems for a fixed Fourier mode
+    and time-stepping coefficient. `Ny ≥ 3` is the odd number of Chebyshev
+    coefficients, `kx` and `kz` are physical wavenumbers (including the factors
+    `2π/Lx` and `2π/Lz`), `nu` is viscosity, and `lambda` is the temporal shift.
+    The mode must be nonzero; its squared wavenumber is `kappa2 = kx² + kz²`.
 
-With `D = d/dy`, the scalar operators are `D² - kappa2` for pressure and
-`nu*D² - shift` for velocity, where `shift = lambda + nu*kappa2`. The stored
-`solver.lambda` is this full shift, matching the coefficient called
-`lambda_` in Channelflow's `TauSolver`.
+    With `D = d/dy`, the scalar operators are `D² - kappa2` for pressure and
+    `nu*D² - shift` for velocity, where `shift = lambda + nu*kappa2`. The stored
+    `solver.lambda` is this full shift, matching the coefficient called
+    `lambda_` in Channelflow's `TauSolver`.
 
-Precompute the wall influence responses and the auxiliary tau problem used by
-`TauSolver::solve_P_and_v`. An odd `Ny` makes the highest polynomial degree
-`P = Ny - 1` even, as required by the parity assignment in that correction.
-Rebuild the cache when the resolution, wavenumber, viscosity or shift changes.
+    Precompute the wall influence responses and the auxiliary tau problem used by
+    `TauSolver::solve_P_and_v`. An odd `Ny` makes the highest polynomial degree
+    `P = Ny - 1` even, as required by the parity assignment in that correction.
+    Rebuild the cache when the resolution, wavenumber, viscosity or shift changes.
 
-Throw `ArgumentError` for an unsupported `Ny`, the mean mode, or an
-influence matrix that fails the scale or relative-determinant checks.
-"""
-function InfluenceModeSolver(    Ny::Int,
-                                 kx::Real,
-                                 kz::Real,
-                                 nu::Real,
-                             lambda::Real)
-    Ny ≥ 3 && isodd(Ny) ||
-        throw(ArgumentError("Gibson's tau correction requires odd Ny ≥ 3"))
-    kx, kz = Float64(kx), Float64(kz)
-    kappa2 = kx^2 + kz^2
-    kappa2 > 0 ||
-        throw(ArgumentError("InfluenceModeSolver requires kappa2 > 0; handle the mean mode separately"))
+    Throw `ArgumentError` for an unsupported `Ny`, the mean mode, or an
+    influence matrix that fails the scale or relative-determinant checks.
+    """
+    function InfluenceModeSolver(    Ny::Int,
+                                     kx::Real,
+                                     kz::Real,
+                                     nu::Real,
+                                 lambda::Real)
+        Ny ≥ 3 && isodd(Ny) ||
+            throw(ArgumentError("Gibson's tau correction requires odd Ny ≥ 3"))
+        kx, kz = Float64(kx), Float64(kz)
+        kappa2 = kx^2 + kz^2
+        kappa2 > 0 ||
+            throw(ArgumentError("InfluenceModeSolver requires kappa2 > 0; handle the mean mode separately"))
 
-    P = Ny - 1
-    pressure = ChebyshevHelmoltzSolvers.HelmoltzSolver(P, Float64)
-    velocity = ChebyshevHelmoltzSolvers.HelmoltzSolver(P, Float64)
-    pplus, pminus, vplus, vminus, pzero, vzero, work =
-        ntuple(_ -> ChebyshevHelmoltzSolvers.ChebCoeffs(P, Float64), 7)
-    cache = ntuple(_ -> ChebyshevHelmoltzSolvers.ChebCoeffs(P, Float64), 4)
-    shift = Float64(lambda + nu*kappa2)
+        P = Ny - 1
+        pressure = ChebyshevHelmoltzSolvers.HelmoltzSolver(P, Float64)
+        velocity = ChebyshevHelmoltzSolvers.HelmoltzSolver(P, Float64)
+        pplus, pminus, vplus, vminus, pzero, vzero, work =
+            ntuple(_ -> ChebyshevHelmoltzSolvers.ChebCoeffs(P, Float64), 7)
+        cache = ntuple(_ -> ChebyshevHelmoltzSolvers.ChebCoeffs(P, Float64), 4)
+        shift = Float64(lambda + nu*kappa2)
 
-    ChebyshevHelmoltzSolvers.update!(pressure, 1, kappa2)
-    ChebyshevHelmoltzSolvers.update!(velocity, nu, shift)
+        ChebyshevHelmoltzSolvers.update!(pressure, 1, kappa2)
+        ChebyshevHelmoltzSolvers.update!(velocity, nu, shift)
 
-    # ChebCoeffs starts at zero. Each homogeneous pressure solution has a
-    # unit value at one wall and zero at the other; its derivative drives
-    # a velocity response with zero values at both walls.
-    # The backend takes boundary values in the order (+1, -1).
-    ChebyshevHelmoltzSolvers.solve!(pressure, pplus, 1, 0)
-    ChebyshevHelmoltzSolvers.diff!(work, pplus)
-    parent(vplus) .= parent(work)
-    ChebyshevHelmoltzSolvers.solve!(velocity, vplus, 0, 0)
+        # ChebCoeffs starts at zero. Each homogeneous pressure solution has a
+        # unit value at one wall and zero at the other; its derivative drives
+        # a velocity response with zero values at both walls.
+        # The backend takes boundary values in the order (+1, -1).
+        ChebyshevHelmoltzSolvers.solve!(pressure, pplus, 1, 0)
+        ChebyshevHelmoltzSolvers.diff!(work, pplus)
+        parent(vplus) .= parent(work)
+        ChebyshevHelmoltzSolvers.solve!(velocity, vplus, 0, 0)
 
-    ChebyshevHelmoltzSolvers.solve!(pressure, pminus, 0, 1)
-    ChebyshevHelmoltzSolvers.diff!(work, pminus)
-    parent(vminus) .= parent(work)
-    ChebyshevHelmoltzSolvers.solve!(velocity, vminus, 0, 0)
+        ChebyshevHelmoltzSolvers.solve!(pressure, pminus, 0, 1)
+        ChebyshevHelmoltzSolvers.diff!(work, pminus)
+        parent(vminus) .= parent(work)
+        ChebyshevHelmoltzSolvers.solve!(velocity, vminus, 0, 0)
 
-    # Rows select v'(+1), v'(-1); columns select the plus/minus response.
-    # Multiplying this matrix by the two pressure amplitudes gives the
-    # resulting change in the wall-normal velocity derivative at the walls.
-    influence = [
-        ChebyshevHelmoltzSolvers.endpoint_derivative(vplus, :right) ChebyshevHelmoltzSolvers.endpoint_derivative(vminus, :right)
-        ChebyshevHelmoltzSolvers.endpoint_derivative(vplus, :left)  ChebyshevHelmoltzSolvers.endpoint_derivative(vminus, :left)
-    ]
+        # Rows select v'(+1), v'(-1); columns select the plus/minus response.
+        # Multiplying this matrix by the two pressure amplitudes gives the
+        # resulting change in the wall-normal velocity derivative at the walls.
+        influence = [
+            ChebyshevHelmoltzSolvers.endpoint_derivative(vplus, :right) ChebyshevHelmoltzSolvers.endpoint_derivative(vminus, :right)
+            ChebyshevHelmoltzSolvers.endpoint_derivative(vplus, :left)  ChebyshevHelmoltzSolvers.endpoint_derivative(vminus, :left)
+        ]
 
-    # Scale before checking the determinant: small response amplitudes alone
-    # do not imply singularity. Undo the scaling when caching the inverse.
-    scale = maximum(abs, influence)
-    isfinite(scale) && scale > 0 ||
-        throw(ArgumentError("the influence matrix has no finite nonzero scale"))
-    influence ./= scale
-    A, B = influence[1, 1], influence[1, 2]
-    C, D = influence[2, 1], influence[2, 2]
-    detA = A*D - B*C
-    abs(detA) > eps(Float64)*max(abs(A*D), abs(B*C)) ||
-        throw(ArgumentError("the influence matrix is numerically singular"))
-    influence_inverse = [D -B; -C A] ./ detA ./ scale
+        # Scale before checking the determinant: small response amplitudes alone
+        # do not imply singularity. Undo the scaling when caching the inverse.
+        scale = maximum(abs, influence)
+        isfinite(scale) && scale > 0 ||
+            throw(ArgumentError("the influence matrix has no finite nonzero scale"))
+        influence ./= scale
+        A, B = influence[1, 1], influence[1, 2]
+        C, D = influence[2, 1], influence[2, 2]
+        detA = A*D - B*C
+        abs(detA) > eps(Float64)*max(abs(A*D), abs(B*C)) ||
+            throw(ArgumentError("the influence matrix is numerically singular"))
+        influence_inverse = [D -B; -C A] ./ detA ./ scale
 
-    # Gibson's auxiliary B0 problem uses (T_{P-1} + T_P)' as the pressure
-    # source. Both parities fit in one pair (pzero, vzero), so each of the
-    # two momentum tau terms can later be corrected independently.
-    fill!(parent(work), 0)
-    work[P-1] = work[P] = 1
-    ChebyshevHelmoltzSolvers.diff!(pzero, work)
-    ChebyshevHelmoltzSolvers.solve!(pressure, pzero, 0, 0)
-    ChebyshevHelmoltzSolvers.diff!(vzero, pzero)
-    dPzeroNm1 = vzero[P-1]
-    ChebyshevHelmoltzSolvers.solve!(velocity, vzero, 0, 0)
+        # Gibson's auxiliary B0 problem uses (T_{P-1} + T_P)' as the pressure
+        # source. Both parities fit in one pair (pzero, vzero), so each of the
+        # two momentum tau terms can later be corrected independently.
+        fill!(parent(work), 0)
+        work[P-1] = work[P] = 1
+        ChebyshevHelmoltzSolvers.diff!(pzero, work)
+        ChebyshevHelmoltzSolvers.solve!(pressure, pzero, 0, 0)
+        ChebyshevHelmoltzSolvers.diff!(vzero, pzero)
+        dPzeroNm1 = vzero[P-1]
+        ChebyshevHelmoltzSolvers.solve!(velocity, vzero, 0, 0)
 
-    solver = InfluenceModeSolver(pressure, velocity, pplus, pminus,
-                                 vplus, vminus, influence_inverse,
-                                 pzero, vzero, zeros(2), shift, work, kx, kz, cache)
-    _influence_correction!(solver, pzero, vzero)
+        solver = new{typeof(pressure), typeof(pplus)}(
+            pressure, velocity, pplus, pminus, vplus, vminus, influence_inverse,
+            pzero, vzero, zeros(2), shift, work, kx, kz, cache)
+        _influence_correction!(solver, pzero, vzero)
 
-    # Match Gibson's constructor: retain pzero' from BEFORE the influence
-    # correction, but use the corrected vzero. At degrees P-1 and P,
-    # vzero'' vanishes; at degree P, pzero' also vanishes.
-    solver.sigma0[1] = shift*vzero[P-1] + dPzeroNm1
-    solver.sigma0[2] = shift*vzero[P]
-    return solver
+        # Match Gibson's constructor: retain pzero' from BEFORE the influence
+        # correction, but use the corrected vzero. At degrees P-1 and P,
+        # vzero'' vanishes; at degree P, pzero' also vanishes.
+        solver.sigma0[1] = shift*vzero[P-1] + dPzeroNm1
+        solver.sigma0[2] = shift*vzero[P]
+        return solver
+    end
 end
 
 """
@@ -297,4 +297,249 @@ function solve!(solver::InfluenceModeSolver{H, C},
         v[n] += (iseven(n) ? sigmaN : sigmaNm1) * solver.velocity_zero[n]
     end
     return p, v
+end
+
+"""
+    _bulkmean(a::ChebyshevHelmoltzSolvers.ChebCoeffs)
+
+Return `integral(a(y), y=-1:1)/2` from ordinary Chebyshev coefficients.
+Only even degrees contribute: the mean of `T_n` is `1/(1-n²)` for even `n`.
+"""
+function _bulkmean(a::ChebyshevHelmoltzSolvers.ChebCoeffs)
+    value = a[0]
+    for n = 2:2:length(a)-1
+        value += a[n]/(1-n^2)
+    end
+    return value
+end
+
+"""
+    MeanModeSolver(Ny, nu, lambda)
+
+Cache the `(kx, kz) = (0, 0)` Stokes solve on `[-1, 1]`, with homogeneous
+velocity wall values. `Ny ≥ 3` is the coefficient count, `nu > 0` the
+viscosity and `lambda ≥ 0` the temporal shift; both parameters must be finite.
+
+One real Helmholtz factorisation serves both horizontal velocities and both
+parts of their complex coefficients. Cache the response `c` to
+`(nu*D² - lambda)c = 1`, with `c(±1) = 0`, and its bulk mean. This response
+allows a prescribed flux to be imposed without another Helmholtz solve.
+Rebuild the cache when any constructor argument changes.
+"""
+struct MeanModeSolver{H, C}
+         velocity::H
+         response::C
+    response_mean::Float64
+             work::C
+
+    function MeanModeSolver(    Ny::Int,
+                                nu::Real,
+                            lambda::Real)
+        Ny ≥ 3 || throw(ArgumentError("at least three Chebyshev coefficients are required"))
+        nu, lambda = Float64(nu), Float64(lambda)
+        isfinite(nu) && nu > 0 || throw(ArgumentError("nu must be finite and positive"))
+        isfinite(lambda) && lambda ≥ 0 ||
+            throw(ArgumentError("lambda must be finite and nonnegative"))
+
+        velocity = ChebyshevHelmoltzSolvers.HelmoltzSolver(Ny-1, Float64)
+        ChebyshevHelmoltzSolvers.update!(velocity, nu, lambda)
+        response = ChebyshevHelmoltzSolvers.ChebCoeffs(Ny-1, Float64)
+        work = similar(response)
+        response[0] = 1
+        ChebyshevHelmoltzSolvers.solve!(velocity, response, 0, 0)
+        response_mean = _bulkmean(response)
+        isfinite(response_mean) && response_mean != 0 ||
+            throw(ArgumentError("the uniform-gradient response has no finite nonzero bulk mean"))
+        return new{typeof(velocity), typeof(response)}(
+            velocity, response, response_mean, work)
+    end
+end
+
+"""
+    solve!(solver::MeanModeSolver, u, v, w, p, Rx, Ry, Rz;
+           pressuregradient=nothing, bulkvelocity=nothing)
+
+Overwrite the zero Fourier mode, solving
+```text
+(lambda - nu*D²)u + dPdx = Rx,
+(lambda - nu*D²)w + dPdz = Rz,
+v = 0,  Dp = Ry,  u(±1) = w(±1) = 0.
+```
+Return `(dPdx, dPdz)`. Set `pressuregradient=(dPdx, dPdz)` to prescribe the
+two uniform pressure derivatives, or `bulkvelocity=(umean, wmean)` to infer
+them from the two bulk velocities. These options are mutually exclusive;
+omitting both selects zero pressure gradient. The gradients appear with a
+plus sign on the momentum left-hand side, so a negative `dPdx` drives flow
+in the positive streamwise direction.
+
+The velocities and bulk targets refer to the perturbation. The caller must
+subtract the base-flow bulk mean from a total-flow target and include base
+flow contributions in `R`. No base profile is added by this modal solver.
+
+Reconstruct `p` by integrating `Ry` through degree `P-1`, with `P = Ny-1`,
+and impose zero bulk mean on `p`. Degree `P` of `Ry` is the normal-momentum
+tau residual: representing its integral would require degree `P+1`.
+Pressure wall values are determined by momentum, not prescribed.
+
+All seven fields must be `ChebCoeffs{ComplexF64}` of the solver's degree and
+the same concrete storage type. Preserve the sources; outputs must have
+distinct storage and must not overlap inputs or solver workspaces. For real
+physical fields the zero-mode coefficients are real. Real and imaginary
+parts are solved separately; bulk constraints apply to the real part.
+The factorisation and response are reused; calls must not run concurrently.
+"""
+function solve!(          solver::MeanModeSolver,
+                               u::Z,
+                               v::Z,
+                               w::Z,
+                               p::Z,
+                              Rx::Z,
+                              Ry::Z,
+                              Rz::Z;
+                pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
+                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {Z<:ChebyshevHelmoltzSolvers.ChebCoeffs{ComplexF64}}
+    length(p) == length(solver.work) ||
+        throw(DimensionMismatch("mode coefficients must match the solver's degree"))
+    isnothing(pressuregradient) || isnothing(bulkvelocity) ||
+        throw(ArgumentError("specify either pressuregradient or bulkvelocity"))
+
+    # Integrate the retained normal source. Omitting Ry[P] avoids feeding
+    # its unrepresentable degree-P+1 integral back into lower coefficients.
+    P = length(p) - 1
+    for n = 1:P
+        lower = n == 1 ? Ry[0] : Ry[n-1]/2
+        upper = n+1 < P ? Ry[n+1]/2 : zero(eltype(Ry))
+        p[n] = (lower-upper)/n
+    end
+    p[0] = 0
+    p[0] = -_bulkmean(p)
+    fill!(parent(v), 0)
+
+    gradients = isnothing(pressuregradient) ? (0.0, 0.0) : pressuregradient
+    return ntuple(2) do i
+        out, source = i == 1 ? (u, Rx) : (w, Rz)
+        for part in (real, imag)
+            parent(solver.work) .= .-part.(parent(source))
+            ChebyshevHelmoltzSolvers.solve!(solver.velocity, solver.work, 0, 0)
+            if part === real
+                parent(out) .= parent(solver.work)
+            else
+                parent(out) .+= im .* parent(solver.work)
+            end
+        end
+
+        # Superpose the cached unit-gradient response. For a bulk target,
+        # its mean gives the scalar constraint on the unknown gradient.
+        gradient = isnothing(bulkvelocity) ? gradients[i] :
+                   (bulkvelocity[i]-real(_bulkmean(out)))/solver.response_mean
+        parent(out) .+= gradient .* parent(solver.response)
+        return gradient
+    end
+end
+
+"""
+    FourierStokesSolver(grid, nu, lambda)
+
+Cache the serial primitive-variable Stokes solve for all resolved Fourier
+modes on `grid`. `nu` is viscosity and `lambda` the temporal shift, as in
+[`InfluenceModeSolver`](@ref) and [`MeanModeSolver`](@ref).
+
+Store a separate mean-mode solver and an influence solver for each active
+nonzero mode. `modes[ix, iz]` follows the FFT storage order: nonnegative `kx`,
+then positive and negative `kz` in their FFT slots. The mean and excluded
+Nyquist slots contain `nothing`; they allocate no influence systems.
+Physical wavenumbers include `2π/Lx` and `2π/Lz`.
+
+Require odd `Ny ≥ 3`, positive periodic sizes and finite positive `Lx, Lz`.
+Rebuild when the grid, viscosity or temporal shift changes. Factors and
+workspaces are reused, so one instance must not be used concurrently.
+"""
+struct FourierStokesSolver{G, S, M}
+     grid::G
+    modes::S
+     mean::M
+
+    function FourierStokesSolver(  grid::Grid,
+                                    nu::Real,
+                                lambda::Real)
+        Ny, Nx, Nz = physicalsize(grid, NotPadded())
+        Lx, _, Lz = domainsize(grid)
+        isodd(Ny) || throw(ArgumentError("Gibson's tau correction requires odd Ny"))
+        Nx > 0 && Nz > 0 || throw(ArgumentError("Nx and Nz must be positive"))
+        isfinite(Lx) && isfinite(Lz) && Lx > 0 && Lz > 0 ||
+            throw(ArgumentError("Lx and Lz must be finite and positive"))
+
+        mean = MeanModeSolver(Ny, nu, lambda)
+        _, Nxh, _ = spectralsize(grid, NotPadded())
+        modes = [if (ix == 1 && iz == 1) ||
+                    (iseven(Nx) && ix == Nxh) ||
+                    (iseven(Nz) && iz == (Nz >> 1)+1)
+                     nothing
+                 else
+                     kx = (2π/Lx)*(ix-1)
+                     kz = (2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
+                     InfluenceModeSolver(Ny, kx, kz, nu, lambda)
+                 end for ix = 1:Nxh, iz = 1:Nz]
+        return new{typeof(grid), typeof(modes), typeof(mean)}(grid, modes, mean)
+    end
+end
+
+"""Wrap Fourier slot `(ix, iz)` as Chebyshev coefficients without copying data."""
+_chebcolumn(U::SpectralField, ix::Int, iz::Int) =
+    ChebyshevHelmoltzSolvers.ChebCoeffs(view(parent(U), :, ix, iz))
+
+"""
+    solve!(solver::FourierStokesSolver, U, P, R;
+           pressuregradient=nothing, bulkvelocity=nothing)
+
+Overwrite the perturbation velocity `U::VectorField` and pressure
+`P::SpectralField` from the momentum source `R::VectorField`. All component
+fields must store `ComplexF64` coefficients on the solver's grid, with the
+resolved size `spectralsize(grid, NotPadded())`.
+
+Apply the modal Stokes systems through views of contiguous Chebyshev columns.
+Treat the mean separately and set all output Nyquist planes to zero. Sources
+are preserved, including excluded modes. Outputs must have distinct storage
+and must not overlap inputs or solver workspaces. Input spectra must satisfy
+the conjugate symmetry required for real physical fields.
+
+Return `(dPdx, dPdz)`. The mutually exclusive keywords have the same meaning
+as in [`solve!(::MeanModeSolver, u, v, w, p, Rx, Ry, Rz)`](@ref), except that
+`bulkvelocity=(Ubulk, Wbulk)` specifies TOTAL bulk velocities here. Subtract
+the streamwise base-flow mean stored in `grid` to obtain the perturbation
+target; the current base profile has no spanwise component.
+
+The stage assembly remains responsible for placing base-flow viscous terms
+and any explicit forcing in `R`. This solve does not add them or advance time.
+"""
+function solve!(          solver::FourierStokesSolver,
+                               U::VectorField{F},
+                               P::F,
+                               R::VectorField{F};
+                pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
+                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {F<:SpectralField{Float64}}
+    fields = (U.components..., P, R.components...)
+    expected = spectralsize(solver.grid, NotPadded())
+    for field in fields
+        grid(field) === solver.grid || throw(ArgumentError("fields must use the solver's grid"))
+        size(field) == expected || throw(DimensionMismatch("fields must have the resolved spectral size"))
+    end
+
+    # Only the mean mode sees the uniform pressure gradient or bulk target.
+    target = isnothing(bulkvelocity) ? nothing :
+             (bulkvelocity[1] - _bulkmean(ChebyshevHelmoltzSolvers.ChebCoeffs(baseflow(solver.grid))),
+              bulkvelocity[2])
+    gradients = solve!(solver.mean, map(field -> _chebcolumn(field, 1, 1), fields)...;
+                       pressuregradient=pressuregradient, bulkvelocity=target)
+
+    _, Nxh, Nz = expected
+    for iz = 1:Nz, ix = 1:Nxh
+        mode = solver.modes[ix, iz]
+        isnothing(mode) && continue
+        solve!(mode, map(field -> _chebcolumn(field, ix, iz), fields)...)
+    end
+    for field in (U.components..., P)
+        zero_nyquist!(field)
+    end
+    return gradients
 end

@@ -15,6 +15,9 @@ VectorField(u::F) where {F<:AbstractField} =
 """Allocate a `VectorField` similar to `U`."""
 Base.similar(U::VectorField) = VectorField(U[1])
 
+"""Copy all three components, retaining the grid and owning independent data."""
+Base.copy(U::VectorField) = VectorField(map(copy, U.components))
+
 """
     Base.getindex(U::VectorField, i::Int)
 
@@ -30,9 +33,18 @@ Base.broadcastable(U::VectorField) = U
 struct VectorFieldStyle <: Base.Broadcast.AbstractArrayStyle{1} end
 Base.BroadcastStyle(::Type{<:VectorField}) = VectorFieldStyle()
 
+# Scalar RK coefficients preserve the component-wise vector-field broadcast.
+Base.BroadcastStyle(::VectorFieldStyle, ::Base.Broadcast.DefaultArrayStyle{0}) = VectorFieldStyle()
+
 """Fuse the scalar broadcast within each component; scalar arguments are shared."""
 function Base.Broadcast.materialize!(dest::VectorField,
                                        bc::Base.Broadcast.Broadcasted{<:VectorFieldStyle})
+    return copyto!(dest, bc)
+end
+
+"""Evaluate a component-wise broadcast, including unpacked Flows.Coupled expressions."""
+function Base.copyto!(dest::VectorField,
+                       bc::Base.Broadcast.Broadcasted)
     bc_ = Base.Broadcast.flatten(bc)
     for i = 1:3
         args = map(arg -> arg isa VectorField ? arg[i] : arg, bc_.args)

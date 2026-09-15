@@ -15,6 +15,15 @@ end
 derivative(a) = diff!(similar(a), a)
 wallvalue(a, side) = sum(a[n]*(side == :right ? 1 : (-1)^n) for n = 0:length(a)-1)
 
+# Independent Gauss--Legendre quadrature of the polynomial, rather than
+# the coefficient formula used by the solver's bulk constraint.
+function bulkmean(a)
+    N = length(a)
+    nodes, vectors = eigen(SymTridiagonal(zeros(N), [n/sqrt(4n^2-1) for n = 1:N-1]))
+    return sum(vectors[1, j]^2 * sum(a[n]*cos(n*acos(nodes[j])) for n = 0:N-1)
+               for j = 1:N)
+end
+
 @testset "VectorField broadcast" begin
     grid = Grid(9, 4, 4, 2π, 2π, y -> 0.0)
     prototype = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
@@ -24,6 +33,11 @@ wallvalue(a, side) = sum(a[n]*(side == :right ? 1 : (-1)^n) for n = 0:length(a)-
     end
     A .= B
     @test all(parent(A[i]) == parent(B[i]) for i = 1:3)
+    A .= 2 .* B .- B
+    @test all(parent(A[i]) == parent(B[i]) for i = 1:3)
+    A .= B .* 2
+    @test all(parent(A[i]) == 2 .* parent(B[i]) for i = 1:3)
+    A .= B
     A .-= B
     @test all(iszero, (norm(parent(A[i])) for i = 1:3))
 end
@@ -119,3 +133,95 @@ end
     wrong = ntuple(_ -> ChebCoeffs(8, ComplexF64), 7)
     @test_throws DimensionMismatch solve!(solver, wrong...)
 end
+
+@testset "Mean Fourier mode" begin
+    @test_throws ArgumentError MeanModeSolver(2, 0.03, 2.5)
+    @test_throws ArgumentError MeanModeSolver(9, 0, 2.5)
+    @test_throws ArgumentError MeanModeSolver(9, 0.03, -1)
+    @test_throws ArgumentError MeanModeSolver(9, Inf, 2.5)
+    @test_throws ArgumentError MeanModeSolver(9, 0.03, NaN)
+
+    for Ny in (9, 16, 33), lambda in (0.0, 2.5)
+        @testset "Ny=$Ny, lambda=$lambda" begin
+            nu = 0.03
+            solver = MeanModeSolver(Ny, nu, lambda)
+            gradients, means = (-0.7, 0.3), (0.48, -0.2)
+            ufun(y) = (1-y^2)*(0.7+0.2y+0.1y^2)
+            wfun(y) = (1-y^2)*(-0.3+0.15y)
+            pfun(y) = y+0.4*(y^2-1/3)+0.2y^3
+            Rx = coefficients(y -> lambda*ufun(y)+nu*(1.2+1.2y+1.2y^2)+gradients[1], Ny)
+            Ry = coefficients(y -> 1+0.8y+0.6y^2, Ny)
+            Rz = coefficients(y -> lambda*wfun(y)-nu*(0.6-0.9y)+gradients[2], Ny)
+            source = map(x -> copy(parent(x)), (Rx, Ry, Rz))
+            response = copy(parent(solver.response))
+            u, v, w, p = ntuple(_ -> ChebCoeffs(Ny-1, ComplexF64), 4)
+
+            for _ = 1:2, fixedbulk in (false, true)
+                actual = fixedbulk ? solve!(solver, u, v, w, p, Rx, Ry, Rz; bulkvelocity=means) :
+                                     solve!(solver, u, v, w, p, Rx, Ry, Rz; pressuregradient=gradients)
+                @test all(abs.(actual .- gradients) .< 2e-11)
+                for (field, exact) in zip((u, w, p), (ufun, wfun, pfun))
+                    @test norm(parent(field)-parent(coefficients(exact, Ny)), Inf) < 2e-10
+                end
+                @test all(iszero, v)
+                @test abs(bulkmean(p)) < 2e-12
+                @test bulkmean(u) ≈ means[1] atol=2e-11
+                @test bulkmean(w) ≈ means[2] atol=2e-11
+                @test norm(parent(derivative(p))-parent(Ry), Inf) < 2e-10
+                for (field, rhs, gradient) in ((u, Rx, actual[1]), (w, Rz, actual[2]))
+                    residual = lambda .* parent(field) .-
+                               nu .* parent(derivative(derivative(field))) .- parent(rhs)
+                    residual[1] += gradient
+                    @test norm(residual[1:Ny-2], Inf) < 2e-10
+                    @test abs(wallvalue(field, :right)) < 2e-11
+                    @test abs(wallvalue(field, :left)) < 2e-11
+                end
+                @test map(parent, (Rx, Ry, Rz)) == source
+                @test parent(solver.response) == response
+            end
+        end
+    end
+
+    # Fourier-column views and high-degree, complex forcing exercise both
+    # real-factor passes and the pressure truncation at the last coefficient.
+    Ny, nu, lambda = 17, 0.03, 2.5
+    solver = MeanModeSolver(Ny, nu, lambda)
+    data = zeros(ComplexF64, Ny, 7)
+    u, v, w, p, Rx, Ry, Rz = ntuple(i -> ChebCoeffs(view(data, :, i)), 7)
+    @test solve!(solver, u, v, w, p, Rx, Ry, Rz) == (0.0, 0.0)
+    @test all(iszero, data)
+    for (i, rhs) in enumerate((Rx, Ry, Rz)), n = 0:Ny-1
+        rhs[n] = complex(sin(i*(n+1)), cos((i+1)*(n+1)))/(n+1)^2
+    end
+    source = copy(data[:, 5:7])
+    gradients = solve!(solver, u, v, w, p, Rx, Ry, Rz; bulkvelocity=(0.2, -0.1))
+    @test real(bulkmean(u)) ≈ 0.2 atol=2e-12
+    @test real(bulkmean(w)) ≈ -0.1 atol=2e-12
+    @test abs(bulkmean(p)) < 2e-12
+    @test all(iszero, v)
+    normal = parent(derivative(p))-parent(Ry)
+    @test norm(normal[1:Ny-1], Inf) < 2e-11
+    @test normal[end] ≈ -Ry[Ny-1] atol=2e-12
+    for (field, rhs, gradient) in ((u, Rx, gradients[1]), (w, Rz, gradients[2]))
+        residual = lambda .* parent(field) .-
+                   nu .* parent(derivative(derivative(field))) .- parent(rhs)
+        residual[1] += gradient
+        @test norm(residual[1:Ny-2], Inf) < 2e-10
+        @test abs(wallvalue(field, :right)) < 2e-11
+        @test abs(wallvalue(field, :left)) < 2e-11
+    end
+    @test data[:, 5:7] == source
+    @test_throws ArgumentError solve!(solver, u, v, w, p, Rx, Ry, Rz;
+                                      pressuregradient=(0, 0), bulkvelocity=(0, 0))
+    wrong = ntuple(_ -> ChebCoeffs(8, ComplexF64), 7)
+    @test_throws DimensionMismatch solve!(solver, wrong...)
+
+    # The smallest mean-mode system recovers steady plane Poiseuille flow.
+    small = ntuple(_ -> ChebCoeffs(2, ComplexF64), 7)
+    gradients = solve!(MeanModeSolver(3, nu, 0), small...; bulkvelocity=(2/3, 0))
+    @test all(abs.(gradients .- (-2nu, 0)) .< 2e-12)
+    @test parent(small[1]) ≈ [0.5, 0, -0.5]
+end
+
+include("test_fourierstokes.jl")
+include("test_timestepping.jl")

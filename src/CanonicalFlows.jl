@@ -1,5 +1,7 @@
 module CanonicalFlows
 
+import Flows
+
 include("grids.jl")
 
 # basic scalar fields
@@ -16,5 +18,7 @@ include("gradientfield.jl")
 include("ffts.jl")
 include("explicit.jl")
 include("helmoltz.jl")
+include("timestepping.jl")
+include("channelflow.jl")
 
 end
