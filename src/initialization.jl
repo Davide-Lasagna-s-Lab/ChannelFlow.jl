@@ -2,6 +2,10 @@ import Random
 
 export zero_state, random_state, project!
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                         ZERO STATE ALLOCATION                          ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     zero_state(grid::Grid)
 
@@ -11,6 +15,10 @@ function zero_state(grid::Grid)
     P = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
     return State(VectorField(P), P)
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                     RANDOM VELOCITY INITIALIZATION                     ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     random_state(grid::Grid; amplitude=1, rng=Random.default_rng())
@@ -33,6 +41,10 @@ function random_state(grid::Grid;
     end
     return project!(U)
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                   DIVERGENCE-FREE NO-SLIP PROJECTION                   ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     project!(U::VectorField; bulkvelocity=nothing)

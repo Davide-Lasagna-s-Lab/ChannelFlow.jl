@@ -1,5 +1,9 @@
 export PhysicalField
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                PHYSICAL FIELD STORAGE AND CONSTRUCTION                 ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     PhysicalField(grid, [T=Float64])
 
@@ -36,6 +40,10 @@ end
 PhysicalField(grid::Grid, ::Type{T}=Float64) where {T<:AbstractFloat} =
     PhysicalField(grid, (x, y, z) -> zero(T), T)
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                     ARRAY INTERFACE AND ALLOCATION                     ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """Return an independent copy of `u` on the same grid."""
 Base.copy(   u::PhysicalField) = PhysicalField(   copy(parent(u)), grid(u))
 
@@ -69,6 +77,10 @@ Base.size(u::PhysicalField) = size(parent(u))
 
 """Return the array storing the values of `u`."""
 Base.parent(u::PhysicalField) = u.data
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                         IN-PLACE BROADCASTING                          ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 const PhysicalFieldStyle = Broadcast.ArrayStyle{PhysicalField}
 

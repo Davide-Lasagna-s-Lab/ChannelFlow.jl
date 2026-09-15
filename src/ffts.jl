@@ -2,11 +2,19 @@ import FFTW
 
 export ForwardFFT!, InverseFFT!
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                   FOURIER-CHEBYSHEV TRANSFORM LAYOUT                   ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 # Array storage is `(y,x,z)`. FFTW applies the real transform along the first
 # entry and complex transforms along the remaining entries. Using `(2,3)`
 # therefore gives an rfft in x and a full FFT in z. A separate DCT-I in the
 # first dimension converts Lobatto values to/from Chebyshev coefficients.
 const FFT_DIMS = (2, 3)
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                           FORWARD TRANSFORM                            ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     ForwardFFT!(u; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
@@ -82,6 +90,10 @@ function (fft::ForwardFFT!)(GRAD::GradientField,
     return GRAD
 end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                           INVERSE TRANSFORM                            ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     InverseFFT!(U; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
@@ -151,6 +163,10 @@ function (ifft::InverseFFT!)(grad::GradientField,
     return grad
 end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                     FOURIER PADDING AND TRUNCATION                     ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     copy_to_padded!(dest, src)
 
@@ -190,6 +206,10 @@ function _complex_mode_ranges(N::Integer, Np::Integer)
     padded_negative = (Np - length(negative) + 1):Np
     return positive, negative, padded_negative
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                         NYQUIST MODE FILTERING                         ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     zero_nyquist!(U)

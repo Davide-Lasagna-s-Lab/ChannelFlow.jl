@@ -1,3 +1,7 @@
+#//////////////////////////////////////////////////////////////////////////////#
+#///                        DIRECT CHANNEL TIME STEP                        ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """Advance a channel state with its configured CNRK2 scheme."""
 function step!(channel::ChannelFlow,
                state::State{VectorField{F}, F},
@@ -5,6 +9,10 @@ function step!(channel::ChannelFlow,
     return step!(channel.scheme, channel.nlterm, velocity(state), pressure(state), t;
                  forcing=channel.forcing, channel.constraint...)
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                      FLOWS TIME-STEPPING ADAPTER                       ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """Bridge the Flows stepping interface to the pressure-coupled DNS stages."""
 function Flows.step!(scheme::CNRK2{S, F, B, C},

@@ -1,5 +1,9 @@
 export ChannelFlow
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                 CHANNEL CONFIGURATION AND CONSTRUCTION                 ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     ChannelFlow(grid, profile, nu, dt;
                 form=ConvectiveForm(), forcing=nothing,
@@ -89,6 +93,10 @@ struct ChannelFlow{G, B, NL, S, F, C}
             grid, baseflow, nlterm, scheme, forcing, constraint)
     end
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                      FLOWS INTEGRATION INTERFACE                       ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     Flows.flow(channel::ChannelFlow)

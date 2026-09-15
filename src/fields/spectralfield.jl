@@ -1,5 +1,9 @@
 export SpectralField
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                SPECTRAL FIELD STORAGE AND CONSTRUCTION                 ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     SpectralField(data, grid)
 
@@ -19,6 +23,10 @@ struct SpectralField{T<:AbstractFloat,
         T<:AbstractFloat, A<:DenseArray{Complex{T}, 3}, G<:Grid} =
         new{T, A, G}(data, grid)
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                     ARRAY INTERFACE AND ALLOCATION                     ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 # Accessor functions
 grid(U::SpectralField) = U.grid
@@ -48,6 +56,10 @@ Base.size(U::SpectralField) = size(parent(U))
 
 # get underlying storage
 Base.parent(U::SpectralField) = U.data
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                         IN-PLACE BROADCASTING                          ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 # overload the broadcasting machinery
 const SpectralFieldStyle = Broadcast.ArrayStyle{SpectralField}

@@ -1,6 +1,9 @@
 export NonLinearTerm, RotatingForm
 
-# -------------------------------------------------------------------------------- #
+#//////////////////////////////////////////////////////////////////////////////#
+#///                          NONLINEAR FORM TAGS                           ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 # Abstract type representing the form used to calculate the nonlinear term.
 abstract type NonlinearityForm end
 
@@ -9,8 +12,10 @@ struct DivergenceForm  <: NonlinearityForm end
 struct AlternatingForm <: NonlinearityForm end
 struct RotatingForm    <: NonlinearityForm end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                    NONLINEAR OPERATOR CONSTRUCTION                     ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
-# -------------------------------------------------------------------------------- #
 # Functor type that evaluates the nonlinear term of the governing equations
 # using a pseudo-spectral approach
 
@@ -56,8 +61,9 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B}
     end
 end
 
-# -------------------------------------------------------------------------------- #
-# Form-specific caches
+#//////////////////////////////////////////////////////////////////////////////#
+#///                          FORM-SPECIFIC CACHES                          ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 function _gencache( ::ConvectiveForm,
                    u::PhysicalField{T},
@@ -96,8 +102,9 @@ function _gencache( ::RotatingForm,
             VectorField(U))
 end
 
-# -------------------------------------------------------------------------------- #
-# Convective form
+#//////////////////////////////////////////////////////////////////////////////#
+#///                            CONVECTIVE FORM                             ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     Eq(t, U, dUdt, add=false)
@@ -148,8 +155,9 @@ function _convectiveform!(  Eq::NonLinearTerm,
     return _store_rhs!(dUdt, TMP, add, -1)
 end
 
-# -------------------------------------------------------------------------------- #
-# Divergence form
+#//////////////////////////////////////////////////////////////////////////////#
+#///                            DIVERGENCE FORM                             ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 function (Eq::NonLinearTerm{T, DivergenceForm})(   t::Real,
                                                    U::VectorField{S},
@@ -189,8 +197,9 @@ function _divergenceform!(  Eq::NonLinearTerm,
     return _store_rhs!(dUdt, N, add, -1)
 end
 
-# -------------------------------------------------------------------------------- #
-# Alternating form
+#//////////////////////////////////////////////////////////////////////////////#
+#///                            ALTERNATING FORM                            ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 function (Eq::NonLinearTerm{T, AlternatingForm})(   t::Real,
                                                     U::VectorField{S},
@@ -208,8 +217,9 @@ function _alternatingform!(  Eq::NonLinearTerm,
     return Eq.flag[] ? _divergenceform!(Eq, U, dUdt, add) : _convectiveform!(Eq, U, dUdt, add)
 end
 
-# -------------------------------------------------------------------------------- #
-# Rotating form
+#//////////////////////////////////////////////////////////////////////////////#
+#///                             ROTATING FORM                              ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     Eq(t, U, dUdt, add=false)  # Eq with RotatingForm()
@@ -257,6 +267,10 @@ function _rotatingform!(  Eq::NonLinearTerm,
     Eq.fft(TMP, n)
     return _store_rhs!(dUdt, TMP, add, 1)
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                      SIGNED MOMENTUM CONTRIBUTION                      ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """Write or accumulate the signed spectral vector contribution in `dUdt`."""
 function _store_rhs!(dUdt::VectorField{S},

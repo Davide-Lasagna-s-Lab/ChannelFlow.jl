@@ -1,5 +1,9 @@
 export ddx1!, ddx2!, ddx3!
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                     STREAMWISE FOURIER DERIVATIVE                      ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     ddx1!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
 
@@ -17,6 +21,10 @@ function ddx1!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     end
     return OUT
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                    WALL-NORMAL CHEBYSHEV DERIVATIVE                    ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     ddx2!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
@@ -48,6 +56,10 @@ function ddx2!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     return OUT
 end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                      SPANWISE FOURIER DERIVATIVE                       ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     ddx3!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
 
@@ -66,6 +78,9 @@ function ddx3!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     return OUT
 end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                      FOURIER-CHEBYSHEV LAPLACIAN                       ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     laplacian!(OUT::S, U::S) where {S<:SpectralField}

@@ -2,6 +2,10 @@ import ChebyshevHelmoltzSolvers
 
 export InfluenceModeSolver, MeanModeSolver, FourierStokesSolver, solve!
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                NONZERO MODE FACTORIZATION AND RESPONSES                ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     InfluenceModeSolver
 
@@ -138,6 +142,10 @@ struct InfluenceModeSolver{H, C}
     end
 end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                       WALL INFLUENCE CORRECTION                        ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """
     _influence_correction!(solver, p, v)
 
@@ -169,6 +177,10 @@ function _influence_correction!(solver::InfluenceModeSolver{H, C},
                   δ₋ .* parent(solver.velocity_minus)
     return p, v
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                       NONZERO MODE STOKES SOLVES                       ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     solve!(solver::InfluenceModeSolver, u, v, w, p, Rx, Ry, Rz)
@@ -298,6 +310,10 @@ function solve!(solver::InfluenceModeSolver{H, C},
     end
     return p, v
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                  MEAN MODE AND BULK FLOW CONSTRAINTS                   ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     _bulkmean(a::ChebyshevHelmoltzSolvers.ChebCoeffs)
@@ -436,6 +452,10 @@ function solve!(          solver::MeanModeSolver,
         return gradient
     end
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                      GLOBAL FOURIER STOKES SOLVER                      ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     FourierStokesSolver(grid, nu, lambda)

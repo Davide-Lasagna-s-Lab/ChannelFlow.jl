@@ -1,5 +1,9 @@
 export VectorField
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///             VECTOR FIELD CONSTRUCTION AND COMPONENT ACCESS             ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 struct VectorField{F <: AbstractField}
     components::NTuple{3, F}
 end
@@ -25,6 +29,10 @@ Base.copy(U::VectorField) = VectorField(map(copy, U.components))
 Return the `i` component of the velocity field `U`.
 """
 Base.getindex(U::VectorField, i::Int) = U.components[i]
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                       COMPONENTWISE BROADCASTING                       ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """Treat the three components as the broadcast axes of `U`."""
 Base.size(::VectorField) = (3,)

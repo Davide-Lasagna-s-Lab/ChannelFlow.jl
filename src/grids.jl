@@ -2,6 +2,10 @@ import FFTW
 
 export Grid, points, Padded, NotPadded, physicalsize, spectralsize, chebyshev_coefficients
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                     GRID GEOMETRY AND PADDING TAGS                     ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 struct Padded end
 struct NotPadded end
 
@@ -37,6 +41,10 @@ struct Grid{Y<:AbstractVector}
 
 end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                  PHYSICAL AND SPECTRAL STORAGE SIZES                   ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """Return the resolved physical array dimensions in storage order `(y, x, z)`."""
 physicalsize(grid::Grid, ::NotPadded) = (length(grid.y), grid.Nx, grid.Nz)
 
@@ -59,23 +67,12 @@ function spectralsize(grid::Grid, tag::Union{Padded, NotPadded})
     return (Ny, (Nx >> 1) + 1, Nz)
 end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                     DOMAIN LENGTHS AND COORDINATES                     ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 """Return the domain lengths `(Lx, 2, Lz)`."""
 domainsize(grid::Grid) = grid.domainsize
-
-"""
-    chebyshev_coefficients(grid, profile)
-
-Return ordinary Chebyshev coefficients of `profile(y)` on the grid's
-wall-normal Lobatto points. The profile itself is not stored by `Grid`.
-"""
-function chebyshev_coefficients(grid::Grid, profile::Function)
-    values = profile.(grid.y)
-    coefficients = FFTW.r2r(float.(values), FFTW.REDFT00)
-    coefficients ./= length(grid.y) - 1
-    coefficients[1] /= 2
-    coefficients[end] /= 2
-    return coefficients
-end
 
 """
     points(grid::Grid)
@@ -90,4 +87,23 @@ function points(grid::Grid)
     x = reshape(range(0, Lx; length=Nx + 1)[1:Nx], 1, Nx, 1)
     z = reshape(range(0, Lz; length=Nz + 1)[1:Nz], 1, 1, Nz)
     return y, x, z
+end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                     CHEBYSHEV PROFILE COEFFICIENTS                     ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+"""
+    chebyshev_coefficients(grid, profile)
+
+Return ordinary Chebyshev coefficients of `profile(y)` on the grid's
+wall-normal Lobatto points. The profile itself is not stored by `Grid`.
+"""
+function chebyshev_coefficients(grid::Grid, profile::Function)
+    values = profile.(grid.y)
+    coefficients = FFTW.r2r(float.(values), FFTW.REDFT00)
+    coefficients ./= length(grid.y) - 1
+    coefficients[1] /= 2
+    coefficients[end] /= 2
+    return coefficients
 end

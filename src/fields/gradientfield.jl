@@ -1,3 +1,7 @@
+#//////////////////////////////////////////////////////////////////////////////#
+#///             TENSOR FIELD CONSTRUCTION AND COMPONENT ACCESS             ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
 struct GradientField{F<:AbstractField, V<:VectorField{F}}
     components::NTuple{3, V}
 end
@@ -29,6 +33,9 @@ and the second selects the derivative direction.
 """
 Base.getindex(GRAD::GradientField, i::Int, j::Int) = GRAD.components[i][j]
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///                       SPECTRAL VELOCITY GRADIENT                       ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     grad!(GRAD::GradientField, U::VectorField)
@@ -50,6 +57,9 @@ function grad!(GRAD::GradientField{S},
     return GRAD
 end
 
+#//////////////////////////////////////////////////////////////////////////////#
+#///               PHYSICAL TENSOR PRODUCTS AND CONTRACTIONS                ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     outer!(out::GradientField, a::VectorField, b::VectorField)
@@ -86,6 +96,10 @@ function dot!(out::VectorField{F},
     end
     return out
 end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                 SPECTRAL VECTOR AND TENSOR DIVERGENCE                  ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
     div!(OUT::S, U::VectorField{S}) where {S<:SpectralField}
