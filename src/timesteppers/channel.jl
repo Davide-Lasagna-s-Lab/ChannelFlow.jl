@@ -1,16 +1,4 @@
 #//////////////////////////////////////////////////////////////////////////////#
-#///                        DIRECT CHANNEL TIME STEP                        ///#
-#//////////////////////////////////////////////////////////////////////////////#
-
-"""Advance a channel state with its configured CNRK2 scheme."""
-function step!(channel::ChannelFlow,
-               state::State{VectorField{F}, F},
-               t::Real) where {F<:SpectralField{Float64}}
-    return step!(channel.scheme, channel.nlterm, velocity(state), pressure(state), t;
-                 forcing=channel.forcing, channel.constraint...)
-end
-
-#//////////////////////////////////////////////////////////////////////////////#
 #///                      FLOWS TIME-STEPPING ADAPTER                       ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
@@ -20,7 +8,7 @@ function Flows.step!(scheme::CNRK2{S, F, B, C},
                      t::Real,
                      dt::Real,
                      state::State{VectorField{F}, F},
-                     ::Nothing) where {S, F, B, C, D, CF<:ChannelFlow}
+                     ::Nothing) where {S, F, B, C, D, CF<:ChannelFlowProblem}
     channel = sys.g
     g = scheme.solvers[1].grid
     grid(velocity(state)[1]) === g && channel.scheme.solvers[1].grid === g ||

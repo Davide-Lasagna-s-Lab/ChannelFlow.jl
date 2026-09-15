@@ -65,9 +65,9 @@ continuous formulation this minimises the gradient seminorm of the velocity
 correction; it is not an orthogonal L² projection. Here the equations use
 the same tau discretisation as [`FourierStokesSolver`](@ref).
 
-By default `G = 0`. Optionally impose TOTAL streamwise/spanwise bulk velocities
-with `bulkvelocity=(Ubulk, Wbulk)`; the solver subtracts the base-flow mean
-and determines the auxiliary uniform gradient `G`. A field already satisfying
+By default `G = 0`. Optionally impose perturbation bulk velocities with
+`bulkvelocity=(Ubulk, Wbulk)` and determine the auxiliary uniform gradient
+`G`. No base profile is supplied to this projection. A field already satisfying
 the constraints is unchanged up to solve roundoff. Excluded Nyquist planes
 are set to zero. The projection acts on the perturbation field and does not
 add or remove a base profile.
@@ -75,8 +75,10 @@ add or remove a base profile.
 Require resolved `ComplexF64` fields on one grid, odd `Ny ≥ 3`, independent
 component storage and Fourier conjugate symmetry for a real velocity.
 Allocate factors and workspaces on each call: this function is intended for
-initialisation. The pressure-like field `phi` is retained in the coupled
-state and can initialise CNRK2.
+initialisation. The auxiliary multiplier `phi` is retained in `State`, but
+is not the physical or modified pressure required to initialise CNRK2.
+In particular, an already admissible velocity has zero projection multiplier,
+irrespective of its dynamical pressure.
 """
 function project!(           U::VectorField{F};
                   bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {F<:SpectralField{Float64}}

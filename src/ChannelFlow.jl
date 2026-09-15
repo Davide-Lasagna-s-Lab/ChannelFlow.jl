@@ -1,4 +1,4 @@
-module CanonicalFlows
+module ChannelFlow
 
 import Flows
 
@@ -29,7 +29,7 @@ include("state.jl")
 include("ffts.jl")
 include("nonlinear.jl")
 include("helmoltz.jl")
-include("channelflow.jl")
+include("problem.jl")
 include("initialization.jl")
 
 #//////////////////////////////////////////////////////////////////////////////#

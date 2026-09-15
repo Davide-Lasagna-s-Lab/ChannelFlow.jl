@@ -1,6 +1,6 @@
 # Numerical method for Fourier–Fourier–finite-difference channel-flow simulation
 
-**CanonicalFlows.jl — Technical reference**
+**ChannelFlow.jl — Technical reference**
 
 **Revision:** 15 September 2026
 
@@ -1588,7 +1588,7 @@ It assumes that the package dependencies are available in the Julia
 environment.
 
 ~~~julia
-using CanonicalFlows
+using ChannelFlow
 import FDGrids
 
 Ny, Nx, Nz = 65, 32, 32
@@ -1605,13 +1605,13 @@ dt = 0.01
 sigma = 2 / dt
 
 # H = sigma*I - nu*(D2 - kappa^2*I), with Dirichlet walls.
-CanonicalFlows.update!(solver, -nu, -sigma)
+ChannelFlow.update!(solver, -nu, -sigma)
 
 F = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
 OUT = similar(F)
 
 # Populate the interior Fourier coefficients of F with the desired RHS.
-CanonicalFlows.solve!(OUT, solver, F)
+ChannelFlow.solve!(OUT, solver, F)
 ~~~
 
 Calling `solve!` for each of three velocity components with arbitrary
@@ -1682,7 +1682,7 @@ read as a complete discrete algorithm by itself.
   [implicit interface](https://github.com/gasagna/IMEXRK.jl/blob/b3c71e6cd683183b5ac18261c89082d4ad253f4a/src/imca.jl),
   and [endpoint step handling](https://github.com/gasagna/IMEXRK.jl/blob/b3c71e6cd683183b5ac18261c89082d4ad253f4a/src/stepper.jl).
 
-The CanonicalFlows scalar API and storage conventions were checked against
+The ChannelFlow scalar API and storage conventions were checked against
 source revision `2b0feb513489a816a4223fb549f0ff13cd6e62b8`.
 The complete stage equations in this report define the numerical
 specification, independently of whether their orchestration uses a

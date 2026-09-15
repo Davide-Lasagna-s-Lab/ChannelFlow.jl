@@ -19,7 +19,7 @@ point counts, and `Lx` and `Lz` are the corresponding domain lengths. The
 wall-normal domain is fixed to `[-1,1]`; `domainsize` stores `(Lx, 2, Lz)`.
 
 The base flow is a property of a physical problem and belongs to
-`ChannelFlow`, not to the grid.
+`ChannelFlowProblem`, not to the grid.
 """
 struct Grid{Y<:AbstractVector}
              y::Y                  # Lobatto nodes, upper wall first

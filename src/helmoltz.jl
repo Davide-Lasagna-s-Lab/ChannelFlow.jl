@@ -125,7 +125,6 @@ struct InfluenceModeSolver{H, C}
         ChebyshevHelmoltzSolvers.diff!(pzero, work)
         ChebyshevHelmoltzSolvers.solve!(pressure, pzero, 0, 0)
         ChebyshevHelmoltzSolvers.diff!(vzero, pzero)
-        dPzeroNm1 = vzero[P-1]
         ChebyshevHelmoltzSolvers.solve!(velocity, vzero, 0, 0)
 
         solver = new{typeof(pressure), typeof(pplus)}(
@@ -133,10 +132,12 @@ struct InfluenceModeSolver{H, C}
             pzero, vzero, zeros(2), shift, work, kx, kz, cache)
         _influence_correction!(solver, pzero, vzero)
 
-        # Match Gibson's constructor: retain pzero' from BEFORE the influence
-        # correction, but use the corrected vzero. At degrees P-1 and P,
-        # vzero'' vanishes; at degree P, pzero' also vanishes.
-        solver.sigma0[1] = shift*vzero[P-1] + dPzeroNm1
+        # Both terms must use the influence-corrected auxiliary solution.
+        # Mixing the old pressure derivative with the corrected velocity
+        # leaves a discrete divergence residual, especially at low degree.
+        # At degrees P-1 and P, vzero'' vanishes; pzero'[P] also vanishes.
+        ChebyshevHelmoltzSolvers.diff!(work, pzero)
+        solver.sigma0[1] = shift*vzero[P-1] + work[P-1]
         solver.sigma0[2] = shift*vzero[P]
         return solver
     end

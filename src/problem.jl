@@ -1,11 +1,11 @@
-export ChannelFlow
+export ChannelFlowProblem
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                 CHANNEL CONFIGURATION AND CONSTRUCTION                 ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    ChannelFlow(grid, profile, nu, dt;
+    ChannelFlowProblem(grid, profile, nu, dt;
                 form=ConvectiveForm(), forcing=nothing,
                 pressuregradient=nothing, bulkvelocity=nothing,
                 fftwflags=FFTW.MEASURE, fftwtimelimit=FFTW.NO_TIMELIMIT)
@@ -13,7 +13,7 @@ export ChannelFlow
 Assemble a serial channel/Couette DNS with a fixed nominal time step. The
 domain is supplied by `grid`; `profile(y)` is the stationary streamwise base
 velocity and `nu` is kinematic viscosity. The profile is converted to
-Chebyshev coefficients and stored in `ChannelFlow`.
+Chebyshev coefficients and stored in `ChannelFlowProblem`.
 Own the nonlinear operator and its FFT plans, the CNRK2 caches and modal
 solvers, the optional forcing callback, and the mean-flow constraint.
 
@@ -34,9 +34,9 @@ Specify either a constant `pressuregradient=(dPdx, dPdz)` or total
 The `forcing(t, U, F)` callback overwrites all three spectral components of
 an additional acceleration, following [`step!`](@ref).
 
-Create a state and integrate it directly, or construct the Flows operator:
+Create a state and integrate it with the Flows operator:
 ```julia
-channel = ChannelFlow(grid, y -> 1-y^2, nu, dt;
+channel = ChannelFlowProblem(grid, y -> 1-y^2, nu, dt;
                       pressuregradient=(-2nu, 0))
 state = zero_state(channel.grid)
 I = Flows.flow(channel)
@@ -44,9 +44,9 @@ I(state, (0.0, 1.0))
 ```
 The example pressure gradient sustains `Ub(y)=1-y²`. Other profiles or forcing
 require their own balance. Time is passed explicitly and is not stored in
-`ChannelFlow`; each state copy retains its own pressure history.
+`ChannelFlowProblem`; each state copy retains its own pressure history.
 """
-struct ChannelFlow{G, B, NL, S, F, C}
+struct ChannelFlowProblem{G, B, NL, S, F, C}
           grid::G
       baseflow::B
         nlterm::NL
@@ -54,7 +54,7 @@ struct ChannelFlow{G, B, NL, S, F, C}
        forcing::F
     constraint::C
 
-    function ChannelFlow(            grid::Grid,
+    function ChannelFlowProblem(            grid::Grid,
                                     profile::Function,
                                        nu::Real,
                                        dt::Real;
@@ -99,7 +99,7 @@ end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    Flows.flow(channel::ChannelFlow)
+    Flows.flow(channel::ChannelFlowProblem)
 
 Construct a forward Flows operator using this channel's three-stage CNRK2
 method and nominal fixed time step. Pass any coupled state created by
@@ -110,5 +110,5 @@ Flows may shorten the last step to reach the requested endpoint. That step
 uses a temporary CNRK2 cache with its actual duration; the configured cache
 and nominal step remain available for subsequent calls.
 """
-Flows.flow(channel::ChannelFlow) =
+Flows.flow(channel::ChannelFlowProblem) =
     Flows.flow(channel, channel.scheme, Flows.TimeStepConstant(channel.scheme.dt))

@@ -30,7 +30,7 @@ Cache three [`FourierStokesSolver`](@ref) instances with temporal shifts
 `N` is reused for pressure derivatives after updating `Q`.
 
 `baseflow` contains the ordinary Chebyshev coefficients of the stationary
-streamwise profile and is owned by the enclosing `ChannelFlow`.
+streamwise profile and is owned by the enclosing `ChannelFlowProblem`.
 
 `CNRK2` is Channelflow's `TimeStepMethod` name; its implementation is in
 `RungeKuttaDNS`. It combines Crank-Nicolson and Runge-Kutta with three

@@ -115,7 +115,7 @@ workspaces are reused, so one `Eq` instance must not be evaluated concurrently.
 `t` is retained for the Flows API.
 
 The gradient and FFT interfaces used below are still under development in
-CanonicalFlows; this change establishes the vector/base-flow assembly contract.
+ChannelFlow; this change establishes the vector/base-flow assembly contract.
 """
 function (Eq::NonLinearTerm{T, ConvectiveForm})(   t::Real,
                                                    U::VectorField{S},
