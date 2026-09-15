@@ -1,4 +1,4 @@
-export ChannelFlowProblem
+export ChannelFlowProblem, Couette, Poiseuille
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                 CHANNEL CONFIGURATION AND CONSTRUCTION                 ///#
@@ -92,6 +92,42 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
         return new{typeof(grid), typeof(baseflow), typeof(nlterm), typeof(scheme), typeof(forcing), typeof(constraint)}(
             grid, baseflow, nlterm, scheme, forcing, constraint)
     end
+end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                       STANDARD LAMINAR PROFILES                        ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+"""
+    Couette(grid, nu, dt; kwargs...)
+
+Construct a [`ChannelFlowProblem`](@ref) with base velocity `Ub(y)=y`,
+corresponding to walls moving at velocities ±1. The default pressure gradient
+is zero. Forward all keyword arguments to `ChannelFlowProblem`, including
+`bulkvelocity`, `forcing`, `form` and FFT planning options.
+"""
+Couette(grid::Grid, nu::Real, dt::Real; kwargs...) =
+    ChannelFlowProblem(grid, identity, nu, dt; kwargs...)
+
+"""
+    Poiseuille(grid, nu, dt; bulkvelocity=nothing, pressuregradient=..., kwargs...)
+
+Construct a [`ChannelFlowProblem`](@ref) with base velocity `Ub(y)=1-y^2`,
+unit centreline velocity and stationary walls. By default, the pressure
+gradient `(-2nu, 0)` sustains this profile.
+
+Supplying `bulkvelocity` selects constant total bulk velocity instead; for
+this laminar profile its value is `(2/3, 0)`. An explicit `pressuregradient`
+overrides the default. Specifying both constraints is rejected by
+`ChannelFlowProblem`. Forward all remaining keywords unchanged.
+"""
+function Poiseuille(grid::Grid, nu::Real, dt::Real;
+                   bulkvelocity=nothing,
+                   pressuregradient=isnothing(bulkvelocity) ? (-2nu, 0) : nothing,
+                   kwargs...)
+    return ChannelFlowProblem(grid, y -> 1-y^2, nu, dt;
+                              bulkvelocity=bulkvelocity,
+                              pressuregradient=pressuregradient, kwargs...)
 end
 
 #//////////////////////////////////////////////////////////////////////////////#
