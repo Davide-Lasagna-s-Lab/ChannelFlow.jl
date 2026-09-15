@@ -3,8 +3,8 @@ export PhysicalField
 """
     PhysicalField(grid, [T=Float64])
 
-Allocate a physical scalar field with storage order `(y, x, z)`. The first
-index is contiguous and the array size is `(Ny, Nx, Nz)`.
+Wrap a resolved or 3/2-padded physical scalar field with storage order
+`(y, x, z)`. The first index is contiguous.
 """
 struct PhysicalField{T<:AbstractFloat,
                      A<:DenseArray{T, 3},
@@ -14,8 +14,8 @@ struct PhysicalField{T<:AbstractFloat,
     function PhysicalField(data::A, grid::G) where {T<:AbstractFloat,
                                                     A<:DenseArray{T, 3},
                                                     G<:Grid}
-        size(data) == gridsize(grid) ||
-            throw(DimensionMismatch("data must have size (Ny, Nx, Nz)"))
+        size(data) in (physicalsize(grid, NotPadded()), physicalsize(grid, Padded())) ||
+            throw(DimensionMismatch("data must have the resolved or padded grid size"))
         return new{T, A, G}(data, grid)
     end
 

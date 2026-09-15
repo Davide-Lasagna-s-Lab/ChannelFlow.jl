@@ -3,15 +3,15 @@ import FFTW
 export ForwardFFT!, InverseFFT!
 
 # Array storage is `(y,x,z)`. FFTW applies the real transform along the first
-# entry and complex transforms along the remaining entries. Using `(3,2)`
-# therefore gives an rfft in z and a full FFT in x, while leaving y untouched.
-const FFT_DIMS = (3, 2)
+# entry and complex transforms along the remaining entries. Using `(2,3)`
+# therefore gives an rfft in x and a full FFT in z, while leaving y untouched.
+const FFT_DIMS = (2, 3)
 
 """
     ForwardFFT!(u; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
 Plan the Fourier transform from physical storage `(y, x, z)` to spectral
-storage `(y, kx, kz)`. The `z` direction is stored as a real-transform
+storage `(y, kx, kz)`. The `x` direction is stored as a real-transform
 half-spectrum. Fourier coefficients are normalised by the padded size.
 """
 struct ForwardFFT!{P, A, T}
@@ -25,9 +25,9 @@ function ForwardFFT!(u::PhysicalField{T};
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # Planning uses the 3/2-padded periodic dimensions. The wall-normal
     # direction is neither transformed nor padded.
-    Ny, Nxp, Nzp = paddedsize(grid(u))
+    Ny, Nxp, Nzp = physicalsize(grid(u), Padded())
     padded = SpectralField(
-        zeros(Complex{T}, spectralsize((Ny, Nxp, Nzp), FFT_DIMS)), grid(u))
+        zeros(Complex{T}, spectralsize(grid(u), Padded())), grid(u))
 
     # Execution later uses any real array with this type and layout.
     plan = FFTW.plan_rfft(zeros(T, Ny, Nxp, Nzp), FFT_DIMS;
@@ -36,10 +36,10 @@ function ForwardFFT!(u::PhysicalField{T};
 end
 
 """Transform the padded physical array `u` and retain the resolved modes in `U`."""
-function (fft::ForwardFFT!)(U::SpectralField, u::AbstractArray{T, 3}) where {T<:AbstractFloat}
+function (fft::ForwardFFT!)(U::SpectralField, u::PhysicalField)
     # The nonlinear product is sampled on the padded grid. Transform it into
     # the internal padded spectrum before discarding unresolved modes.
-    FFTW.unsafe_execute!(fft.plan, u, parent(fft.padded))
+    FFTW.unsafe_execute!(fft.plan, parent(u), parent(fft.padded))
 
     # FFTW leaves forward transforms unnormalised. With this convention the
     # stored coefficients are Fourier-series amplitudes and brfft needs no
@@ -54,7 +54,7 @@ function (fft::ForwardFFT!)(U::SpectralField, u::AbstractArray{T, 3}) where {T<:
 end
 
 """Transform each component of physical vector field `u` into `U`."""
-function (fft::ForwardFFT!)(U::VectorField, u::NTuple{3, <:AbstractArray})
+function (fft::ForwardFFT!)(U::VectorField, u::VectorField)
     @inbounds for i = 1:3
         fft(U[i], u[i])
     end
@@ -63,7 +63,7 @@ end
 
 """Transform every component of physical gradient field `grad` into `GRAD`."""
 function (fft::ForwardFFT!)(GRAD::GradientField,
-                            grad::NTuple{3, <:NTuple{3, <:AbstractArray}})
+                            grad::GradientField)
     @inbounds for i = 1:3
         fft(GRAD[i], grad[i])
     end
@@ -87,29 +87,29 @@ function InverseFFT!(U::SpectralField{T};
                      flags::Integer=FFTW.EXHAUSTIVE,
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # The inverse plan must use exactly the same padded layout as the forward
-    # plan. `Nzp` is passed explicitly because an rfft half-spectrum alone
+    # plan. `Nxp` is passed explicitly because an rfft half-spectrum alone
     # cannot distinguish an even physical length from the adjacent odd one.
-    Ny, Nxp, Nzp = paddedsize(grid(U))
+    _, Nxp, _ = physicalsize(grid(U), Padded())
     padded = SpectralField(
-        zeros(eltype(U), spectralsize((Ny, Nxp, Nzp), FFT_DIMS)), grid(U))
-    plan = FFTW.plan_brfft(parent(padded), Nzp, FFT_DIMS;
+        zeros(eltype(U), spectralsize(grid(U), Padded())), grid(U))
+    plan = FFTW.plan_brfft(parent(padded), Nxp, FFT_DIMS;
                            flags=flags, timelimit=timelimit)
     return InverseFFT!(plan, padded)
 end
 
 """Transform `U` into the padded physical array `u` and return `u`."""
-function (ifft::InverseFFT!)(u::AbstractArray{T, 3}, U::SpectralField) where {T<:AbstractFloat}
+function (ifft::InverseFFT!)(u::PhysicalField, U::SpectralField)
     # Clear all unresolved modes, then insert the compact resolved spectrum.
     # Copying also protects U from the destructive brfft implementation.
     fill!(ifft.padded, zero(eltype(ifft.padded)))
     copy_to_padded!(ifft.padded, U)
     zero_nyquist!(ifft.padded)
-    FFTW.unsafe_execute!(ifft.plan, parent(ifft.padded), u)
+    FFTW.unsafe_execute!(ifft.plan, parent(ifft.padded), parent(u))
     return u
 end
 
 """Transform each component of spectral vector field `U` into `u`."""
-function (ifft::InverseFFT!)(u::NTuple{3, <:AbstractArray}, U::VectorField)
+function (ifft::InverseFFT!)(u::VectorField, U::VectorField)
     @inbounds for i = 1:3
         ifft(u[i], U[i])
     end
@@ -117,7 +117,7 @@ function (ifft::InverseFFT!)(u::NTuple{3, <:AbstractArray}, U::VectorField)
 end
 
 """Transform every component of spectral gradient field `GRAD` into `grad`."""
-function (ifft::InverseFFT!)(grad::NTuple{3, <:NTuple{3, <:AbstractArray}},
+function (ifft::InverseFFT!)(grad::GradientField,
                              GRAD::GradientField)
     @inbounds for i = 1:3
         ifft(grad[i], GRAD[i])
@@ -128,17 +128,16 @@ end
 """
     copy_to_padded!(dest, src)
 
-Embed a compact resolved spectrum in a zeroed padded spectrum. Nonnegative
-`kx` modes remain at the start of the second dimension; negative modes move to
-its end. The stored nonnegative `kz` block remains a prefix of dimension three.
+Embed a compact resolved spectrum in a zeroed padded spectrum. The stored
+nonnegative `kx` modes remain a prefix of dimension two. Nonnegative `kz`
+modes stay at the start of dimension three; negative modes move to its end.
 """
-function copy_to_padded!(dest::SpectralField{T},
-                         src::SpectralField{T}) where {T}
-    _, Nx, Nzh = size(src)
-    positive, negative, padded_negative = _xmode_ranges(Nx, size(dest, 2))
+function copy_to_padded!(dest::SpectralField{T}, src::SpectralField{T}) where {T}
+    _, Nxh, Nz = size(src)
+    positive, negative, padded_negative = _complex_mode_ranges(Nz, size(dest, 3))
 
-    @views parent(dest)[:, positive, 1:Nzh] .= parent(src)[:, positive, :]
-    @views parent(dest)[:, padded_negative, 1:Nzh] .= parent(src)[:, negative, :]
+    @views parent(dest)[:, 1:Nxh, positive] .= parent(src)[:, :, positive]
+    @views parent(dest)[:, 1:Nxh, padded_negative] .= parent(src)[:, :, negative]
     return dest
 end
 
@@ -148,34 +147,33 @@ end
 Truncate a padded spectrum to the modes represented by `dest`. This is the
 inverse index mapping of [`copy_to_padded!`](@ref).
 """
-function copy_from_padded!(dest::SpectralField{T},
-                           src::SpectralField{T}) where {T}
-    _, Nx, Nzh = size(dest)
-    positive, negative, padded_negative = _xmode_ranges(Nx, size(src, 2))
+function copy_from_padded!(dest::SpectralField{T}, src::SpectralField{T}) where {T}
+    _, Nxh, Nz = size(dest)
+    positive, negative, padded_negative = _complex_mode_ranges(Nz, size(src, 3))
 
-    @views parent(dest)[:, positive, :] .= parent(src)[:, positive, 1:Nzh]
-    @views parent(dest)[:, negative, :] .= parent(src)[:, padded_negative, 1:Nzh]
+    @views parent(dest)[:, :, positive] .= parent(src)[:, 1:Nxh, positive]
+    @views parent(dest)[:, :, negative] .= parent(src)[:, 1:Nxh, padded_negative]
     return dest
 end
 
-# Full complex FFT storage keeps nonnegative x modes at the beginning of the
+# Full complex FFT storage keeps nonnegative modes at the beginning of the
 # axis and negative modes at its end. Padding only moves the negative block.
-function _xmode_ranges(Nx::Integer, Nxp::Integer)
-    positive = 1:((Nx >> 1) + 1)
-    negative = (last(positive) + 1):Nx
-    padded_negative = (Nxp - length(negative) + 1):Nxp
+function _complex_mode_ranges(N::Integer, Np::Integer)
+    positive = 1:((N >> 1) + 1)
+    negative = (last(positive) + 1):N
+    padded_negative = (Np - length(negative) + 1):Np
     return positive, negative, padded_negative
 end
 
 """
     zero_nyquist!(U)
 
-Set the `x` and `z` Nyquist planes to zero when the corresponding resolved grid
+Set the Fourier Nyquist planes to zero when the corresponding resolved grid
 size is even. The indices are shared by compact and padded spectra because both
 Nyquist modes belong to the leading nonnegative-frequency blocks.
 """
 function zero_nyquist!(U::SpectralField)
-    _, Nx, Nz = gridsize(grid(U))
+    _, Nx, Nz = physicalsize(grid(U), NotPadded())
     data = parent(U)
     iseven(Nx) && (@views data[:, (Nx >> 1) + 1, :] .= 0)
     iseven(Nz) && (@views data[:, :, (Nz >> 1) + 1] .= 0)

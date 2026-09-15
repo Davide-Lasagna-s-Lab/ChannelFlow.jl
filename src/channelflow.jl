@@ -14,15 +14,14 @@ end
 
 function ChannelFlow(grid::Grid,
                      mode::SolutionMode = ConstantPressureGradient,
-                     form::NonLinearityForm = AlternatingForm,
+                     form::NonlinearityForm = AlternatingForm(),
                          ::Type{T<:AbstractFloat} = Float64,
                 fftwflags::Integer = FFTW.MEASURE,
             fftwtimelimit::Real = -1.0) where {T}
     
     # define nonlinear term
     u = PhysicalField(grid, T)
-    Ny, Nx, Nz = gridsize(grid)
-    U = SpectralField(Array{Complex{T}}(undef, Ny, Nx, Nz ÷ 2 + 1), grid)
+    U = SpectralField(Array{Complex{T}}(undef, spectralsize(grid, NotPadded())), grid)
     nlterm = NonLinearTerm(u, U;
         fftwflags=fftwflags, fftwtimelimit=fftwtimelimit, form=form)
 

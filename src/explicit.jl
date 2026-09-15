@@ -59,7 +59,7 @@ end
 function _gencache( ::ConvectiveForm,
                    u::PhysicalField{T},
                    U::SpectralField) where {T}
-    padded = PhysicalField(zeros(T, paddedsize(grid(u))), grid(u))
+    padded = PhysicalField(zeros(T, physicalsize(grid(u), Padded())), grid(u))
     return (VectorField(padded),
             VectorField(padded),
             GradientField(padded),
@@ -70,7 +70,7 @@ end
 function _gencache( ::DivergenceForm,
                    u::PhysicalField{T},
                    U::SpectralField) where {T}
-    padded = PhysicalField(zeros(T, paddedsize(grid(u))), grid(u))
+    padded = PhysicalField(zeros(T, physicalsize(grid(u), Padded())), grid(u))
     return (VectorField(padded),
             GradientField(padded),
             VectorField(U),
@@ -85,7 +85,7 @@ _gencache( ::AlternatingForm,
 function _gencache( ::RotatingForm,
                    u::PhysicalField{T},
                    U::SpectralField) where {T}
-    padded = PhysicalField(zeros(T, paddedsize(grid(u))), grid(u))
+    padded = PhysicalField(zeros(T, physicalsize(grid(u), Padded())), grid(u))
     return (VectorField(padded),
             VectorField(padded),
             VectorField(padded),
@@ -138,8 +138,7 @@ function _convectiveform!(  Eq::NonLinearTerm,
 
     # dot! produces positive advection. Transform it, then apply the minus
     # sign required by the momentum RHS. TMP can now be reused: total velocity
-    # is already consumed. Broadcast on scalar components, since VectorField
-    # itself does not provide an AbstractArray/broadcast interface.
+    # is already consumed.
     Eq.fft(TMP, n)
 
     return _store_rhs!(dUdt, TMP, add, -1)

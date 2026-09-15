@@ -1,4 +1,7 @@
-export Grid, points, paddedsize, spectralsize
+export Grid, points, Padded, NotPadded, physicalsize, spectralsize
+
+struct Padded end
+struct NotPadded end
 
 """
     Grid(D1, D2, y, Nx, Nz, domainsize, baseflow)
@@ -12,7 +15,8 @@ struct Grid{M1<:AbstractMatrix, M2<:AbstractMatrix, Y<:AbstractVector, B<:Abstra
             D1::M1                 # first derivative in the wall-normal direction
             D2::M2                 # second derivative in the wall-normal direction
              y::Y                  # wall-normal grid points
-      gridsize::NTuple{3, Int}     # physical array dimensions in y, x and z
+            Nx::Int                # resolved streamwise extent
+            Nz::Int                # resolved spanwise extent
     domainsize::NTuple{2, Float64} # lengths of the two periodic directions
       baseflow::B                  # streamwise base velocity at the wall-normal nodes
 
@@ -32,36 +36,30 @@ struct Grid{M1<:AbstractMatrix, M2<:AbstractMatrix, Y<:AbstractVector, B<:Abstra
 
         # Store periodic lengths with a uniform floating-point representation.
         return new{M1, M2, Y, B}(
-            D1, D2, y, (n, Nx, Nz), Float64.(domainsize), baseflow)
+            D1, D2, y, Nx, Nz, Float64.(domainsize), baseflow)
     end
 end
 
-"""Return the physical array dimensions in storage order `(y, x, z)`."""
-gridsize(grid::Grid) = grid.gridsize
+"""Return the resolved physical array dimensions in storage order `(y, x, z)`."""
+physicalsize(grid::Grid, ::NotPadded) = (length(grid.y), grid.Nx, grid.Nz)
 
-"""Return the 3/2-padded array dimensions in storage order `(y, x, z)`."""
-function paddedsize(grid::Grid)
-    Ny, Nx, Nz = gridsize(grid)
+"""Return the 3/2-padded physical array dimensions in storage order `(y, x, z)`."""
+function physicalsize(grid::Grid, ::Padded)
+    Ny, Nx, Nz = physicalsize(grid, NotPadded())
     return (Ny, _paddedsize(Nx), _paddedsize(Nz))
 end
-
-"""Return the 3/2-padded extent of array dimension `i`."""
-paddedsize(grid::Grid, i::Integer) = paddedsize(grid)[i]
 
 _paddedsize(n::Integer) = cld(3n, 2) | 1
 
 """
-    spectralsize(physicalsize, fftdims)
+    spectralsize(grid, Padded() or NotPadded())
 
-Return the spectral storage size associated with `physicalsize`. The first
-entry of `fftdims` is the real-transform direction and is reduced to its
-nonnegative half-spectrum.
+Return the spectral storage size for the selected physical grid. The real
+transform in `x` stores only its nonnegative half-spectrum.
 """
-function spectralsize(physicalsize::Dims{N}, fftdims) where {N}
-    rfftdim = first(fftdims)
-    return ntuple(N) do i
-        i == rfftdim ? (physicalsize[i] >> 1) + 1 : physicalsize[i]
-    end
+function spectralsize(grid::Grid, tag::Union{Padded, NotPadded})
+    Ny, Nx, Nz = physicalsize(grid, tag)
+    return (Ny, (Nx >> 1) + 1, Nz)
 end
 
 """Return the lengths of the two periodic directions."""
@@ -80,7 +78,7 @@ Return broadcast-compatible coordinates in storage order `(y, x, z)`. The
 periodic grids cover `[0,Lx)` and `[0,Lz)` without repeated endpoints.
 """
 function points(grid::Grid)
-    Ny, Nx, Nz = gridsize(grid)
+    Ny, Nx, Nz = physicalsize(grid, NotPadded())
     Lx, Lz = domainsize(grid)
     y = reshape(grid.y, Ny, 1, 1)
     x = reshape(range(0, Lx; length=Nx + 1)[1:Nx], 1, Nx, 1)
