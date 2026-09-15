@@ -36,7 +36,7 @@ streamwise profile and is owned by the enclosing `ChannelFlow`.
 substeps and overall order two. Rebuild the cache when `dt`, viscosity, grid or base
 profile changes. The caller retains velocity and stage pressure between steps.
 """
-struct CNRK2{S, F<:SpectralField{Float64}, B, C} <: Flows.AbstractMethod{Flows.Coupled{2, Tuple{VectorField{F}, F}}, Flows.NormalMode, 3}
+struct CNRK2{S, F<:SpectralField{Float64}, B, C} <: Flows.AbstractMethod{State, Flows.NormalMode, 3}
              nu::Float64
              dt::Float64
         solvers::NTuple{3, S}

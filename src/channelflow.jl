@@ -1,4 +1,4 @@
-export ChannelFlow, initial_state, baseflow
+export ChannelFlow
 
 """
     ChannelFlow(grid, profile, nu, dt;
@@ -13,7 +13,7 @@ Chebyshev coefficients and stored in `ChannelFlow`.
 Own the nonlinear operator and its FFT plans, the CNRK2 caches and modal
 solvers, the optional forcing callback, and the mean-flow constraint.
 
-`initial_state(channel)` creates a coupled perturbation velocity and stage
+`zero_state(channel.grid)` creates a coupled perturbation velocity and stage
 pressure. Initialise this state before integration to satisfy no slip,
 continuity and any prescribed bulk velocity. For a rotational nonlinear form,
 `P` must include the total kinetic energy per unit mass; it is not generally
@@ -34,7 +34,7 @@ Create a state and integrate it directly, or construct the Flows operator:
 ```julia
 channel = ChannelFlow(grid, y -> 1-y^2, nu, dt;
                       pressuregradient=(-2nu, 0))
-state = initial_state(channel)
+state = zero_state(channel.grid)
 I = Flows.flow(channel)
 I(state, (0.0, 1.0))
 ```
@@ -72,7 +72,7 @@ struct ChannelFlow{G, B, NL, S, F, C}
 
         # Build scalar prototypes only to initialise the nonlinear operator and
         # its FFT plans. The resulting state is created separately by
-        # `initial_state`, so one channel can evolve several states.
+        # `zero_state`, so one channel can evolve several states.
         baseflow = chebyshev_coefficients(grid, profile)
         P = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
 
@@ -90,41 +90,12 @@ struct ChannelFlow{G, B, NL, S, F, C}
     end
 end
 
-"""Return the Chebyshev coefficients of the stationary profile owned by `channel`."""
-baseflow(channel::ChannelFlow) = channel.baseflow
-
-"""
-    initial_state(channel::ChannelFlow)
-
-Allocate a zero coupled state `(U, P)` for `channel`. `U` is the perturbation
-velocity and `P` is the stage pressure required by CNRK2. The caller may then
-populate and project `U`, and initialise `P`, before integration.
-"""
-function initial_state(channel::ChannelFlow)
-    P = SpectralField(zeros(ComplexF64, spectralsize(channel.grid, NotPadded())), channel.grid)
-    return Flows.couple(VectorField(P), P)
-end
-
-"""
-    step!(channel::ChannelFlow, state, t)
-
-Advance the supplied coupled state by the configured time step. Return
-`(t + dt, (dPdx, dPdz))`; the pressure derivatives come from the final stage.
-The state is modified in place and is owned by the caller.
-"""
-function step!(channel::ChannelFlow,
-               state::Flows.Coupled{2, Tuple{VectorField{F}, F}},
-               t::Real) where {F<:SpectralField{Float64}}
-    return step!(channel.scheme, channel.nlterm, state[1], state[2], t;
-                 forcing=channel.forcing, channel.constraint...)
-end
-
 """
     Flows.flow(channel::ChannelFlow)
 
 Construct a forward Flows operator using this channel's three-stage CNRK2
 method and nominal fixed time step. Pass any coupled state created by
-`initial_state(channel)` (or an independent copy) to the returned operator.
+`zero_state(channel.grid)` (or an independent copy) to the returned operator.
 Flows monitors and trajectory storage use the coupled velocity/pressure state.
 
 Flows may shorten the last step to reach the requested endpoint. That step
@@ -133,23 +104,3 @@ and nominal step remain available for subsequent calls.
 """
 Flows.flow(channel::ChannelFlow) =
     Flows.flow(channel, channel.scheme, Flows.TimeStepConstant(channel.scheme.dt))
-
-"""Bridge Flows' forward stepping interface to the pressure-coupled DNS stages."""
-function Flows.step!(scheme::CNRK2{S, F, B, C},
-                        sys::Flows.System{1, D, CF, Nothing},
-                          t::Real,
-                         dt::Real,
-                      state::Flows.Coupled{2, Tuple{VectorField{F}, F}},
-                           ::Nothing) where {S, F, B, C, D, CF<:ChannelFlow}
-    channel = sys.g
-    g = scheme.solvers[1].grid
-    grid(state[1][1]) === g && channel.scheme.solvers[1].grid === g ||
-        throw(ArgumentError("channel, method and state must share a grid"))
-
-    # Flows.Steps can supply a shorter terminal step. Its temporal shifts
-    # require different factors; never use the nominal-step factors for it.
-    active = dt == scheme.dt ? scheme : CNRK2(channel.grid, scheme.baseflow, scheme.nu, dt)
-    step!(active, channel.nlterm, state[1], state[2], t;
-          forcing=channel.forcing, channel.constraint...)
-    return state
-end

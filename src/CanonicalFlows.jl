@@ -5,21 +5,21 @@ import Flows
 include("grids.jl")
 
 # basic scalar fields
-include("physicalfield.jl")
-include("spectralfield.jl")
-
-# generic field type
-const AbstractField = Union{SpectralField, PhysicalField}
+include("fields/physicalfield.jl")
+include("fields/spectralfield.jl")
+include("fields/abstractfield.jl")
 
 include("indexing.jl")
 include("operators.jl")
-include("vectorfield.jl")
-include("gradientfield.jl")
+include("fields/vectorfield.jl")
+include("fields/gradientfield.jl")
+include("state.jl")
 include("ffts.jl")
 include("nonlinear.jl")
 include("helmoltz.jl")
-include("projection.jl")
-include("timestepping.jl")
 include("channelflow.jl")
+include("initialization.jl")
+include("timesteppers/cnrk2.jl")
+include("timesteppers/channel.jl")
 
 end

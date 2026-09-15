@@ -1,10 +1,45 @@
-export project!
+import Random
+
+export zero_state, random_state, project!
+
+"""
+    zero_state(grid::Grid)
+
+Allocate a zero coupled state `(U, P)` on `grid`.
+"""
+function zero_state(grid::Grid)
+    P = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
+    return State(VectorField(P), P)
+end
+
+"""
+    random_state(grid::Grid; amplitude=1, rng=Random.default_rng())
+
+Create a random real-space perturbation velocity, transform it to spectral
+storage, project it onto the divergence-free no-slip space, and return the
+coupled state `(U, P)`.
+"""
+function random_state(grid::Grid;
+                      amplitude::Real=1,
+                      rng::Random.AbstractRNG=Random.default_rng())
+    amplitude >= 0 || throw(ArgumentError("amplitude must be non-negative"))
+    physical = PhysicalField(zeros(Float64, physicalsize(grid, Padded())), grid)
+    prototype = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
+    U = VectorField(prototype)
+    fft = ForwardFFT!(physical)
+    for component in U.components
+        parent(physical) .= amplitude .* Random.randn(rng, size(physical))
+        fft(component, physical)
+    end
+    return project!(U)
+end
 
 """
     project!(U::VectorField; bulkvelocity=nothing)
 
 Project the spectral perturbation velocity `U` onto the divergence-free,
-no-slip space, overwriting its three components and returning `U`.
+no-slip space, overwriting its three components and returning the coupled
+state `State(U, phi)`.
 Use the existing Fourier--Chebyshev tau and influence-matrix solvers for
 the Stokes projection
 ```text
@@ -28,8 +63,8 @@ add or remove a base profile.
 Require resolved `ComplexF64` fields on one grid, odd `Ny ≥ 3`, independent
 component storage and Fourier conjugate symmetry for a real velocity.
 Allocate factors and workspaces on each call: this function is intended for
-initialisation. The auxiliary multiplier `phi` is discarded; it is not the
-physical or modified pressure needed to initialise CNRK2.
+initialisation. The pressure-like field `phi` is retained in the coupled
+state and can initialise CNRK2.
 """
 function project!(           U::VectorField{F};
                   bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {F<:SpectralField{Float64}}
@@ -50,5 +85,5 @@ function project!(           U::VectorField{F};
         R[i] .*= -1
     end
     solve!(solver, U, phi, R; bulkvelocity=bulkvelocity)
-    return U
+    return State(U, phi)
 end
