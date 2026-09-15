@@ -23,7 +23,8 @@ struct RotatingForm    <: NonlinearityForm end
 Construct a pseudo-spectral convection operator using scalar physical/spectral
 fields `u` and `U` as allocation and transform prototypes.
 
-The stationary streamwise profile `Ub(y)` is taken from `grid(U)`. The evaluation
+The Chebyshev coefficients of the stationary streamwise profile `Ub(y)` are
+taken from `grid(U)`. The evaluation
 `Eq(t, Upert, rhs)` accepts spectral vector fields and computes the selected
 nonlinear form using `utotal = upert + Ub(y) e_x`. The rotational form returns
 `FFT(utotal × curl(utotal))`; the other forms return negative advection.
@@ -122,7 +123,8 @@ function _convectiveform!(  Eq::NonLinearTerm,
     # get aliases
     u, n, grad, TMP, GRAD  = Eq.cache
 
-    # TMP initially holds the TOTAL spectral velocity. Add the reference here,
+    # TMP initially holds the TOTAL spectral velocity. Add the reference's
+    # Chebyshev coefficients to the zero Fourier mode here,
     # before either gradient evaluation or inverse transformation. Adding it
     # only to the physical advecting velocity would omit the v*Ub' shear term.
     TMP .= U

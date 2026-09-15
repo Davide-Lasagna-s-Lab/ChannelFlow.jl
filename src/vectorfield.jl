@@ -27,15 +27,16 @@ Base.size(::VectorField) = (3,)
 Base.axes(::VectorField) = (Base.OneTo(3),)
 Base.broadcastable(U::VectorField) = U
 
-const VectorFieldStyle = Base.Broadcast.ArrayStyle{VectorField}
+struct VectorFieldStyle <: Base.Broadcast.AbstractArrayStyle{1} end
 Base.BroadcastStyle(::Type{<:VectorField}) = VectorFieldStyle()
 
-"""Broadcast into each scalar component of `dest`."""
+"""Fuse the scalar broadcast within each component; scalar arguments are shared."""
 function Base.Broadcast.materialize!(dest::VectorField,
                                        bc::Base.Broadcast.Broadcasted{<:VectorFieldStyle})
     bc_ = Base.Broadcast.flatten(bc)
     for i = 1:3
-        dest[i] .= bc_[i]
+        args = map(arg -> arg isa VectorField ? arg[i] : arg, bc_.args)
+        dest[i] .= bc_.f.(args...)
     end
     return dest
 end

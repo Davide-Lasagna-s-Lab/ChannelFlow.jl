@@ -37,8 +37,8 @@ Compute the spectral velocity gradient of `U` and store it in `GRAD`.
 
 The entries follow `GRAD[i,j] = ∂Uᵢ/∂xⱼ`, where `x₁ = x` is streamwise,
 `x₂ = y` is wall-normal and `x₃ = z` is spanwise. The `x` and `z`
-derivatives are computed in Fourier space and the `y` derivative by finite
-differences. The function returns `GRAD`.
+derivatives are computed in Fourier space and the `y` derivative by a
+Chebyshev coefficient recurrence. The function returns `GRAD`.
 """
 function grad!(GRAD::GradientField{S},
                   U::VectorField{S}) where {S<:SpectralField}

@@ -4,27 +4,29 @@ export ForwardFFT!, InverseFFT!
 
 # Array storage is `(y,x,z)`. FFTW applies the real transform along the first
 # entry and complex transforms along the remaining entries. Using `(2,3)`
-# therefore gives an rfft in x and a full FFT in z, while leaving y untouched.
+# therefore gives an rfft in x and a full FFT in z. A separate DCT-I in the
+# first dimension converts Lobatto values to/from Chebyshev coefficients.
 const FFT_DIMS = (2, 3)
 
 """
     ForwardFFT!(u; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
-Plan the Fourier transform from physical storage `(y, x, z)` to spectral
-storage `(y, kx, kz)`. The `x` direction is stored as a real-transform
-half-spectrum. Fourier coefficients are normalised by the padded size.
+Plan the Fourier--Chebyshev transform from physical storage `(y, x, z)` to
+spectral storage `(n, kx, kz)`. Fourier amplitudes are normalised by the padded
+periodic size; Chebyshev coefficients use the ordinary `sum(a_n*T_n)` series.
 """
-struct ForwardFFT!{P, A, T}
+struct ForwardFFT!{P, C, A, T}
     plan::P          # plan from the padded physical grid to Fourier space
+    chebyplan::C     # in-place DCT-I along the wall-normal dimension
     padded::A        # complete padded spectrum produced by the plan
-    normalization::T # inverse number of padded x-z points
+    normalization::T # inverse periodic size and Chebyshev degree
 end
 
 function ForwardFFT!(u::PhysicalField{T};
                      flags::Integer=FFTW.EXHAUSTIVE,
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
-    # Planning uses the 3/2-padded periodic dimensions. The wall-normal
-    # direction is neither transformed nor padded.
+    # Only periodic dimensions are padded. All Ny Chebyshev coefficients
+    # are retained; there is no wall-normal dealiasing in this implementation.
     Ny, Nxp, Nzp = physicalsize(grid(u), Padded())
     padded = SpectralField(
         zeros(Complex{T}, spectralsize(grid(u), Padded())), grid(u))
@@ -32,19 +34,29 @@ function ForwardFFT!(u::PhysicalField{T};
     # Execution later uses any real array with this type and layout.
     plan = FFTW.plan_rfft(zeros(T, Ny, Nxp, Nzp), FFT_DIMS;
                           flags=flags, timelimit=timelimit)
-    return ForwardFFT!(plan, padded, inv(T(Nxp * Nzp)))
+    # FFTW applies this real-to-real transform to the real and imaginary
+    # parts of the complex buffer independently, with no extra workspace.
+    chebyplan = FFTW.plan_r2r!(parent(padded), FFTW.REDFT00, (1,);
+                              flags=flags, timelimit=timelimit)
+    return ForwardFFT!(plan, chebyplan, padded, inv(T(Nxp * Nzp * (Ny-1))))
 end
 
 """Transform the padded physical array `u` and retain the resolved modes in `U`."""
 function (fft::ForwardFFT!)(U::SpectralField, u::PhysicalField)
+    size(u) == physicalsize(grid(fft.padded), Padded()) ||
+        throw(DimensionMismatch("forward transform requires padded physical input"))
+    size(U) == spectralsize(grid(fft.padded), NotPadded()) ||
+        throw(DimensionMismatch("forward transform requires resolved spectral output"))
     # The nonlinear product is sampled on the padded grid. Transform it into
     # the internal padded spectrum before discarding unresolved modes.
     FFTW.unsafe_execute!(fft.plan, parent(u), parent(fft.padded))
+    FFTW.unsafe_execute!(fft.chebyplan, parent(fft.padded), parent(fft.padded))
 
-    # FFTW leaves forward transforms unnormalised. With this convention the
-    # stored coefficients are Fourier-series amplitudes and brfft needs no
-    # additional scaling.
+    # ChebyCoeff::chebyfft in Channelflow divides DCT-I by P = Ny-1 and
+    # halves its endpoint coefficients. Combine 1/P with Fourier scaling.
     fft.padded .*= fft.normalization
+    @views parent(fft.padded)[1, :, :] ./= 2
+    @views parent(fft.padded)[end, :, :] ./= 2
     copy_from_padded!(U, fft.padded)
 
     # Nyquist modes do not have an unambiguous positive/negative partner and
@@ -73,14 +85,15 @@ end
 """
     InverseFFT!(U; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
-Plan the inverse transform from resolved spectral storage `(y, kx, kz)` to the
+Plan the inverse transform from resolved spectral storage `(n, kx, kz)` to the
 3/2-padded physical storage `(y, xp, zp)`. The resolved input is preserved
 because the coefficients are first embedded in the internal padded buffer;
 FFTW's `brfft` is then allowed to overwrite that buffer.
 """
-struct InverseFFT!{P, A}
-    plan::P   # plan from the padded spectrum to the padded physical grid
-    padded::A # zero-padded spectrum used as destructive brfft input
+struct InverseFFT!{P, C, A}
+    plan::P      # plan from the padded spectrum to the padded physical grid
+    chebyplan::C # in-place DCT-I along the wall-normal dimension
+    padded::A    # zero-padded spectrum used as destructive brfft input
 end
 
 function InverseFFT!(U::SpectralField{T};
@@ -94,16 +107,29 @@ function InverseFFT!(U::SpectralField{T};
         zeros(eltype(U), spectralsize(grid(U), Padded())), grid(U))
     plan = FFTW.plan_brfft(parent(padded), Nxp, FFT_DIMS;
                            flags=flags, timelimit=timelimit)
-    return InverseFFT!(plan, padded)
+    chebyplan = FFTW.plan_r2r!(parent(padded), FFTW.REDFT00, (1,);
+                              flags=flags, timelimit=timelimit)
+    return InverseFFT!(plan, chebyplan, padded)
 end
 
 """Transform `U` into the padded physical array `u` and return `u`."""
 function (ifft::InverseFFT!)(u::PhysicalField, U::SpectralField)
+    size(u) == physicalsize(grid(ifft.padded), Padded()) ||
+        throw(DimensionMismatch("inverse transform requires padded physical output"))
+    size(U) == spectralsize(grid(ifft.padded), NotPadded()) ||
+        throw(DimensionMismatch("inverse transform requires resolved spectral input"))
     # Clear all unresolved modes, then insert the compact resolved spectrum.
     # Copying also protects U from the destructive brfft implementation.
     fill!(ifft.padded, zero(eltype(ifft.padded)))
     copy_to_padded!(ifft.padded, U)
     zero_nyquist!(ifft.padded)
+
+    # ChebyCoeff::ichebyfft: undo the endpoint weights, apply raw DCT-I,
+    # then divide by two. The Fourier inverse remains unnormalised.
+    @views parent(ifft.padded)[1, :, :] .*= 2
+    @views parent(ifft.padded)[end, :, :] .*= 2
+    FFTW.unsafe_execute!(ifft.chebyplan, parent(ifft.padded), parent(ifft.padded))
+    ifft.padded ./= 2
     FFTW.unsafe_execute!(ifft.plan, parent(ifft.padded), parent(u))
     return u
 end
