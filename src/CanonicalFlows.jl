@@ -15,5 +15,6 @@ include("vectorfield.jl")
 include("gradientfield.jl")
 include("ffts.jl")
 include("explicit.jl")
+include("helmoltz.jl")
 
 end
