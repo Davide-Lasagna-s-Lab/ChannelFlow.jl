@@ -17,8 +17,8 @@ end
 function benchmark_step(; record=false, profile=false, cpu=false, measure=false)
     root = dirname(dirname(pathof(ChannelFlow)))
     BLAS.set_num_threads(1)
-    g = Grid(35,32,32,2π/1.14,2π/2.5)
-    c = Couette(g,1/400,0.025; form=ChannelFlow.ConvectiveForm(),
+    g = Grid(32, 35, 32,2π/1.14,2π/2.5)
+    c = CouetteFlow(g,1/400,0.025; form=ChannelFlow.ConvectiveForm(),
                 fftwflags=measure ? FFTW.MEASURE : FFTW.ESTIMATE)
     # Build the same seeded random projected input, without expensive FFTW
     # planning in random_state. Initialization is outside all measurements.
@@ -30,15 +30,15 @@ function benchmark_step(; record=false, profile=false, cpu=false, measure=false)
         randn!(parent(physical)); parent(physical) .*= 0.01
         fft(u,physical)
     end
-    initial = project!(velocity(initial)); fill!(pressure(initial),0)
+    initial = project!(velocity(initial), c)
     state = copy(initial)
     reset() = begin
         for i=1:3
             copyto!(parent(velocity(state)[i]),parent(velocity(initial)[i]))
         end
-        copyto!(parent(pressure(state)),parent(pressure(initial)))
+        copyto!(parent(stagepressure(state)),parent(stagepressure(initial)))
     end
-    direct() = step!(c.scheme,c.nlterm,velocity(state),pressure(state),0.0;
+    direct() = step!(c.scheme,c.nlterm,velocity(state),stagepressure(state),0.0;
                      c.constraint...)
     flow = Flows.flow(c)
     cases = (("step",direct,1), ("flow_10_steps",()->flow(state,(0.0,0.25)),10))
@@ -76,7 +76,7 @@ function benchmark_step(; record=false, profile=false, cpu=false, measure=false)
         u, n, grad, tmp, gradient = c.nlterm.cache
         kernels = (("nonlinear", () -> c.nlterm(0.0, velocity(state), c.scheme.N)),
                    ("gradient", () -> ChannelFlow.grad!(gradient, velocity(state))),
-                   ("stokes", () -> ChannelFlow.solve!(c.scheme.solvers[1], velocity(state), pressure(state), c.scheme.R)),
+                   ("stokes", () -> ChannelFlow.solve!(c.scheme.solvers[1], velocity(state), stagepressure(state), c.scheme.R)),
                    ("inverse_scalar", () -> c.nlterm.ifft(u[1], tmp[1])),
                    ("forward_scalar", () -> c.nlterm.fft(tmp[1], u[1])),
                    ("inverse_chebyshev", () ->

@@ -37,7 +37,7 @@ function measure(f,out,u,g)
     println(f,": median ms ",median(samples)," bytes ",@allocated(f(out,u,g)))
 end
 function main()
-    grid=Grid(35,32,32,2π/1.14,2π/2.5)
+    grid=Grid(32, 35, 32,2π/1.14,2π/2.5)
     p=PhysicalField(zeros(physicalsize(grid,Padded())),grid)
     u=VectorField(p); g=CF.GradientField(p); out=VectorField(p)
     Random.seed!(42)

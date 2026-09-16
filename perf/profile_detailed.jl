@@ -11,7 +11,7 @@ const LABELS = ("Copy velocity + base flow", "Spectral velocity gradient",
 function timed_nonlinear!(eq, U, N, costs)
     u,n,grad,tmp,G = eq.cache
     t=time_ns(); tmp .= U
-    @views tmp[1][:,1,1] .+= eq.baseflow
+    @views tmp[1][:,1,1] .+= eq.basecoefficients
     costs[1] += time_ns()-t
     t=time_ns(); CF.grad!(G,tmp); costs[2] += time_ns()-t
     t=time_ns(); eq.ifft(u,tmp); costs[3] += time_ns()-t
@@ -24,7 +24,7 @@ end
 # Benchmark-only copy of the three-stage Couette/constant-gradient path.
 # Check its final state against production step! before collecting timings.
 function timed_step!(c,state,costs)
-    s=c.scheme; U=velocity(state); P=pressure(state)
+    s=c.scheme; U=velocity(state); P=stagepressure(state)
     Q,N,R=s.Q,s.N,s.R
     for j=1:3
         timed_nonlinear!(c.nlterm,U,N,costs)
@@ -37,19 +37,20 @@ function timed_step!(c,state,costs)
             CF.laplacian!(R[i],U[i]); derivative!(N[i],P)
             R[i] .= lambda.*U[i] .+ s.nu.*R[i] .- N[i] .+ weight.*Q[i]
         end
-        @views R[1][:,1,1] .+= 2 .* parent(s.baseviscous)
+        @views R[1][:,1,1] .+= 2 * s.nu .* parent(s.basecurvature)
         R[1][1,1,1] -= c.constraint.pressuregradient[1]
         R[3][1,1,1] -= c.constraint.pressuregradient[2]
         costs[9] += time_ns()-t
         t=time_ns()
-        CF.solve!(s.solvers[j],U,P,R; c.constraint...,baseflow=s.baseflow)
+        CF.solve!(s.solvers[j],U,P,R;
+                  c.constraint...,baseflow=parent(s.baseflow))
         costs[10] += time_ns()-t
     end
 end
 
 function restore!(dest,src)
     for i=1:3; copyto!(parent(velocity(dest)[i]),parent(velocity(src)[i])); end
-    copyto!(parent(pressure(dest)),parent(pressure(src)))
+    copyto!(parent(stagepressure(dest)),parent(stagepressure(src)))
 end
 function measure(f::F, reset::R; repeats=21) where {F,R}
     reset(); f()
@@ -68,22 +69,22 @@ function identity(root)
 end
 
 function run_case(io,flags,label)
-    g=Grid(35,32,32,2π/1.14,2π/2.5)
-    c=Couette(g,1/400,0.025;form=ChannelFlow.ConvectiveForm(),fftwflags=flags)
+    g=Grid(32, 35, 32,2π/1.14,2π/2.5)
+    c=CouetteFlow(g,1/400,0.025;form=ChannelFlow.ConvectiveForm(),fftwflags=flags)
     rng=MersenneTwister(42)
     physical=PhysicalField(zeros(physicalsize(g,Padded())),g)
     initial=zero_state(g); fft=ForwardFFT!(physical;flags=FFTW.ESTIMATE)
     for u in velocity(initial).components
         randn!(rng,parent(physical)); parent(physical) .*= 0.01; fft(u,physical)
     end
-    initial=project!(velocity(initial)); fill!(pressure(initial),0)
+    initial=project!(velocity(initial),c)
     state=copy(initial); reference=copy(initial); costs=zeros(10)
-    direct()=step!(c.scheme,c.nlterm,velocity(state),pressure(state),0.;c.constraint...)
+    direct()=step!(c.scheme,c.nlterm,velocity(state),stagepressure(state),0.;c.constraint...)
     reset()=restore!(state,initial)
     reset(); direct(); restore!(reference,state)
     reset(); timed_step!(c,state,costs)
     error=maximum(maximum(abs,parent(velocity(state)[i])-parent(velocity(reference)[i])) for i=1:3)
-    perror=maximum(abs,parent(pressure(state))-parent(pressure(reference)))
+    perror=maximum(abs,parent(stagepressure(state))-parent(stagepressure(reference)))
     @assert error < 1e-12 && perror < 1e-12
     production=measure(direct,reset)
     for _=1:3; reset(); timed_step!(c,state,costs); end
@@ -112,9 +113,9 @@ function run_case(io,flags,label)
       ("Forward Fourier rfft",()->FFTW.unsafe_execute!(fw.plan,parent(u[1]),parent(fw.padded)),()->copyto!(parent(u[1]),p),9),
       ("Forward DCT-I, resolved",()->FFTW.unsafe_execute!(fw.chebyplan,parent(tmp[1]),parent(tmp[1])),()->copyto!(parent(tmp[1]),a),9),
       ("Scalar Laplacian",()->CF.laplacian!(c.scheme.R[1],velocity(state)[1]),()->nothing,9),
-      ("Streamwise derivative",()->ddx1!(c.scheme.N[1],pressure(state)),()->nothing,12),
-      ("Wall-normal derivative",()->ddx2!(c.scheme.N[1],pressure(state)),()->nothing,12),
-      ("Spanwise derivative",()->ddx3!(c.scheme.N[1],pressure(state)),()->nothing,12))
+      ("Streamwise derivative",()->ddx1!(c.scheme.N[1],stagepressure(state)),()->nothing,12),
+      ("Wall-normal derivative",()->ddx2!(c.scheme.N[1],stagepressure(state)),()->nothing,12),
+      ("Spanwise derivative",()->ddx3!(c.scheme.N[1],stagepressure(state)),()->nothing,12))
     println(io,"\nNested kernels (isolated, warmed; **not additive** with phase table):\n\n| Kernel | Median ms/call | Calls/step | Julia bytes/call |\n|---|---:|---:|---:|")
     for (name,f,setup,calls) in kernels
         r=measure(f,setup); println(io,"| $name | $(round(r.median,digits=4)) | $calls | $(r.bytes) |")
