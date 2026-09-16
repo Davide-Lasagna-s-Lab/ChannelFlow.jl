@@ -189,3 +189,26 @@ julia --startup-file=no --threads=1 --project=. perf/benchmark_convection.jl
 
 Validation of the correction: all 1,760 interface/analytic tests and all
 833 physics tests passed.
+
+## FFT copy and scaling passes (2026-09-16)
+
+Forward normalisation, Chebyshev endpoint weights and Nyquist filtering now
+share one traversal of the resolved spectrum. On the inverse path, the final
+factor `1/2` is applied while copying the transformed resolved modes into the
+padded buffer, removing one complete pass over the resolved workspace.
+
+An attempted fusion of the inverse input copy with its endpoint weights was
+discarded: isolated timings were 0.021 ms for the manual fused loop against
+0.011 ms for `copyto!` followed by the two small endpoint updates. The retained
+inverse-output fusion reduced that isolated phase from 0.047 to 0.027 ms per
+scalar transform. The retained forward fusion reduced its isolated phase from
+0.036 to 0.025 ms per transform.
+
+On the complete ESTIMATE benchmark, the direct-step median changed from
+39.885 to 38.735 ms. The ten-step propagation was noisy: its median changed
+from 41.575 to 41.978 ms, while the minimum changed from 40.947 to 38.632 ms.
+This is a small memory-pass optimization; interpret it from repeated runs and
+source hashes in `history.csv`, rather than from one propagation median.
+
+All 1,760 interface/analytic checks and all 833 physics checks passed with
+the retained fusions.

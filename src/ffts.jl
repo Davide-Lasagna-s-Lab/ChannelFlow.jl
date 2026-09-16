@@ -76,15 +76,9 @@ function (fft::ForwardFFT!)(U::SpectralField, u::PhysicalField)
     copy_from_padded!(U, fft.padded)
     FFTW.unsafe_execute!(fft.chebyplan, parent(U), parent(U))
 
-    # ChebyCoeff::chebyfft in Channelflow divides DCT-I by P = Ny-1 and
-    # halves its endpoint coefficients. Combine 1/P with Fourier scaling.
-    U .*= fft.normalization
-    @views parent(U)[1, :, :] ./= 2
-    @views parent(U)[end, :, :] ./= 2
-
-    # Nyquist modes do not have an unambiguous positive/negative partner and
-    # are excluded from derivatives and nonlinear products.
-    zero_nyquist!(U)
+    # Apply Fourier/Chebyshev normalisation, endpoint weights and Nyquist
+    # filtering in one traversal of the resolved buffer.
+    normalize_forward!(U, fft.normalization)
     return U
 end
 
@@ -166,11 +160,10 @@ function (ifft::InverseFFT!)(u::PhysicalField, U::SpectralField)
     @views parent(ifft.resolved)[1, :, :] .*= 2
     @views parent(ifft.resolved)[end, :, :] .*= 2
     FFTW.unsafe_execute!(ifft.chebyplan, parent(ifft.resolved), parent(ifft.resolved))
-    ifft.resolved ./= 2
 
     # Preserve U and provide a disposable, zero-padded buffer to brfft.
     fill!(ifft.padded, zero(eltype(ifft.padded)))
-    copy_to_padded!(ifft.padded, ifft.resolved)
+    copy_to_padded!(ifft.padded, ifft.resolved, 0.5)
     zero_nyquist!(ifft.padded)
     FFTW.unsafe_execute!(ifft.plan, parent(ifft.padded), parent(u))
     return u
@@ -248,13 +241,37 @@ Embed a compact resolved spectrum in a zeroed padded spectrum. The stored
 nonnegative `kx` modes remain a prefix of dimension two. Nonnegative `kz`
 modes stay at the start of dimension three; negative modes move to its end.
 """
-function copy_to_padded!(dest::SpectralField{T}, src::SpectralField{T}) where {T}
+function copy_to_padded!(dest::SpectralField{T},
+                         src::SpectralField{T},
+                         scale=one(T)) where {T}
     _, Nxh, Nz = size(src)
     positive, negative, padded_negative = _complex_mode_ranges(Nz, size(dest, 3))
 
-    @views parent(dest)[:, 1:Nxh, positive] .= parent(src)[:, :, positive]
-    @views parent(dest)[:, 1:Nxh, padded_negative] .= parent(src)[:, :, negative]
+    @views parent(dest)[:, 1:Nxh, positive] .= scale .* parent(src)[:, :, positive]
+    @views parent(dest)[:, 1:Nxh, padded_negative] .= scale .* parent(src)[:, :, negative]
     return dest
+end
+
+"""Apply transform scaling, Chebyshev endpoint weights and Nyquist filtering."""
+function normalize_forward!(U::SpectralField, normalization)
+    Ny, Nxh, Nz = size(U)
+    _, Nx, _ = physicalsize(grid(U), NotPadded())
+    xnyquist = iseven(Nx) ? (Nx >> 1) + 1 : 0
+    znyquist = iseven(Nz) ? (Nz >> 1) + 1 : 0
+
+    @inbounds for iz = 1:Nz, ix = 1:Nxh
+        if ix == xnyquist || iz == znyquist
+            for iy = 1:Ny
+                U[iy, ix, iz] = 0
+            end
+        else
+            for iy = 1:Ny
+                endpoint = (iy == 1 || iy == Ny) ? 0.5 : 1.0
+                U[iy, ix, iz] *= normalization*endpoint
+            end
+        end
+    end
+    return U
 end
 
 """
