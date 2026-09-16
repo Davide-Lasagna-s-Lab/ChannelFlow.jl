@@ -265,9 +265,9 @@ projected input, the rotational nonlinear evaluation took 5.40 ms versus
 9.30 ms for the convective evaluation. The corresponding full-step medians
 were 20.32 and 36.60 ms in that run; these whole-step timings are sensitive to
 system load, so the recorded fixed-form history remains the primary baseline.
-The convective form remains the default, and users select the faster option
-explicitly with `form=RotatingForm()` because its pressure includes the
-kinetic-energy contribution.
+The rotational form is now the default. Its pressure includes the
+kinetic-energy contribution; select `form=ChannelFlow.ConvectiveForm()` when
+ordinary kinematic pressure is required.
 
 The fused curl has a manufactured analytic test using functions with all
 periodic harmonics. The complete interface suite passes 1,768 checks, and the

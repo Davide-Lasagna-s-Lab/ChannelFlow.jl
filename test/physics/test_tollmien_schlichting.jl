@@ -110,7 +110,8 @@ end
     for dt in (0.4, 0.2, 0.1)
         @testset "dt=$dt" begin
             problem = ChannelFlowProblem(g, y -> 1-y^2, nu, dt;
-                pressuregradient=(-2nu,0.0), fftwflags=FFTW.ESTIMATE)
+                form=CF.ConvectiveForm(), pressuregradient=(-2nu,0.0),
+                fftwflags=FFTW.ESTIMATE)
             state = copy(initial)
             flow = Flows.flow(problem)
             previous, phase = 1.0+0im, 0.0

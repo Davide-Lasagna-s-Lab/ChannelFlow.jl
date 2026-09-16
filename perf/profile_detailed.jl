@@ -69,7 +69,7 @@ end
 
 function run_case(io,flags,label)
     g=Grid(35,32,32,2π/1.14,2π/2.5)
-    c=Couette(g,1/400,0.025;fftwflags=flags)
+    c=Couette(g,1/400,0.025;form=ChannelFlow.ConvectiveForm(),fftwflags=flags)
     rng=MersenneTwister(42)
     physical=PhysicalField(zeros(physicalsize(g,Padded())),g)
     initial=zero_state(g); fft=ForwardFFT!(physical;flags=FFTW.ESTIMATE)

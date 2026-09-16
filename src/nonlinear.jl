@@ -23,7 +23,7 @@ struct RotatingForm    <: NonlinearityForm end
     NonLinearTerm(u, U, baseflow;
                   fftwflags=FFTW.EXHAUSTIVE,
                   fftwtimelimit=FFTW.NO_TIMELIMIT,
-                  form=ConvectiveForm())
+                  form=RotatingForm())
 
 Construct a pseudo-spectral convection operator using scalar physical/spectral
 fields `u` and `U` as allocation and transform prototypes.
@@ -51,7 +51,7 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B}
                                baseflow::AbstractVector;
                                fftwflags::Integer=FFTW.EXHAUSTIVE,
                            fftwtimelimit::Real=FFTW.NO_TIMELIMIT,
-                                    form::FORM=ConvectiveForm()
+                                    form::FORM=RotatingForm()
                            ) where {T, S<:SpectralField{T}, FORM<:NonlinearityForm}
         cache = _gencache(form, u, U)
         ifft = InverseFFT!(U; flags=fftwflags, timelimit=fftwtimelimit)

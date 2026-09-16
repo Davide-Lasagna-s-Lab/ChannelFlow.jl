@@ -18,7 +18,8 @@ function benchmark_step(; record=false, profile=false, cpu=false, measure=false)
     root = dirname(dirname(pathof(ChannelFlow)))
     BLAS.set_num_threads(1)
     g = Grid(35,32,32,2π/1.14,2π/2.5)
-    c = Couette(g,1/400,0.025; fftwflags=measure ? FFTW.MEASURE : FFTW.ESTIMATE)
+    c = Couette(g,1/400,0.025; form=ChannelFlow.ConvectiveForm(),
+                fftwflags=measure ? FFTW.MEASURE : FFTW.ESTIMATE)
     # Build the same seeded random projected input, without expensive FFTW
     # planning in random_state. Initialization is outside all measurements.
     Random.seed!(42)

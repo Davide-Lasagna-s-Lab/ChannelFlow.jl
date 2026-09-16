@@ -35,7 +35,8 @@
             errors = Float64[]
             for dt in (0.5, 0.25, 0.125)
                 problem = ChannelFlowProblem(g, profile, nu, dt;
-                    pressuregradient=(gradient,0.0), fftwflags=FFTW.ESTIMATE)
+                    form=CF.ConvectiveForm(), pressuregradient=(gradient,0.0),
+                    fftwflags=FFTW.ESTIMATE)
                 state = zero_state(g)
                 U = velocity(state)
                 U[1] .= spectral(g, initial)

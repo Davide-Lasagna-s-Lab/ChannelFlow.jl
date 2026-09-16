@@ -21,6 +21,7 @@
     end
     problem = ChannelFlowProblem(g, y -> 0.0, nu, dt;
                                  forcing=force!, fftwflags=FFTW.ESTIMATE)
+    @test problem.nlterm isa NonLinearTerm{Float64, RotatingForm}
     state = zero_state(g)
     U, P = velocity(state), pressure(state)
     flow = Flows.flow(problem)

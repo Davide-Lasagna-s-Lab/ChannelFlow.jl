@@ -6,7 +6,7 @@ export ChannelFlowProblem, Couette, Poiseuille
 
 """
     ChannelFlowProblem(grid, profile, nu, dt;
-                form=ConvectiveForm(), forcing=nothing,
+                form=RotatingForm(), forcing=nothing,
                 pressuregradient=nothing, bulkvelocity=nothing,
                 fftwflags=FFTW.MEASURE, fftwtimelimit=FFTW.NO_TIMELIMIT)
 
@@ -19,9 +19,9 @@ solvers, the optional forcing callback, and the mean-flow constraint.
 
 `zero_state(channel.grid)` creates a coupled perturbation velocity and stage
 pressure. Initialise this state before integration to satisfy no slip,
-continuity and any prescribed bulk velocity. For a rotational nonlinear form,
-`P` must include the total kinetic energy per unit mass; it is not generally
-zero even for a laminar base state.
+continuity and any prescribed bulk velocity. The default rotational form uses
+modified pressure, so `P` must include the total kinetic energy per unit mass;
+it is not generally zero even for a laminar base state.
 
 The CNRK2 momentum source contains `-grad(P)` from the preceding stage.
 Pressure is therefore retained with velocity between stages and time steps;
@@ -58,7 +58,7 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
                                     profile::Function,
                                        nu::Real,
                                        dt::Real;
-                                     form::NonlinearityForm=ConvectiveForm(),
+                                     form::NonlinearityForm=RotatingForm(),
                                   forcing=nothing,
                          pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
                              bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing,
