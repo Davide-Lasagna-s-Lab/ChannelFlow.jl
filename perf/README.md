@@ -248,3 +248,27 @@ at zero Julia heap allocations; propagation retains 2,944 bytes and seven
 allocations per step from the Flows path. All 1,760 interface/analytic checks
 and all 833 physics checks passed, including Waleffe cases at both `Ny=35`
 (dense path) and `Ny=49` (FFTW fallback).
+
+## Rotational-form curl fusion (2026-09-16)
+
+The rotational nonlinear form now computes vorticity with `curl!`. Two
+Chebyshev recurrences form the wall-normal derivatives, and one fused loop
+adds all Fourier derivatives. The previous implementation used six derivative
+calls followed by three separate sign-change broadcasts. On the standard
+`Ny=35`, `Nx=Nz=32` case, the isolated curl changed from 0.215 to 0.140 ms
+per call, with zero Julia heap allocations in both versions.
+
+The larger saving comes from the rotational formulation itself. It transforms
+velocity and vorticity, whereas the convective formulation transforms velocity
+and all nine entries of its gradient. In a warmed comparison using identical
+projected input, the rotational nonlinear evaluation took 5.40 ms versus
+9.30 ms for the convective evaluation. The corresponding full-step medians
+were 20.32 and 36.60 ms in that run; these whole-step timings are sensitive to
+system load, so the recorded fixed-form history remains the primary baseline.
+The convective form remains the default, and users select the faster option
+explicitly with `form=RotatingForm()` because its pressure includes the
+kinetic-energy contribution.
+
+The fused curl has a manufactured analytic test using functions with all
+periodic harmonics. The complete interface suite passes 1,768 checks, and the
+833 physics checks remain unchanged.

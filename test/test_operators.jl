@@ -60,6 +60,17 @@
         for i = 1:3, (j, exact) in enumerate((fx, fy, fz))
             @test physical_values(G[i, j]) ≈ parent(sampled(g, exact)) atol=2e-10
         end
+        # With all three velocity components equal to f, the analytic curl is
+        # (fy-fz, fz-fx, fx-fy). This checks signs, component ordering and the
+        # fused combination of Chebyshev and Fourier derivatives.
+        Ω = similar(V)
+        @test curl!(Ω, V) === Ω
+        exact_curl = ((x,y,z) -> fy(x,y,z)-fz(x,y,z),
+                      (x,y,z) -> fz(x,y,z)-fx(x,y,z),
+                      (x,y,z) -> fx(x,y,z)-fy(x,y,z))
+        @test all(isapprox(physical_values(Ω[i]),
+                           parent(sampled(g, exact_curl[i])); atol=4e-10)
+                  for i = 1:3)
         @test CF.div!(out, V) === out
         @test physical_values(out) ≈ parent(sampled(g, (x,y,z) -> fx(x,y,z)+fy(x,y,z)+fz(x,y,z))) atol=3e-10
         @test CF.div!(V, G) === V

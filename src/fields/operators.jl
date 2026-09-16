@@ -1,4 +1,4 @@
-export ddx1!, ddx2!, ddx3!
+export ddx1!, ddx2!, ddx3!, curl!
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                     STREAMWISE FOURIER DERIVATIVE                      ///#
@@ -113,6 +113,38 @@ function laplacian!(OUT::S, U::S) where {S<:SpectralField}
         end
     end
 
+    return OUT
+end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                         SPECTRAL VECTOR CURL                           ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+"""
+    curl!(OUT::VectorField, U::VectorField)
+
+Overwrite `OUT` with the spectral curl of `U`. The two wall-normal
+derivatives use the Chebyshev recurrence. A single subsequent traversal adds
+all streamwise and spanwise Fourier contributions, avoiding separate
+derivative and sign-change passes for each component.
+"""
+function curl!(OUT::VectorField{S},
+                 U::VectorField{S}) where {S<:SpectralField}
+    # curl(U)_1 = dy(U_3) - dz(U_2)
+    # curl(U)_3 = dx(U_2) - dy(U_1)
+    ddx2!(OUT[1], U[3])
+    ddx2!(OUT[3], U[1])
+
+    Ny, Nxh, Nz = size(U[1])
+    Lx, _, Lz = domainsize(grid(U[1]))
+    α, β = 2π/Lx, 2π/Lz
+    @inbounds for iz = 1:Nz, ix = 1:Nxh, iy = 1:Ny
+        kx = ix-1
+        kz = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
+        OUT[1][iy, ix, iz] -= im*kz*β*U[2][iy, ix, iz]
+        OUT[2][iy, ix, iz]  = im*(kz*β*U[1][iy, ix, iz] - kx*α*U[3][iy, ix, iz])
+        OUT[3][iy, ix, iz]  = im*kx*α*U[2][iy, ix, iz] - OUT[3][iy, ix, iz]
+    end
     return OUT
 end
 

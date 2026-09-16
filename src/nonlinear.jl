@@ -244,18 +244,7 @@ function _rotatingform!(  Eq::NonLinearTerm,
     TMP .= U
     @views TMP[1][:, 1, 1] .+= Eq.baseflow
 
-    # Compute the three curl components directly in spectral space.
-    ddx3!(Ω[1], TMP[2])
-    Ω[1] .*= -1
-    ddx2!(Ω[1], TMP[3], true)
-
-    ddx1!(Ω[2], TMP[3])
-    Ω[2] .*= -1
-    ddx3!(Ω[2], TMP[1], true)
-
-    ddx2!(Ω[3], TMP[1])
-    Ω[3] .*= -1
-    ddx1!(Ω[3], TMP[2], true)
+    curl!(Ω, TMP)
 
     Eq.ifft(u, TMP)
     Eq.ifft(ω, Ω)
