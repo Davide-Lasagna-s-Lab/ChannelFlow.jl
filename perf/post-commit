@@ -1,0 +1,5 @@
+#!/bin/sh
+# Record each local commit after it receives its Git hash.
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+exec /opt/homebrew/bin/julia --startup-file=no --threads=1 --project=. perf/benchmark_step.jl --record

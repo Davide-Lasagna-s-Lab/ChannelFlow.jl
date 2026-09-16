@@ -95,11 +95,11 @@ function _bulkpressuregradient(scheme::CNRK2,
                                     N::VectorField)
     return ntuple(2) do i
         component = i == 1 ? 1 : 3
-        u = _chebcolumn(U[component], 1, 1)
+        u = _chebcolumn(U[component], 1, 1, scheme.baseviscous)
         shear = ChebyshevHelmoltzSolvers.endpoint_derivative(u, :right) -
                 ChebyshevHelmoltzSolvers.endpoint_derivative(u, :left)
         base = i == 1 ? _bulkmean(scheme.baseviscous) : 0.0
-        return scheme.nu*real(shear)/2 + base + real(_bulkmean(_chebcolumn(N[component], 1, 1)))
+        return scheme.nu*real(shear)/2 + base + real(_bulkmean(_chebcolumn(N[component], 1, 1, scheme.baseviscous)))
     end
 end
 

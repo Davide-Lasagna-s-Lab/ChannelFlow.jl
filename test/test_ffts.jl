@@ -71,3 +71,25 @@ end
         end
     end
 end
+
+@testset "Highest Chebyshev coefficient with Fourier padding" begin
+    # Exercise the degree used by the DNS benchmark, including DCT endpoint
+    # weights. The highest Chebyshev polynomial and a retained Fourier mode
+    # have known coefficients; truncating Fourier columns before the DCT
+    # must preserve both, for even and odd padded periodic lengths.
+    for N in (7, 8)
+        g = Grid(35, N, N, 2π, 2π)
+        f(x, y, z) = cos(34acos(clamp(y, -1, 1)))*cos(2x)*cos(2z)
+        u = sampled(g, f)
+        U = spectral(g, fzero)
+        fft = ForwardFFT!(u; flags=FFTW.ESTIMATE)
+        ifft = InverseFFT!(U; flags=FFTW.ESTIMATE)
+        fft(U, u)
+        expected = zeros(ComplexF64, size(U))
+        expected[35, 3, 3] = expected[35, 3, end-1] = 0.25
+        @test parent(U) ≈ expected atol=2e-12
+        original = copy(parent(u))
+        ifft(u, U)
+        @test parent(u) ≈ original atol=2e-12
+    end
+end

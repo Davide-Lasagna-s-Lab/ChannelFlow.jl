@@ -219,19 +219,27 @@ function solve!(solver::InfluenceModeSolver,
 
     # Re(div R) = D Re(Ry) - kx Im(Rx) - kz Im(Rz);
     # Im(div R) = D Im(Ry) + kx Re(Rx) + kz Re(Rz).
-    for (part, cross, sign) in ((real, imag, -1), (imag, real, 1))
-        parent(ry) .= part.(parent(Ry))
+    # Keep the real/imaginary selection scalar: iterating over function
+    # objects here makes broadcast construction type-unstable in this hot loop.
+    for imaginary in (false, true)
+        @inbounds for n in eachindex(ry)
+            ry[n] = imaginary ? imag(Ry[n]) : real(Ry[n])
+        end
         ChebyshevHelmoltzSolvers.diff!(r, ry)
-        parent(r) .+= sign .* (solver.kx .* cross.(parent(Rx)) .+
-                              solver.kz .* cross.(parent(Rz)))
+        @inbounds for n in eachindex(r)
+            r[n] += imaginary ? solver.kx*real(Rx[n]) + solver.kz*real(Rz[n]) :
+                               -solver.kx*imag(Rx[n]) - solver.kz*imag(Rz[n])
+        end
         solve!(solver, pc, vc, r, ry)
 
-        if part === real
-            parent(p) .= parent(pc)
-            parent(v) .= parent(vc)
-        else
-            parent(p) .+= im .* parent(pc)
-            parent(v) .+= im .* parent(vc)
+        @inbounds for n in eachindex(p)
+            if imaginary
+                p[n] += im*pc[n]
+                v[n] += im*vc[n]
+            else
+                p[n] = pc[n]
+                v[n] = vc[n]
+            end
         end
     end
 
@@ -506,8 +514,9 @@ struct FourierStokesSolver{G, S, M}
 end
 
 """Wrap Fourier slot `(ix, iz)` as Chebyshev coefficients without copying data."""
-_chebcolumn(U::SpectralField, ix::Int, iz::Int) =
-    ChebyshevHelmoltzSolvers.ChebCoeffs(view(parent(U), :, ix, iz))
+_chebcolumn(U::SpectralField{T}, ix::Int, iz::Int,
+            ::ChebyshevHelmoltzSolvers.ChebCoeffs{S, N}) where {T, S, N} =
+    ChebyshevHelmoltzSolvers.ChebCoeffs{Complex{T}, N}(view(parent(U), :, ix, iz))
 
 """
     solve!(solver::FourierStokesSolver, U, P, R;
@@ -553,14 +562,14 @@ function solve!(          solver::FourierStokesSolver,
              (bulkvelocity[1] - (isnothing(baseflow) ? 0.0 :
                 _bulkmean(ChebyshevHelmoltzSolvers.ChebCoeffs(baseflow))),
               bulkvelocity[2])
-    gradients = solve!(solver.mean, map(field -> _chebcolumn(field, 1, 1), fields)...;
+    gradients = solve!(solver.mean, map(field -> _chebcolumn(field, 1, 1, solver.mean.work), fields)...;
                        pressuregradient=pressuregradient, bulkvelocity=target)
 
     _, Nxh, Nz = expected
     for iz = 1:Nz, ix = 1:Nxh
         mode = solver.modes[ix, iz]
         isnothing(mode) && continue
-        solve!(mode, map(field -> _chebcolumn(field, ix, iz), fields)...)
+        solve!(mode, map(field -> _chebcolumn(field, ix, iz, solver.mean.work), fields)...)
     end
     for field in (U.components..., P)
         zero_nyquist!(field)

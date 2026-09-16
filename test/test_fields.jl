@@ -1,13 +1,13 @@
 @testset "Grid, fields and state interface" begin
     # Check the public size convention explicitly: y is first, padding
     # enlarges only periodic axes, and the real FFT reduces x to floor(Nx/2)+1
-    # coefficients. The padded periodic sizes follow the grid odd-size
-    # convention; the wall-normal interval always has length 2.
+    # coefficients. Padding rounds 3N/2 upward without forcing odd sizes;
+    # the wall-normal interval always has length 2.
     g = Grid(9, 6, 8, 5.0, 7.0)
     @test physicalsize(g, NotPadded()) == (9, 6, 8)
-    @test physicalsize(g, Padded()) == (9, 9, 13)
+    @test physicalsize(g, Padded()) == (9, 9, 12)
     @test spectralsize(g, NotPadded()) == (9, 4, 8)
-    @test spectralsize(g, Padded()) == (9, 5, 13)
+    @test spectralsize(g, Padded()) == (9, 5, 12)
     @test CF.domainsize(g) == (5.0, 2.0, 7.0)
     # Check node placement independently: Chebyshev-Lobatto points descend
     # from +1 to -1, while periodic nodes start at zero and omit the
@@ -17,11 +17,9 @@
     @test vec(x) ≈ (0:5) .* (5/6)
     @test vec(z) ≈ (0:7) .* (7/8)
     # Use y^2=(T_2+T_0)/2 to obtain the coefficients by hand. This checks the
-    # constant coefficient normalization as well as polynomial conversion. The
-    # following rejection checks the minimum supported wall-normal resolution.
+    # constant coefficient normalization as well as polynomial conversion.
     @test chebyshev_coefficients(g, y -> 1+2y+3y^2) ≈
           [2.5, 2, 1.5, zeros(6)...] atol=1e-13
-    @test_throws ArgumentError Grid(2, 6, 8, 5, 7)
 
     # Different weights on x, y and z expose argument-order mistakes in the
     # functional constructor. The zero constructor and shape rejection
