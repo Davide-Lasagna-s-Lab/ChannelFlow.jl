@@ -87,12 +87,5 @@ const PhysicalFieldStyle = Broadcast.ArrayStyle{PhysicalField}
 """Return the broadcast style used by `PhysicalField`."""
 Base.BroadcastStyle(::Type{<:PhysicalField}) = PhysicalFieldStyle()
 
-"""Evaluate a broadcast expression directly into `dest`."""
-@inline function Base.Broadcast.materialize!(dest::PhysicalField,
-                                               bc::Broadcast.Broadcasted{<:PhysicalFieldStyle})
-    bc_ = Broadcast.flatten(bc)
-    @simd for i in eachindex(dest)
-        @inbounds dest[i] = bc_[i]
-    end
-    return dest
-end
+# Use Julia's standard materialize!/copyto! path: it validates broadcast
+# axes and chooses efficient iteration, including singleton expansion.

@@ -139,3 +139,53 @@ should start a new history file to preserve comparability.
 See [profiling-summary.md](profiling-summary.md) for the phase breakdown,
 nested kernel measurements and optimization priorities. Reproduce with
 `julia --startup-file=no --threads=1 --project=. perf/profile_detailed.jl`.
+
+## Scalar-field broadcasting correction (2026-09-16)
+
+The custom PhysicalField/SpectralField materializers flattened the broadcast
+and indexed `bc[i]` in a manual linear loop. This bypassed Julia's standard
+broadcast preparation/copy path and incurred repeated axis/index work.
+Instantiating the axes alone improved the microbenchmark but did not remove
+most of the overhead. Both overrides have therefore been removed: Julia's
+standard materialize!/copyto! now handles iteration and broadcast axes.
+The compact broadcast expression in `dot!` is retained unchanged.
+
+`perf/benchmark_convection.jl` preserves the old custom materializer as a
+reference and compares it with native-array broadcast and production dot!.
+It verifies exact equality on seeded random fields before timing. Eleven
+batches of fifty calls on the 35×48×48 padded grid measured:
+
+| Contraction implementation | Median ms/call | Julia bytes |
+|---|---:|---:|
+| Original custom materializer | 2.264 | 0 |
+| Broadcast on parent arrays | 0.356 | 0 |
+| Field broadcast using Julia's standard path | 0.362 | 0 |
+
+The corrected field broadcast is about 6.3x faster and matches native-array
+performance. An explicit SIMD contraction was also measured, but is not
+retained: fixing the shared broadcast implementation improves other field
+expressions and keeps the production code shorter.
+
+Before/after complete-step measurements, ESTIMATE, one thread:
+
+| Case | Baseline `0119238` median ms | Corrected median ms | Julia bytes after |
+|---|---:|---:|---:|
+| Direct step | 49.062 | 40.327 | 0 |
+| Propagation, per step | 49.249 | 42.434 | 2,944 |
+
+The propagation median fell by about 14%. Timings vary with machine load;
+full source identities and subsequent post-commit measurements are retained
+in `history.csv`. Intermediate explicit-loop measurements remain in that
+history, identified by their different source hashes. Earlier detailed
+profiles describe the pre-correction implementation.
+
+New regression checks cover singleton-axis expansion, self-referential
+assignment and rejection of incompatible dimensions for both scalar field
+types. Reproduce the kernel comparison with:
+
+```sh
+julia --startup-file=no --threads=1 --project=. perf/benchmark_convection.jl
+```
+
+Validation of the correction: all 1,760 interface/analytic tests and all
+833 physics tests passed.

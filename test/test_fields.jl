@@ -84,3 +84,28 @@
     @test tensor[1][2][1] == 7
     @test tensor[2, 1][1] == tensor[1, 1][1] == 0
 end
+
+@testset "Field broadcast axes" begin
+    # A wall-normal profile has singleton periodic axes. Assignment must
+    # expand it across the destination, rather than index it as a full field.
+    g = Grid(9, 6, 8, 5.0, 7.0)
+    profile_grid = Grid(9, 1, 1, 5.0, 7.0)
+    bad_grid = Grid(9, 4, 5, 5.0, 7.0)
+    for constructor in (PhysicalField, SpectralField)
+        physical = constructor === PhysicalField
+        shape(grid) = physical ? physicalsize(grid, NotPadded()) : spectralsize(grid, NotPadded())
+        T = physical ? Float64 : ComplexF64
+        dest = constructor(zeros(T, shape(g)), g)
+        source = constructor(reshape(T.(1:9), shape(profile_grid)), profile_grid)
+        dest .= 2 .* source .+ 1
+        expected = zeros(T, size(dest))
+        expected .= 2 .* parent(source) .+ 1
+        @test parent(dest) == expected
+        # Self-reference must retain ordinary fused, in-place semantics.
+        dest .= 3 .* dest .- source
+        @test parent(dest) == 3 .* expected .- parent(source)
+        # Reject incompatible axes before entering an unchecked element loop.
+        bad = constructor(zeros(T, shape(bad_grid)), bad_grid)
+        @test_throws DimensionMismatch dest .= bad
+    end
+end

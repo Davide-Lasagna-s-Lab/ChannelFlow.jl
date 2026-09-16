@@ -65,11 +65,5 @@ Base.parent(U::SpectralField) = U.data
 const SpectralFieldStyle = Broadcast.ArrayStyle{SpectralField}
 Base.BroadcastStyle(::Type{<:SpectralField}) = SpectralFieldStyle()
 
-@inline function Base.Broadcast.materialize!(dest::SpectralField,
-                                               bc::Broadcast.Broadcasted{<:SpectralFieldStyle})
-    bc_ = Broadcast.flatten(bc)
-    @simd for i in eachindex(dest)
-        @inbounds dest[i] = bc_[i]
-    end
-    return dest
-end
+# Use Julia's standard materialize!/copyto! path: it validates broadcast
+# axes and chooses efficient iteration, including singleton expansion.
