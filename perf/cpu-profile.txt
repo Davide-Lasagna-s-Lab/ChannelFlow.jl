@@ -1,186 +1,137 @@
-ChannelFlow: (commit = "be56ce25852e322b6e2467aa0e1de24841a55d15", dirty = true, hash = "4c25ef7b1ddb791b46547b3f9c2459abd8a65d12936fd991088642af9ca74040"); backend: (commit = "90fd15668dc78601c3d6e6f820fa1e69e59857a2", dirty = true, hash = "b1c045e8bf7a384c471dc843a4f5ff27230c24b8dca5144e0d1678c323236ff3")
+ChannelFlow: (commit = "e797b1d14bc7cacd2a858a25f75eed92163fb53e", dirty = false, hash = "d126303c209b082890f8a9f46dbe60ccf7dae6656707e045bd64531f36df96ce"); backend: (commit = "1f80e2b71212836310bd9be43b25b2c05da1bafd", dirty = false, hash = "b1c045e8bf7a384c471dc843a4f5ff27230c24b8dca5144e0d1678c323236ff3")
 FFTW planning: ESTIMATE
-nonlinear: median 13.241542 ms/call
-gradient: median 0.22733399999999998 ms/call
-stokes: median 1.569458 ms/call
-inverse_scalar: median 0.6866249999999999 ms/call
-forward_scalar: median 0.670292 ms/call
-inverse_chebyshev: median 0.424208 ms/call
-inverse_fourier: median 0.18000000000000002 ms/call
+nonlinear: median 7.584958 ms/call
+gradient: median 0.230458 ms/call
+stokes: median 1.566167 ms/call
+inverse_scalar: median 0.447292 ms/call
+forward_scalar: median 0.46058299999999996 ms/call
+inverse_chebyshev: median 0.23066699999999998 ms/call
+inverse_fourier: median 0.185875 ms/call
  Count  Overhead File                    Line Function
  =====  ======== ====                    ==== ========
-    10         0 @ChannelFlow/src/nonlinear.jl  139 _convectiveform!(Eq::NonLinearTer…
-    10         0 @ChebyshevHelmoltzSolvers/src/quasitridiag.jl  119 ldiv!(Q::ChebyshevHelmoltzSolvers…
-    11         1 …/lib/libfftw3.3.dylib    ? apply_dit_dft
-    12         0 @ChannelFlow/src/ffts.jl   81 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
-    12         1 @ChannelFlow/src/helmoltz.jl  301 solve!(solver::InfluenceModeSolve…
-    12         0 @ChannelFlow/…timesteppers/cnrk2.jl  186 step!(scheme::CNRK2{FourierStokes…
-    12         0 @ChannelFlow/src/helmoltz.jl  251 solve!(solver::InfluenceModeSolve…
-    12         0 @Base/broadcast.jl      995 macro expansion
-    13         0 @ChannelFlow/…elds/gradientfield.jl   54 grad!(GRAD::ChannelFlow.GradientF…
-    13        13 …/lib/libfftw3.3.dylib    ? r2cbIII_12
-    14         0 @Base/abstractarray.jl 3106 _ind2sub_recurse
-    14         0 @ChannelFlow/src/operators.jl   39 ddx2!
-    14         0 @ChannelFlow/…elds/physicalfield.jl   71 setindex!
-    14         0 @ChannelFlow/src/indexing.jl   16 macro expansion
-    15         0 @ChannelFlow/src/helmoltz.jl  252 solve!(solver::InfluenceModeSolve…
-    15         0 @ChebyshevHelmoltzSolvers/src/quasitridiag.jl  113 ldiv!(Q::ChebyshevHelmoltzSolvers…
-    15         0 @ChannelFlow/…elds/physicalfield.jl   63 getindex
-    15         0 @ChannelFlow/…timesteppers/cnrk2.jl  194 step!(scheme::CNRK2{FourierStokes…
-    15        15 …system_platform.dylib    ? _platform_memmove
-    15         0 @ChannelFlow/src/nonlinear.jl  155 _convectiveform!(Eq::NonLinearTer…
-    15         0 @ChannelFlow/src/nonlinear.jl  281 _store_rhs!(dUdt::VectorField{Spe…
-    16         0 @ChebyshevHelmoltzSolvers/src/chebcoeffs.jl   89 diff!
-    16         0 @ChannelFlow/src/helmoltz.jl  293 solve!(solver::InfluenceModeSolve…
-    16        16 @Base/broadcast.jl        ? _getindex
-    16         0 @ChannelFlow/src/ffts.jl  172 (::InverseFFT!{FFTW.rFFTWPlan{Com…
-    16         0 @Base/multidimensional.jl 1186 fill!
-    17        17 …ibsystem_malloc.dylib    ? xzm_malloc
-    17         0 @Base/broadcast.jl      994 copyto!
-    17        17 …/lib/libfftw3.3.dylib    ? fftw_cpy1d
-    17        17 …/lib/libfftw3.3.dylib    ? q1bv_2
-    18         0 @ChannelFlow/…elds/physicalfield.jl   76 size
-    19         0 @ChannelFlow/src/ffts.jl  255 copy_to_padded!(dest::SpectralFie…
-    20         0 @ChebyshevHelmoltzSolvers/src/chebcoeffs.jl   60 setindex!
-    21         0 @ChannelFlow/src/nonlinear.jl  142 _convectiveform!(Eq::NonLinearTer…
-    21         0 @Base/array.jl          997 setindex!
-    21        17 @Base/array.jl         1003 _setindex!
-    22         0 @Base/multidimensional.jl  450 __inc
-    22        22 …/lib/libfftw3.3.dylib    ? r2cb_12
-    24         0 @Base/multidimensional.jl  425 iterate
-    24         6 …/lib/libfftw3.3.dylib    ? apply_dif_dft
-    24         0 @ChannelFlow/…fields/vectorfield.jl   60 copyto!(dest::VectorField{Spectra…
+    10         0 @ChannelFlow/src/ffts.jl  148 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
+    10         0 @Base/abstractarray.jl 1070 copyto!
+    10         0 @ChannelFlow/src/helmoltz.jl  253 solve!(solver::InfluenceModeSolve…
+    10         0 …/lib/libfftw3.3.dylib    ? apply_dit_dft
+    11         0 @ChannelFlow/…c/fields/operators.jl   15 ddx1!
+    11         0 @ChannelFlow/…c/fields/operators.jl   20 ddx1!(OUT::SpectralField{Float64,…
+    11         0 @ChannelFlow/…elds/spectralfield.jl   44 getindex
+    11         0 @ChebyshevHelmoltzSolvers/src/chebcoeffs.jl   89 diff!
+    12        12 @julialib/…/libopenblas64_.dylib    ? .Lzgemm_kernel_L4_M4_100
+    13         0 @ChannelFlow/src/ffts.jl  319 copy_to_padded!(dest::SpectralFie…
+    13         1 @ChannelFlow/src/helmoltz.jl  301 solve!(solver::InfluenceModeSolve…
+    13         0 @ChannelFlow/…c/fields/operators.jl   39 ddx2!
+    14        14 …/lib/libfftw3.3.dylib    ? r2cbIII_12
+    14        14 @julialib/…/libopenblas64_.dylib    ? .Lzgemm_kernel_L4_M2_22
+    16         0 @Base/broadcast.jl      988 copyto!
+    17         0 @Base/abstractarray.jl 1473 _setindex!
+    17         0 @Base/subarray.jl       386 setindex!
+    17         0 @ChannelFlow/src/helmoltz.jl  251 solve!(solver::InfluenceModeSolve…
+    17        17 …/lib/libfftw3.3.dylib    ? r2cb_12
+    17         0 @ChebyshevHelmoltzSolvers/src/chebcoeffs.jl   60 setindex!
+    18         0 @ChannelFlow/src/helmoltz.jl  252 solve!(solver::InfluenceModeSolve…
+    18         0 @ChannelFlow/src/ffts.jl  235 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+    18         0 @ChannelFlow/src/ffts.jl  234 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+    18         0 @Base/multidimensional.jl 1186 fill!
+    18        18 @julialib/…/libopenblas64_.dylib    ? zgemm_oncopy_NEOVERSEN1
+    19         0 @ChannelFlow/src/helmoltz.jl  299 solve!(solver::InfluenceModeSolve…
+    19        19 @julialib/…/libopenblas64_.dylib    ? .Lzgemm_kernel_L4_M4_46
+    19         0 @ChannelFlow/src/indexing.jl   16 macro expansion
+    20         0 @ChebyshevHelmoltzSolvers/src/helmoltz.jl  128 _solve_parity!(h::ChebyshevHelmol…
+    21         0 …/lib/libfftw3.3.dylib    ? apply_r2hc
+    22        22 …/lib/libfftw3.3.dylib    ? q1bv_2
+    22         0 @Base/abstractarray.jl 1371 _getindex
+    23         5 …/lib/libfftw3.3.dylib    ? apply_dif_dft
+    23         0 @ChannelFlow/src/nonlinear.jl  142 _convectiveform!(Eq::NonLinearTer…
+    24         0 @Base/broadcast.jl      696 _getindex
     24        24 …/lib/libfftw3.3.dylib    ? t2bv_2
-    24         2 …/lib/libfftw3.3.dylib    ? apply_dif
-    25         0 @ChannelFlow/…fields/vectorfield.jl   51 materialize!
-    25        25 @Base/int.jl             83 <
-    26         0 @ChannelFlow/…elds/spectralfield.jl   50 setindex!
-    26         1 @Base/simdloop.jl        75 macro expansion
-    27         0 @Base/iterators.jl      433 _zip_iterate_some
-    27        27 @Base/int.jl             87 +
-    27        27 @Base/promotion.jl      637 ==
-    28         0 @ChannelFlow/src/ffts.jl  173 (::InverseFFT!{FFTW.rFFTWPlan{Com…
-    28         0 @Base/abstractarray.jl 1110 copyto_unaliased!(deststyle::Inde…
-    28         0 @Base/iterators.jl      416 iterate
-    28         0 @Base/iterators.jl      425 _zip_iterate_all
-    28        28 …/lib/libfftw3.3.dylib    ? hc2cbdftv_12
-    28         2 @Base/range.jl          921 iterate
-    29         0 @ChebyshevHelmoltzSolvers/src/helmoltz.jl  112 solve!
-    29         0 @Base/abstractarray.jl 1383 _getindex
-    29         0 @Base/abstractarray.jl 1390 _to_subscript_indices
-    29         0 @Base/abstractarray.jl 1412 _unsafe_ind2sub
-    29         0 @Base/abstractarray.jl 3054 _ind2sub
-    29         0 @Base/abstractarray.jl 3092 _ind2sub
-    29         0 @Base/abstractarray.jl 3105 _ind2sub_recurse
-    29         0 @Base/abstractarray.jl 3112 _div
-    29        29 @Base/int.jl            301 div
-    29        29 @Base/broadcast.jl        ? _bcs
-    29        29 …ibsystem_malloc.dylib    ? _xzm_xzone_malloc_tiny
-    30         0 @ChebyshevHelmoltzSolvers/src/helmoltz.jl  128 _solve_parity!(h::ChebyshevHelmol…
-    30        30 …/lib/libfftw3.3.dylib    ? fftw_cpy2d_ci
+    25         0 @ChannelFlow/src/helmoltz.jl  293 solve!(solver::InfluenceModeSolve…
+    25         0 @Base/abstractarray.jl 1342 getindex
+    26        26 @julialib/…/libopenblas64_.dylib    ? .Lzgemm_kernel_L4_M1_22
+    26         0 @ChannelFlow/…elds/physicalfield.jl   71 setindex!
+    27         1 @ChebyshevHelmoltzSolvers/src/helmoltz.jl  112 solve!
+    27         0 …/lib/libfftw3.3.dylib    ? apply_dif
+    28         0 @Base/abstractarray.jl 1377 _to_linear_index
+    28         0 @Base/abstractarray.jl 3049 _sub2ind
+    28         0 @ChannelFlow/…timesteppers/cnrk2.jl  196 step!(scheme::CNRK2{FourierStokes…
+    29        29 …/lib/libfftw3.3.dylib    ? hc2cbdftv_12
+    29         0 @Base/range.jl          921 iterate
+    29        29 @Base/promotion.jl      637 ==
+    30         0 @Base/abstractarray.jl   98 axes
+    30        30 @Base/array.jl          194 size
     31         0 @ChebyshevHelmoltzSolvers/src/helmoltz.jl  122 _solve_parity!(h::ChebyshevHelmol…
-    31         0 @ChannelFlow/src/ffts.jl   73 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
-    31         0 @FFTW/src/fft.jl        530 unsafe_execute!
-    32         0 @Base/broadcast.jl      696 _getindex
-    34        34 …ibsystem_kernel.dylib    ? mach_absolute_time
-    35         0 @Base/broadcast.jl      988 copyto!
-    35         0 @Base/abstractarray.jl 1070 copyto!
-    35         0 @ChannelFlow/src/helmoltz.jl  299 solve!(solver::InfluenceModeSolve…
-    39         0 @ChannelFlow/…timesteppers/cnrk2.jl  196 step!(scheme::CNRK2{FourierStokes…
-    40         0 @ChannelFlow/…elds/spectralfield.jl   55 size
-    42        42 …/lib/libfftw3.3.dylib    ? n1bv_12
-    43         0 @ChannelFlow/src/ffts.jl  169 (::InverseFFT!{FFTW.rFFTWPlan{Com…
-    45         5 …/lib/libfftw3.3.dylib    ? fftw_tile2d
-    49         4 @ChebyshevHelmoltzSolvers/src/helmoltz.jl  113 solve!
-    49        49 @Base/broadcast.jl      535 _bcs1
-    53         0 …/lib/libfftw3.3.dylib    ? apply_hc2r
-    53        53 …ibsystem_malloc.dylib    ? _xzm_free
-    54        54 @Base/essentials.jl     920 getindex
-    55         0 @Base/array.jl          986 setindex!
-    55        55 @Base/array.jl          991 _setindex!
-    55         0 @Base/broadcast.jl      504 combine_axes
-    57         0 @Base/broadcast.jl      947 copyto!
-    58        58 …/lib/libfftw3.3.dylib    ? n1_4
-    59         0 @Base/broadcast.jl      902 materialize!
-    59         0 @Base/broadcast.jl      905 materialize!
-    62        62 …/lib/libfftw3.3.dylib    ? fftw_cpy2d_co
-    63         0 @Base/abstractarray.jl   98 axes
-    63        63 @Base/array.jl          194 size
-    64         2 …/lib/libfftw3.3.dylib    ? fftw_malloc_plain
-    67         0 @Base/broadcast.jl      529 _bcs
-    78         0 @Base/broadcast.jl      523 broadcast_shape
-    79         0 @ChannelFlow/src/helmoltz.jl  233 solve!(solver::InfluenceModeSolve…
-    94         2 …/lib/libfftw3.3.dylib    ? dotile_buf
-    97         2 …/lib/libfftw3.3.dylib    ? fftw_cpy2d_tiledbuf
-    98         1 …/lib/libfftw3.3.dylib    ? copy
-   110         0 @Base/broadcast.jl      503 combine_axes
-   128         0 @ChannelFlow/src/ffts.jl   77 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
-   129         0 @Base/abstractarray.jl 3088 offsetin
-   129       129 @Base/int.jl             86 -
-   132         0 @Base/abstractarray.jl 3065 _sub2ind
-   132         0 @Base/abstractarray.jl 3081 _sub2ind_recurse
-   132         0 @ChannelFlow/src/ffts.jl  175 (::InverseFFT!{FFTW.rFFTWPlan{Com…
-   132         0 @FFTW/src/fft.jl        540 unsafe_execute!
-   133         0 @ChannelFlow/…elds/spectralfield.jl   71 materialize!
-   133         0 @ChannelFlow/…elds/spectralfield.jl   72 macro expansion
-   136         0 @Base/abstractarray.jl 1377 _to_linear_index
-   136         0 @Base/abstractarray.jl 3049 _sub2ind
-   141         0 @Base/broadcast.jl      623 _getindex
-   141         0 @Base/broadcast.jl      238 axes
-   141         0 @Base/broadcast.jl      240 _axes
-   150         0 @ChannelFlow/…timesteppers/cnrk2.jl  202 step!(scheme::CNRK2{FourierStokes…
-   150         0 @ChannelFlow/src/helmoltz.jl  546 solve!
-   150         2 @ChannelFlow/src/helmoltz.jl  572 solve!(solver::FourierStokesSolve…
-   151         0 @Base/broadcast.jl      695 _getindex
-   151         0 @Base/broadcast.jl      652 _broadcast_getindex
-   151         0 @Base/abstractarray.jl 1371 _getindex
-   155         0 @Base/broadcast.jl      620 _getindex
-   155         0 @Base/broadcast.jl      671 _broadcast_getindex
-   171         0 @ChannelFlow/src/nonlinear.jl  145 _convectiveform!(Eq::NonLinearTer…
-   178         0 @ChannelFlow/src/nonlinear.jl  153 _convectiveform!(Eq::NonLinearTer…
-   178         0 @ChannelFlow/src/ffts.jl   94 ForwardFFT!
-   180         0 @Base/broadcast.jl      624 _getindex
-   183         0 @Base/abstractarray.jl 1342 getindex
-   223         0 @ChannelFlow/src/nonlinear.jl  148 _convectiveform!(Eq::NonLinearTer…
-   223         0 @ChannelFlow/…elds/gradientfield.jl   95 dot!(out::VectorField{PhysicalFie…
-   223         0 @ChannelFlow/…elds/physicalfield.jl   94 materialize!
-   223         0 @ChannelFlow/…elds/physicalfield.jl   95 macro expansion
-   277         2 …/lib/libfftw3.3.dylib    ? apply_dit
-   330       314 …/lib/libfftw3.3.dylib    ? apply_r2hc
-   341         0 @Base/broadcast.jl      616 getindex
-   375         0 @Base/simdloop.jl        77 macro expansion
-   451         0 @ChannelFlow/src/ffts.jl  168 (::InverseFFT!{FFTW.rFFTWPlan{Com…
-   460        48 …/lib/libfftw3.3.dylib    ? apply_e
-   499         0 @ChannelFlow/src/nonlinear.jl  146 _convectiveform!(Eq::NonLinearTer…
-   499         0 @ChannelFlow/src/ffts.jl  191 (::InverseFFT!{FFTW.rFFTWPlan{Com…
-   579         0 @FFTW/src/fft.jl        550 unsafe_execute!
-   670         0 @ChannelFlow/src/ffts.jl  182 InverseFFT!
-   870        63 …/lib/libfftw3.3.dylib    ? apply
-  1118         0 @ChannelFlow/…timesteppers/cnrk2.jl  173 step!(scheme::CNRK2{FourierStokes…
-  1118         0 @ChannelFlow/src/nonlinear.jl  124 NonLinearTerm
-  1345         0 @ChannelFlow/…erf/benchmark_step.jl   40 (::var"#direct#26"{State{VectorFi…
-  1345         0 @ChannelFlow/…timesteppers/cnrk2.jl  147 step!
-  1346         0 @juliasrc/interpreter.c  123 do_call
-  1346         0 @ChannelFlow/…erf/benchmark_step.jl   17 kwcall(::@NamedTuple{record::Bool…
-  1346         0 @ChannelFlow/…erf/benchmark_step.jl   92 benchmark_step(; record::Bool, pr…
-  1346         0 @Profile/src/Profile.jl   60 macro expansion
-  1346         0 @ChannelFlow/…erf/benchmark_step.jl   93 macro expansion
-  1349         4 [any unknown stackframes]
-  1360         0 @juliasrc/jlapi.c      1139 jl_repl_entrypoint
-  1360         0 @juliasrc/jlapi.c       971 true_main
-  1360         0 @juliasrc/julia.h      2391 jl_apply
-  1360         0 @julialib/julia/sys.dylib    ? jfptr__start_29115.1
-  1360         0 @Base/client.jl         550 _start()
-  1360         0 @Base/client.jl         317 exec_options(opts::Base.JLOptions)
-  1360         0 @Base/Base.jl           306 include(mod::Module, _path::Strin…
-  1360         0 @Base/loading.jl       2934 _include(mapexpr::Function, mod::…
-  1360         0 @Base/loading.jl       2874 include_string(mapexpr::typeof(id…
-  1360         0 @Base/boot.jl           489 eval(m::Module, e::Any)
-  1360         0 @juliasrc/toplevel.c   1092 ijl_toplevel_eval_in
-  1360         0 @juliasrc/toplevel.c   1047 ijl_toplevel_eval
-  1360         0 @juliasrc/toplevel.c    975 jl_toplevel_eval_flex
-  1360         0 @juliasrc/toplevel.c   1035 jl_toplevel_eval_flex
-  1360         0 @juliasrc/interpreter.c  898 jl_interpret_toplevel_thunk
-  1360         0 @juliasrc/interpreter.c  689 eval_body
-  1360         0 @juliasrc/interpreter.c  194 eval_stmt_value
-Total snapshots: 1591. Utilization: 100% across all threads and tasks. Use the `groupby` kwarg to break down by thread and/or task.
+    31        31 @Base/int.jl             83 <
+    31         0 @Base/broadcast.jl      665 _broadcast_getindex
+    32         0 @Base/broadcast.jl      616 getindex
+    32         0 @Base/broadcast.jl      620 _getindex
+    32         0 @Base/broadcast.jl      671 _broadcast_getindex
+    32         0 @Base/broadcast.jl      695 _getindex
+    33         0 @ChannelFlow/src/ffts.jl  145 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
+    33         0 @FFTW/src/fft.jl        530 unsafe_execute!
+    33         4 @Base/simdloop.jl        75 macro expansion
+    37         0 @ChannelFlow/src/nonlinear.jl  148 _convectiveform!(Eq::NonLinearTer…
+    37         0 @ChannelFlow/…c/fields/operators.jl  210 dot!(out::VectorField{PhysicalFie…
+    38        38 …/lib/libfftw3.3.dylib    ? n1bv_12
+    39         1 …/lib/libfftw3.3.dylib    ? apply_dit
+    42         0 @Base/array.jl          997 setindex!
+    42        23 @Base/array.jl         1003 _setindex!
+    44         0 @ChannelFlow/…elds/spectralfield.jl   50 setindex!
+    47         0 @ChannelFlow/src/nonlinear.jl  153 _convectiveform!(Eq::NonLinearTer…
+    47         0 @ChannelFlow/src/ffts.jl  160 ForwardFFT!
+    47         0 @Base/abstractarray.jl 1466 _setindex!
+    47        47 @Base/essentials.jl     920 getindex
+    48         0 @ChannelFlow/src/nonlinear.jl  145 _convectiveform!(Eq::NonLinearTer…
+    50         4 @ChebyshevHelmoltzSolvers/src/helmoltz.jl  113 solve!
+    56         0 …/lib/libfftw3.3.dylib    ? apply_hc2r
+    56        56 @julialib/…/libopenblas64_.dylib    ? .Lzgemm_kernel_L4_M4_22a
+    57        57 …/lib/libfftw3.3.dylib    ? n1_4
+    64         0 @Base/abstractarray.jl 1443 setindex!
+    75        75 @julialib/…/libopenblas64_.dylib    ? .Lzgemm_kernel_L4_M4_20
+    75        75 @Base/array.jl          991 _setindex!
+    77         0 @Base/array.jl          986 setindex!
+    83         1 @ChannelFlow/src/helmoltz.jl  233 solve!(solver::InfluenceModeSolve…
+   102         0 @Base/broadcast.jl      995 macro expansion
+   107         0 @Base/simdloop.jl        77 macro expansion
+   110         0 @Base/broadcast.jl      994 copyto!
+   110       109 @julialib/…/libopenblas64_.dylib    ? .Lzgemm_kernel_L4_M4_22
+   121         0 @ChannelFlow/src/nonlinear.jl  146 _convectiveform!(Eq::NonLinearTer…
+   121         0 @ChannelFlow/src/ffts.jl  253 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+   128         0 @Base/broadcast.jl      947 copyto!
+   130         0 @Base/broadcast.jl      902 materialize!
+   130         0 @Base/broadcast.jl      905 materialize!
+   133         0 @ChannelFlow/src/ffts.jl  237 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+   133         0 @FFTW/src/fft.jl        540 unsafe_execute!
+   146         1 @ChannelFlow/src/helmoltz.jl  572 solve!(solver::FourierStokesSolve…
+   149         0 @ChannelFlow/…timesteppers/cnrk2.jl  202 step!(scheme::CNRK2{FourierStokes…
+   149         0 @ChannelFlow/src/helmoltz.jl  546 solve!
+   169         0 @ChannelFlow/src/ffts.jl  244 InverseFFT!
+   286         0 @ChannelFlow/…timesteppers/cnrk2.jl  173 step!(scheme::CNRK2{FourierStokes…
+   286         0 @ChannelFlow/src/nonlinear.jl  124 NonLinearTerm
+   289        52 …/lib/libfftw3.3.dylib    ? apply
+   483         0 @juliasrc/jlapi.c      1139 jl_repl_entrypoint
+   483         0 @juliasrc/jlapi.c       971 true_main
+   483         0 @juliasrc/julia.h      2391 jl_apply
+   483         0 @julialib/julia/sys.dylib    ? jfptr__start_29115.1
+   483         0 @Base/client.jl         550 _start()
+   483         0 @Base/client.jl         317 exec_options(opts::Base.JLOptions)
+   483         0 @Base/Base.jl           306 include(mod::Module, _path::Strin…
+   483         0 @Base/loading.jl       2934 _include(mapexpr::Function, mod::…
+   483         0 @Base/loading.jl       2874 include_string(mapexpr::typeof(id…
+   483         0 @Base/boot.jl           489 eval(m::Module, e::Any)
+   483         0 @juliasrc/toplevel.c   1092 ijl_toplevel_eval_in
+   483         0 @juliasrc/toplevel.c   1047 ijl_toplevel_eval
+   483         0 @juliasrc/toplevel.c    975 jl_toplevel_eval_flex
+   483         0 @juliasrc/toplevel.c   1035 jl_toplevel_eval_flex
+   483         0 @juliasrc/interpreter.c  898 jl_interpret_toplevel_thunk
+   483         0 @juliasrc/interpreter.c  689 eval_body
+   483         0 @juliasrc/interpreter.c  194 eval_stmt_value
+   483         0 @juliasrc/interpreter.c  123 do_call
+   483         0 @ChannelFlow/…erf/benchmark_step.jl   17 kwcall(::@NamedTuple{record::Bool…
+   483         0 @ChannelFlow/…erf/benchmark_step.jl   92 benchmark_step(; record::Bool, pr…
+   483         0 @Profile/src/Profile.jl   60 macro expansion
+   483         0 @ChannelFlow/…erf/benchmark_step.jl   93 macro expansion
+   483         0 @ChannelFlow/…erf/benchmark_step.jl   40 (::var"#direct#26"{State{VectorFi…
+   483         0 @ChannelFlow/…timesteppers/cnrk2.jl  147 step!
+   485         2 [any unknown stackframes]
+   962       962 …ibsystem_kernel.dylib    ? __psynch_cvwait
+Total snapshots: 1924. Utilization: 50% across all threads and tasks. Use the `groupby` kwarg to break down by thread and/or task.

@@ -78,7 +78,10 @@ function benchmark_step(; record=false, profile=false, cpu=false, measure=false)
                    ("stokes", () -> ChannelFlow.solve!(c.scheme.solvers[1], velocity(state), pressure(state), c.scheme.R)),
                    ("inverse_scalar", () -> c.nlterm.ifft(u[1], tmp[1])),
                    ("forward_scalar", () -> c.nlterm.fft(tmp[1], u[1])),
-                   ("inverse_chebyshev", () -> FFTW.unsafe_execute!(c.nlterm.ifft.chebyplan, parent(c.nlterm.ifft.resolved), parent(c.nlterm.ifft.resolved))),
+                   ("inverse_chebyshev", () ->
+                       ChannelFlow.inverse_chebyshev!(c.nlterm.ifft.resolved,
+                                                      c.nlterm.ifft.chebyplan,
+                                                      tmp[1])),
                    ("inverse_fourier", () -> FFTW.unsafe_execute!(c.nlterm.ifft.plan, parent(c.nlterm.ifft.padded), parent(u[1]))))
         kernel_lines = String[]
         for (name, kernel) in kernels
