@@ -17,9 +17,9 @@ include("fields/abstractfield.jl")
 #//////////////////////////////////////////////////////////////////////////////#
 
 include("indexing.jl")
-include("operators.jl")
 include("fields/vectorfield.jl")
 include("fields/gradientfield.jl")
+include("fields/operators.jl")
 include("state.jl")
 
 #//////////////////////////////////////////////////////////////////////////////#
