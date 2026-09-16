@@ -3,7 +3,7 @@
     # enlarges only periodic axes, and the real FFT reduces x to floor(Nx/2)+1
     # coefficients. Padding rounds 3N/2 upward without forcing odd sizes;
     # the wall-normal interval always has length 2.
-    g = Grid(9, 6, 8, 5.0, 7.0)
+    g = Grid(6, 9, 8, 5.0, 7.0)
     @test physicalsize(g, NotPadded()) == (9, 6, 8)
     @test physicalsize(g, Padded()) == (9, 9, 12)
     @test spectralsize(g, NotPadded()) == (9, 4, 8)
@@ -18,7 +18,7 @@
     @test vec(z) ≈ (0:7) .* (7/8)
     # Use y^2=(T_2+T_0)/2 to obtain the coefficients by hand. This checks the
     # constant coefficient normalization as well as polynomial conversion.
-    @test chebyshev_coefficients(g, y -> 1+2y+3y^2) ≈
+    @test parent(ChebyshevHelmoltzSolvers.chebyshev_coefficients(1 .+ 2 .* g.y .+ 3 .* g.y.^2)) ≈
           [2.5, 2, 1.5, zeros(6)...] atol=1e-13
 
     # Different weights on x, y and z expose argument-order mistakes in the
@@ -56,15 +56,15 @@
     # State copy/similar must likewise allocate fresh component and pressure
     # storage.
     s = zero_state(g)
-    U, P = velocity(s), pressure(s)
+    U, P = velocity(s), stagepressure(s)
     @test s isa State
     @test all(iszero, P)
     @test all(component -> all(iszero, component), U.components)
     U[1][1] = 2
     @test U[2][1] == U[3][1] == P[1] == 0
     for other in (copy(s), similar(s))
-        @test CF.grid(pressure(other)) === g
-        @test parent(pressure(other)) !== parent(P)
+        @test CF.grid(stagepressure(other)) === g
+        @test parent(stagepressure(other)) !== parent(P)
         for i = 1:3
             @test parent(velocity(other)[i]) !== parent(U[i])
         end
@@ -75,7 +75,7 @@
     A, B = similar(U), copy(U)
     A .= 2 .* B .- U
     @test all(parent(A[i]) == parent(U[i]) for i = 1:3)
-    @test parent(pressure(copy(s))) == parent(P)
+    @test parent(stagepressure(copy(s))) == parent(P)
     # Two-index tensor access and nested row access must refer to the same
     # component. Off-diagonal and diagonal arrays must remain independent when
     # one entry is changed.
@@ -88,9 +88,9 @@ end
 @testset "Field broadcast axes" begin
     # A wall-normal profile has singleton periodic axes. Assignment must
     # expand it across the destination, rather than index it as a full field.
-    g = Grid(9, 6, 8, 5.0, 7.0)
-    profile_grid = Grid(9, 1, 1, 5.0, 7.0)
-    bad_grid = Grid(9, 4, 5, 5.0, 7.0)
+    g = Grid(6, 9, 8, 5.0, 7.0)
+    profile_grid = Grid(1, 9, 1, 5.0, 7.0)
+    bad_grid = Grid(4, 9, 5, 5.0, 7.0)
     for constructor in (PhysicalField, SpectralField)
         physical = constructor === PhysicalField
         shape(grid) = physical ? physicalsize(grid, NotPadded()) : spectralsize(grid, NotPadded())

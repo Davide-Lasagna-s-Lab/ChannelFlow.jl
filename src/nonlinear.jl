@@ -21,7 +21,7 @@ struct RotatingForm    <: NonlinearityForm end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    NonLinearTerm(u, U, baseflow;
+    NonLinearTerm(u, U, basecoefficients;
                   fftwflags=FFTW.EXHAUSTIVE,
                   fftwtimelimit=FFTW.NO_TIMELIMIT,
                   form=RotatingForm())
@@ -30,7 +30,7 @@ Construct a pseudo-spectral convection operator using scalar physical/spectral
 fields `u` and `U` as allocation and transform prototypes.
 
 The Chebyshev coefficients of the stationary streamwise profile `Ub(y)` are
-passed explicitly as `baseflow`. The evaluation
+passed explicitly as `basecoefficients`. The evaluation
 `Eq(t, Upert, rhs)` accepts spectral vector fields and computes the selected
 nonlinear form using `utotal = upert + Ub(y) e_x`. The rotational form returns
 `FFT(utotal × curl(utotal))`; the other forms return negative advection.
@@ -50,11 +50,11 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B}
         flag::Ref{Bool}   # toggled at every call in the AlternatingForm
         ifft::IFFT        # concrete callable inverse transform
         fft::FFT         # concrete callable forward transform
-    baseflow::B           # Chebyshev coefficients of the stationary profile
+    basecoefficients::B   # Chebyshev coefficients of the stationary profile
 
     function NonLinearTerm(            u::PhysicalField{T},
                                        U::S,
-                                baseflow::AbstractVector;
+                         basecoefficients::AbstractVector;
                                fftwflags::Integer=FFTW.EXHAUSTIVE,
                            fftwtimelimit::Real=FFTW.NO_TIMELIMIT,
                                     form::FORM=RotatingForm()
@@ -62,8 +62,8 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B}
         cache = _gencache(form, u, U)
         ifft = InverseFFT!(U; flags=fftwflags, timelimit=fftwtimelimit)
         fft = ForwardFFT!(u; flags=fftwflags, timelimit=fftwtimelimit)
-        return new{T, FORM, typeof(cache), typeof(ifft), typeof(fft), typeof(baseflow)}(
-            cache, Ref(false), ifft, fft, baseflow)
+        return new{T, FORM, typeof(cache), typeof(ifft), typeof(fft), typeof(basecoefficients)}(
+            cache, Ref(false), ifft, fft, basecoefficients)
     end
 end
 
@@ -131,7 +131,7 @@ function _convectiveform!(  Eq::NonLinearTerm,
     # before either gradient evaluation or inverse transformation. Adding it
     # only to the physical advecting velocity would omit the v*Ub' shear term.
     TMP .= U
-    @views TMP[1][:, 1, 1] .+= Eq.baseflow
+    @views TMP[1][:, 1, 1] .+= Eq.basecoefficients
 
     grad!(GRAD, TMP)
 
@@ -174,7 +174,7 @@ function _divergenceform!(  Eq::NonLinearTerm,
 
     # Form the total velocity, including the base profile in the zero mode.
     N .= U
-    @views N[1][:, 1, 1] .+= Eq.baseflow
+    @views N[1][:, 1, 1] .+= Eq.basecoefficients
 
     Eq.ifft(u, N)
 
@@ -227,7 +227,7 @@ function _rotatingform!(  Eq::NonLinearTerm,
     u, n, ω, TMP, Ω = Eq.cache
 
     TMP .= U
-    @views TMP[1][:, 1, 1] .+= Eq.baseflow
+    @views TMP[1][:, 1, 1] .+= Eq.basecoefficients
 
     curl!(Ω, TMP)
 

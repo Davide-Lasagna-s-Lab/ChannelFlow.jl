@@ -1,12 +1,12 @@
 @testset "Integral postprocessing diagnostics" begin
-    g = Grid(17, 8, 8, 2π, 2π)
+    g = Grid(8, 17, 8, 2π, 2π)
     nu = 0.01
     state = zero_state(g)
     post = Postprocessor(g; fftwflags=FFTW.ESTIMATE)
 
     # Laminar Couette flow has <y²>/2 = 1/6. Its uniform shear gives equal
     # dissipation and moving-wall input, both equal to nu.
-    couette = chebyshev_coefficients(g, identity)
+    couette = parent(ChebyshevHelmoltzSolvers.chebyshev_coefficients(g.y))
     c = flow_diagnostics(post, state, nu; baseflow=couette)
     @test c.kinetic_energy ≈ 1/6 atol=2e-14
     @test c.dissipation_rate ≈ nu atol=2e-14
@@ -18,7 +18,7 @@
     # For unit-centreline Poiseuille flow, <U²>/2=4/15 and
     # nu<|dU/dy|²>=4nu/3. Stationary walls do no work; the sustaining
     # pressure gradient -2nu supplies exactly the viscous dissipation.
-    poiseuille = chebyshev_coefficients(g, y -> 1-y^2)
+    poiseuille = parent(ChebyshevHelmoltzSolvers.chebyshev_coefficients(1 .- g.y.^2))
     p = flow_diagnostics(post, velocity(state), nu;
                          baseflow=poiseuille,
                          pressuregradient=(-2nu, 0.0))

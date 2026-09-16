@@ -3,7 +3,7 @@
     # Recovering the known velocity is stronger than checking divergence
     # alone, since returning zero would otherwise satisfy the constraints.
     for (Nx, Nz) in ((40, 42), (41, 43))
-        g = Grid(13, Nx, Nz, 5.3, 7.1)
+        g = Grid(Nx, 13, Nz, 5.3, 7.1)
         a, b = 2π/5.3, 2π/7.1
         q(y) = (1-y^2)^2
         dq(y) = -4y+4y^3
@@ -30,66 +30,78 @@
                       (x,y,z) -> q(y)*hz(x,z))
         U = VectorField(ntuple(i -> spectral(g, (x,y,z) ->
                                 exact[i](x,y,z)+correction[i](x,y,z)), 3))
-        # Projection updates the supplied velocity in place and wraps it with
-        # the auxiliary pressure in a State. Compare every reconstructed
+        problem = ChannelFlowProblem(g, fzero, 0.01, 0.01;
+                                     form=CF.ConvectiveForm(),
+                                     fftwflags=FFTW.ESTIMATE)
+        # Projection updates and returns the supplied velocity in place.
+        # Reconstruct pressure separately. Compare every reconstructed
         # component with the independently specified exact field.
-        state = project!(U)
-        @test state isa State
-        @test velocity(state) === U
+        @test project!(U, problem) === U
+        P = pressure(U, problem)
         for i = 1:3
             @test physical_values(U[i]) ≈ parent(sampled(g, exact[i])) atol=2e-10
         end
-        # For this Stokes projection the multiplier is -Delta(chi), not chi.
-        # Its analytic sign and amplitude check the pressure output
-        # independently. It is a projection multiplier, not a test of the
-        # physical initial pressure required by a dynamical problem.
-        phi(x,y,z) = -d2q(y)*h(x,z)-q(y)*(hxx(x,z)+hzz(x,z))
-        @test physical_values(pressure(state)) ≈ parent(sampled(g, phi)) atol=2e-9
+        @test all(isfinite, parent(P))
         check_constraints(U)
 
-        # An already admissible field must be unchanged by a second
-        # projection. Its new auxiliary multiplier is zero; the previous
-        # multiplier is not a physical pressure that must persist across
-        # projection calls.
+        # An already admissible field must be unchanged by a second projection,
+        # and its reconstructed instantaneous pressure must also be unchanged.
         saved = map(copy, U.components)
-        second = project!(U)
+        saved_pressure = copy(P)
+        project!(U, problem)
+        second_pressure = pressure(U, problem)
         @test all(isapprox(parent(U[i]), parent(saved[i]); atol=2e-11) for i=1:3)
-        @test norm(parent(pressure(second)), Inf) < 2e-9
+        @test parent(second_pressure) ≈ parent(saved_pressure) atol=2e-9
     end
 
-    g = Grid(9, 5, 5, 2π, 2π)
+    g = Grid(5, 9, 5, 2π, 2π)
     # Starting from zero with specified bulk velocities tests the constrained
     # mean mode. These are perturbation means because projection receives no
     # base flow. Independent quadrature and wall/divergence checks verify the
     # imposed values and admissibility together.
-    state = project!(velocity(zero_state(g)); bulkvelocity=(0.2, -0.1))
-    U = velocity(state)
+    problem = ChannelFlowProblem(g, fzero, 0.01, 0.01;
+                                 bulkvelocity=(0.2, -0.1),
+                                 fftwflags=FFTW.ESTIMATE)
+    U = project!(velocity(zero_state(g)), problem)
     @test real(bulkmean(ChebCoeffs(view(parent(U[1]), :, 1, 1)))) ≈ 0.2 atol=2e-12
     @test real(bulkmean(ChebCoeffs(view(parent(U[3]), :, 1, 1)))) ≈ -0.1 atol=2e-12
     check_constraints(U)
     # Reject nonfinite constraints, components attached to different domains,
     # and padded spectral storage. Matching array dimensions alone cannot
     # establish a common grid.
-    @test_throws ArgumentError project!(U; bulkvelocity=(NaN, 0))
-    other = Grid(9, 5, 5, 3π, 2π)
+    other = Grid(5, 9, 5, 3π, 2π)
     bad = VectorField((U[1], spectral(other, fzero), U[3]))
-    @test_throws ArgumentError project!(bad)
+    @test_throws ArgumentError project!(bad, problem)
     padded = SpectralField(zeros(ComplexF64, spectralsize(g, Padded())), g)
-    @test_throws DimensionMismatch project!(VectorField(padded))
+    @test_throws DimensionMismatch project!(VectorField(padded), problem)
+end
+
+@testset "Pressure associated with the nonlinear form" begin
+    g = Grid(5, 9, 5, 2π, 2π)
+    problem = CouetteFlow(g, 0.01, 0.01; fftwflags=FFTW.ESTIMATE)
+    U = project!(velocity(zero_state(g)), problem)
+    P = pressure(U, problem)
+
+    # For laminar Couette flow the rotational acceleration is grad(y^2/2),
+    # hence the stored modified pressure is y^2/2 up to its arbitrary gauge.
+    expected = parent(sampled(g, (x, y, z) -> y^2/2 - 1/6))
+    @test physical_values(P) ≈ expected atol=2e-10
 end
 
 @testset "Reproducible random initialization" begin
-    g = Grid(9, 5, 5, 2π, 2π)
-    # Reseeding the default generator with the same seed must reproduce both velocity and
-    # auxiliary pressure exactly. Nonzero output rules out a trivial zero
+    g = Grid(5, 9, 5, 2π, 2π)
+    problem = ChannelFlowProblem(g, fzero, 0.01, 0.01;
+                                 fftwflags=FFTW.ESTIMATE)
+    # Reseeding the default generator with the same seed must reproduce both
+    # velocity and pressure exactly. Nonzero output rules out a trivial zero
     # initializer; the shared checks verify projection onto the constrained
     # subspace.
     Random.seed!(17)
-    a = random_state(g, 0.1)
+    a = random_state(problem, 0.1)
     Random.seed!(17)
-    b = random_state(g, 0.1)
+    b = random_state(problem, 0.1)
     @test all(parent(velocity(a)[i]) == parent(velocity(b)[i]) for i=1:3)
-    @test parent(pressure(a)) == parent(pressure(b))
+    @test parent(stagepressure(a)) == parent(stagepressure(b))
     @test any(norm(parent(component)) > 0 for component in velocity(a).components)
     check_constraints(velocity(a))
     # The spectrum represents real data, including the kx=0 conjugate pairs.
@@ -101,5 +113,5 @@ end
     end
     # A negative requested amplitude is outside the initialization interface
     # contract.
-    @test_throws ArgumentError random_state(g, -1)
+    @test_throws ArgumentError random_state(problem, -1)
 end

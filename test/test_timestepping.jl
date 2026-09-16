@@ -1,5 +1,5 @@
 @testset "Time-stepper and Flows interface" begin
-    g = Grid(9, 5, 5, 2π, 2π)
+    g = Grid(5, 9, 5, 2π, 2π)
     base = zeros(9)
     nu, dt = 0.1, 0.02
     # Reject zero/nonfinite time steps, an incompatible base-flow length and
@@ -23,7 +23,7 @@
                                  forcing=force!, fftwflags=FFTW.ESTIMATE)
     @test problem.nlterm isa NonLinearTerm{Float64, RotatingForm}
     state = zero_state(g)
-    U, P = velocity(state), pressure(state)
+    U, P = velocity(state), stagepressure(state)
     flow = Flows.flow(problem)
     # Two nominal steps and a shortened final step exercise adapter dispatch
     # and stage sampling; no physical time-evolution benchmark is used here.
@@ -39,7 +39,7 @@
     # and produce finite values. Buffer identity checks the in-place contract
     # rather than merely equality of zero data.
     @test velocity(state) === U
-    @test pressure(state) === P
+    @test stagepressure(state) === P
     @test problem.scheme.dt == dt
     @test all(all(isfinite, field) for field in (U.components..., P))
     # The low-level step interface must enforce the same exclusive
@@ -47,6 +47,6 @@
     # rejected by the configured flow adapter, even when its dimensions match.
     @test_throws ArgumentError step!(problem.scheme, problem.nlterm, U, P, 0;
                                     pressuregradient=(0,0), bulkvelocity=(0,0))
-    other = zero_state(Grid(9, 5, 5, 2π, 2π))
+    other = zero_state(Grid(5, 9, 5, 2π, 2π))
     @test_throws ArgumentError flow(other, (0.0, dt))
 end

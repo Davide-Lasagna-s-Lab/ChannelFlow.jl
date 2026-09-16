@@ -1,4 +1,4 @@
-export ChannelFlowProblem, Couette, Poiseuille
+export ChannelFlowProblem, CouetteFlow, PoiseuilleFlow
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                 CHANNEL CONFIGURATION AND CONSTRUCTION                 ///#
@@ -13,12 +13,13 @@ export ChannelFlowProblem, Couette, Poiseuille
 Assemble a serial channel/Couette DNS with a fixed nominal time step. The
 domain is supplied by `grid`; `profile(y)` is the stationary streamwise base
 velocity and `nu` is kinematic viscosity. The profile is converted to
-Chebyshev coefficients and stored in `ChannelFlowProblem`.
+values at the wall-normal collocation points and stored in
+`ChannelFlowProblem`; spectral coefficients are cached inside its operators.
 Own the nonlinear operator and its FFT plans, the CNRK2 caches and modal
 solvers, the optional forcing callback, and the mean-flow constraint.
 
-`zero_state(channel.grid)` creates a coupled perturbation velocity and stage
-pressure. Initialise this state before integration to satisfy no slip,
+`zero_state(channel.grid)` creates a perturbation velocity and its algebraic
+stage pressure. Initialise this state before integration to satisfy no slip,
 continuity and any prescribed bulk velocity. The default rotational form uses
 modified pressure, so `P` must include the total kinetic energy per unit mass;
 it is not generally zero even for a laminar base state.
@@ -40,14 +41,14 @@ channel = ChannelFlowProblem(grid, y -> 1-y^2, nu, dt;
                       pressuregradient=(-2nu, 0))
 state = zero_state(channel.grid)
 # Modified pressure of the laminar profile: |Ub|²/2 (up to a constant).
-pressure(state)[:, 1, 1] .= chebyshev_coefficients(channel.grid,
-                                                y -> (1-y^2)^2/2)
+stagepressure(state)[:, 1, 1] .= parent(chebyshev_coefficients(
+    (1 .- channel.grid.y.^2).^2 ./ 2))
 I = Flows.flow(channel)
 I(state, (0.0, 1.0))
 ```
 The example pressure gradient sustains `Ub(y)=1-y²`. Other profiles or forcing
 require their own balance. Time is passed explicitly and is not stored in
-`ChannelFlowProblem`; each state copy retains its own pressure history.
+`ChannelFlowProblem`; each state copy retains its own stage-pressure history.
 """
 struct ChannelFlowProblem{G, B, NL, S, F, C}
           grid::G
@@ -80,8 +81,8 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
         # Build scalar prototypes only to initialise the nonlinear operator and
         # its FFT plans. The resulting state is created separately by
         # `zero_state`, so one channel can evolve several states.
-        baseflow = chebyshev_coefficients(grid, profile)
-        P = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
+        baseflow = Float64.(profile.(grid.y))
+        P = SpectralField(grid)
 
         # Precompute the three stage-specific Stokes factorisations, wall
         # influence responses, RK workspaces and the base-flow viscous term.
@@ -89,7 +90,7 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
 
         # The scalar prototypes supply types and grid information. The
         # nonlinear operator allocates form-specific caches and padded FFT plans.
-        nlterm = NonLinearTerm(PhysicalField(grid), P, baseflow;
+        nlterm = NonLinearTerm(PhysicalField(grid), P, parent(scheme.baseflow);
                               form=form, fftwflags=fftwflags, fftwtimelimit=fftwtimelimit)
 
         return new{typeof(grid), typeof(baseflow), typeof(nlterm), typeof(scheme), typeof(forcing), typeof(constraint)}(
@@ -102,18 +103,18 @@ end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    Couette(grid, nu, dt; kwargs...)
+    CouetteFlow(grid, nu, dt; kwargs...)
 
 Construct a [`ChannelFlowProblem`](@ref) with base velocity `Ub(y)=y`,
 corresponding to walls moving at velocities ±1. The default pressure gradient
 is zero. Forward all keyword arguments to `ChannelFlowProblem`, including
 `bulkvelocity`, `forcing`, `form` and FFT planning options.
 """
-Couette(grid::Grid, nu::Real, dt::Real; kwargs...) =
+CouetteFlow(grid::Grid, nu::Real, dt::Real; kwargs...) =
     ChannelFlowProblem(grid, identity, nu, dt; kwargs...)
 
 """
-    Poiseuille(grid, nu, dt; bulkvelocity=nothing, pressuregradient=..., kwargs...)
+    PoiseuilleFlow(grid, nu, dt; bulkvelocity=nothing, pressuregradient=..., kwargs...)
 
 Construct a [`ChannelFlowProblem`](@ref) with base velocity `Ub(y)=1-y^2`,
 unit centreline velocity and stationary walls. By default, the pressure
@@ -124,7 +125,7 @@ this laminar profile its value is `(2/3, 0)`. An explicit `pressuregradient`
 overrides the default. Specifying both constraints is rejected by
 `ChannelFlowProblem`. Forward all remaining keywords unchanged.
 """
-function Poiseuille(grid::Grid, nu::Real, dt::Real;
+function PoiseuilleFlow(grid::Grid, nu::Real, dt::Real;
                    bulkvelocity=nothing,
                    pressuregradient=isnothing(bulkvelocity) ? (-2nu, 0) : nothing,
                    kwargs...)

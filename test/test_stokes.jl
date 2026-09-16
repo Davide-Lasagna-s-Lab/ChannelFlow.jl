@@ -13,8 +13,8 @@
     for (Nx, Nz) in ((6, 6), (5, 5), (6, 5), (5, 6), (1, 5), (5, 1), (1, 1), (2, 2)),
         (profile, base_mean) in profiles
         @testset "Nx=$Nx, Nz=$Nz, base mean=$base_mean" begin
-            grid = Grid(Ny, Nx, Nz, Lx, Lz)
-            solver = FourierStokesSolver(grid, nu, lambda)
+            grid = Grid(Nx, Ny, Nz, Lx, Lz)
+            solver = StokesSolver(grid, nu, lambda)
             prototype = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
             U, R, exact = ntuple(_ -> VectorField(prototype), 3)
             P, exactP, work, grad = ntuple(_ -> similar(prototype), 4)
@@ -85,7 +85,7 @@
                 for field in (U.components..., P)
                     fill!(parent(field), 9+2im)
                 end
-                actual = fixedbulk ? solve!(solver, U, P, R; bulkvelocity=(base_mean+0.2*2/3, -0.1*2/3), baseflow=chebyshev_coefficients(grid, profile)) :
+                actual = fixedbulk ? solve!(solver, U, P, R; bulkvelocity=(base_mean+0.2*2/3, -0.1*2/3), baseflow=parent(ChebyshevHelmoltzSolvers.chebyshev_coefficients(profile.(grid.y)))) :
                                      solve!(solver, U, P, R; pressuregradient=gradients)
                 # Recover the known pressure gradients, all velocity
                 # coefficients and the pressure field, while preserving every
@@ -134,11 +134,11 @@
     # domain, padded pressure, a single malformed source component,
     # conflicting constraints and unsupported grid sizes or lengths must be
     # rejected.
-    grid = Grid(Ny, 5, 5, Lx, Lz)
-    solver = FourierStokesSolver(grid, nu, lambda)
+    grid = Grid(5, Ny, 5, Lx, Lz)
+    solver = StokesSolver(grid, nu, lambda)
     P = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
     U, R = VectorField(P), VectorField(P)
-    other = Grid(Ny, 5, 5, 2Lx, Lz)
+    other = Grid(5, Ny, 5, 2Lx, Lz)
     badgrid = SpectralField(copy(parent(P)), other)
     padded = SpectralField(zeros(ComplexF64, spectralsize(grid, Padded())), grid)
     @test_throws ArgumentError solve!(solver, U, badgrid, R)
@@ -147,7 +147,7 @@
     @test_throws DimensionMismatch solve!(solver, U, P, badR)
     @test_throws ArgumentError solve!(solver, U, P, R;
                                       pressuregradient=(0, 0), bulkvelocity=(0, 0))
-    @test_throws ArgumentError FourierStokesSolver(Grid(10, 5, 5, Lx, Lz), nu, lambda)
-    @test_throws ArgumentError FourierStokesSolver(Grid(Ny, 0, 5, Lx, Lz), nu, lambda)
-    @test_throws ArgumentError FourierStokesSolver(Grid(Ny, 5, 5, 0, Lz), nu, lambda)
+    @test_throws ArgumentError StokesSolver(Grid(5, 10, 5, Lx, Lz), nu, lambda)
+    @test_throws ArgumentError StokesSolver(Grid(0, Ny, 5, Lx, Lz), nu, lambda)
+    @test_throws ArgumentError StokesSolver(Grid(5, Ny, 5, 0, Lz), nu, lambda)
 end

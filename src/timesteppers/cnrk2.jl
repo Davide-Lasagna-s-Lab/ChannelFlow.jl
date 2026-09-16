@@ -21,59 +21,61 @@ const CNRK2_C = (1/6, 5/24, 1/8)
     CNRK2(grid, baseflow, nu, dt)
 
 Allocate Channelflow's three-stage CNRK2 time-stepper for `grid`, stationary
-Chebyshev coefficients `baseflow`, viscosity `nu > 0` and fixed, finite
+base-flow velocities `baseflow` at the wall-normal collocation points,
+viscosity `nu > 0` and fixed, finite
 `dt > 0`. Temporary spectral prototypes are created internally from `grid`.
 
-Cache three [`FourierStokesSolver`](@ref) instances with temporal shifts
+Cache three [`StokesSolver`](@ref) instances with temporal shifts
 `1/(C_j*dt)`, the accumulated explicit term `Q`, the current explicit term
-`N`, the stage source `R`, and the stationary base-flow term `nu*Ub''`.
+`N`, the stage source `R`, and the stationary base-flow curvature `Ub''`.
 `N` is reused for pressure derivatives after updating `Q`.
 
-`baseflow` contains the ordinary Chebyshev coefficients of the stationary
-streamwise profile and is owned by the enclosing `ChannelFlowProblem`.
+`baseflow` contains the stationary streamwise velocity at the grid's
+Chebyshev--Lobatto points. Its coefficients and second derivative are computed
+once and cached internally.
 
 `CNRK2` is Channelflow's `TimeStepMethod` name; its implementation is in
 `RungeKuttaDNS`. It combines Crank-Nicolson and Runge-Kutta with three
 substeps and overall order two. Rebuild the cache when `dt`, viscosity, grid or base
 profile changes. The caller retains velocity and stage pressure between steps.
 """
-struct CNRK2{S, F<:SpectralField{Float64}, B, C} <: Flows.AbstractMethod{State, Flows.NormalMode, 3}
-             nu::Float64
-             dt::Float64
-        solvers::NTuple{3, S}
-              Q::VectorField{F}
-              N::VectorField{F}
-              R::VectorField{F}
-       baseflow::B
-    baseviscous::C
+struct CNRK2{S, 
+             F<:SpectralField, 
+             P, 
+             C<:ChebCoeffs{<:Real, P}} <: Flows.AbstractMethod{State, Flows.NormalMode, 3}
+               nu::Float64
+               dt::Float64
+          solvers::NTuple{3, S}
+                Q::VectorField{F}
+                N::VectorField{F}
+                R::VectorField{F}
+         baseflow::C
+    basecurvature::C
 
-    function CNRK2(    grid::Grid,
-                   baseflow::B,
-                         nu::Real,
-                         dt::Real) where {B<:AbstractVector}
-        nu, dt = Float64(nu), Float64(dt)
+    function CNRK2(grid::Grid, baseflow::AbstractVector, nu::Real, dt::Real)
+        # check for crazy inputs
         isfinite(dt) && dt > 0 || throw(ArgumentError("dt must be finite and positive"))
-        g = grid
-        P = SpectralField(zeros(ComplexF64, spectralsize(g, NotPadded())), g)
-        U = VectorField(P)
+
         # Each stage has a different implicit shift λⱼ = 1/(Cⱼ Δt), hence a
         # separate factorisation and influence matrix.
-        solvers = ntuple(j -> FourierStokesSolver(g, nu, inv(CNRK2_C[j]*dt)), 3)
+        solvers = ntuple(j -> StokesSolver(grid, nu, inv(CNRK2_C[j]*dt)), 3)
 
         # Q is the accumulated explicit history; N is the current nonlinear
         # acceleration; R is the right-hand side passed to the Stokes solve.
-        Q, N, R = ntuple(_ -> similar(U), 3)
+        Q = VectorField(SpectralField(grid))
+        N = VectorField(SpectralField(grid))
+        R = VectorField(SpectralField(grid))
 
-        # The base profile is stationary. Store ν U_b'' once, in Chebyshev
-        # coefficient form, so it can be inserted into every stage RHS.
-        length(baseflow) == first(spectralsize(g, NotPadded())) ||
-            throw(DimensionMismatch("baseflow must have one coefficient per wall-normal point"))
-        baseviscous = ChebyshevHelmoltzSolvers.ChebCoeffs(copy(baseflow))
-        ChebyshevHelmoltzSolvers.diff!(baseviscous, baseviscous)
-        ChebyshevHelmoltzSolvers.diff!(baseviscous, baseviscous)
-        parent(baseviscous) .*= nu
-        return new{typeof(solvers[1]), typeof(P), typeof(baseflow), typeof(baseviscous)}(
-            nu, dt, solvers, Q, N, R, baseflow, baseviscous)
+        # Store the baseflow and its curvature in Chebyshev coefficient form
+        length(baseflow) == physicalsize(grid)[2] ||
+            throw(DimensionMismatch("baseflow must have one value per wall-normal point"))
+
+        baseflow = chebyshev_coefficients(baseflow)
+        basecurvature = diff2!(copy(baseflow))
+        
+        return new{typeof(solvers[1]),
+                   typeof(Q[1]),
+                   length(baseflow)-1}(nu, dt, solvers, Q, N, R, baseflow, basecurvature)
     end
 end
 
@@ -90,16 +92,14 @@ acceleration. Viscosity is evaluated from the two wall shears; `N` includes
 any added body force. For divergence-free, periodic convection its bulk
 contribution vanishes, recovering Channelflow's `NSE::linear` wall-stress rule.
 """
-function _bulkpressuregradient(scheme::CNRK2,
-                                    U::VectorField,
-                                    N::VectorField)
+function _bulkpressuregradient(scheme::CNRK2, U::VectorField, N::VectorField)
     return ntuple(2) do i
         component = i == 1 ? 1 : 3
-        u = _chebcolumn(U[component], 1, 1, scheme.baseviscous)
-        shear = ChebyshevHelmoltzSolvers.endpoint_derivative(u, :right) -
-                ChebyshevHelmoltzSolvers.endpoint_derivative(u, :left)
-        base = i == 1 ? _bulkmean(scheme.baseviscous) : 0.0
-        return scheme.nu*real(shear)/2 + base + real(_bulkmean(_chebcolumn(N[component], 1, 1, scheme.baseviscous)))
+        u = _chebcolumn(U[component], 1, 1, scheme.basecurvature)
+        shear = endpoint_derivative(u, :right) -
+                endpoint_derivative(u, :left)
+        base = i == 1 ? scheme.nu*_bulkmean(scheme.basecurvature) : 0.0
+        return scheme.nu*real(shear)/2 + base + real(_bulkmean(_chebcolumn(N[component], 1, 1, scheme.basecurvature)))
     end
 end
 
@@ -124,7 +124,7 @@ additional spectral acceleration. Both callbacks preserve `U` and are
 sampled at `t + (0, 1/3, 3/4)*dt`.
 
 Use either `pressuregradient=(dPdx, dPdz)` or total
-`bulkvelocity=(Ubulk, Wbulk)`, as in [`FourierStokesSolver`](@ref).
+`bulkvelocity=(Ubulk, Wbulk)`, as in [`StokesSolver`](@ref).
 Omitting both imposes zero pressure gradient. For a bulk constraint, the
 initial velocity must already satisfy the target; every stage enforces it.
 
@@ -195,14 +195,14 @@ function step!(          scheme::CNRK2{S, F},
             derivative!(N[i], P)
             R[i] .= lambda .* U[i] .+ scheme.nu .* R[i] .- N[i] .+ weight .* Q[i]
         end
-        @views R[1][:, 1, 1] .+= 2 .* parent(scheme.baseviscous)
+        @views R[1][:, 1, 1] .+= 2 * scheme.nu .* parent(scheme.basecurvature)
         R[1][1, 1, 1] -= oldgradient[1]
         R[3][1, 1, 1] -= oldgradient[2]
 
         gradients = solve!(scheme.solvers[j], U, P, R;
                            pressuregradient=pressuregradient,
                            bulkvelocity=bulkvelocity,
-                           baseflow=scheme.baseflow)
+                           baseflow=parent(scheme.baseflow))
     end
     return t+scheme.dt, gradients
 end

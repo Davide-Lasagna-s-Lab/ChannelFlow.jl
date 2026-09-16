@@ -127,7 +127,7 @@ the three reductions. Keywords and conventions match the individual functions.
 ```julia
 post = Postprocessor(problem.grid)
 d = flow_diagnostics(post, state, problem.scheme.nu;
-                     baseflow=problem.baseflow,
+                     baseflow=parent(problem.scheme.baseflow),
                      pressuregradient=(0.0, 0.0))  # Couette, no imposed gradient
 ```
 """

@@ -11,7 +11,7 @@
     # decay rate for each harmonic and no single exponential energy law.
     Re, A, T = 100.0, 0.1, 4.0
     nu = 1/Re
-    g = Grid(33, 5, 8, 2π, 2π)
+    g = Grid(5, 33, 8, 2π, 2π)
     Ny, Nx, Nz = physicalsize(g, Padded())
 
     # Integrate physical-space energy with interpolatory Chebyshev quadrature.
@@ -57,7 +57,7 @@
                     @test rate ≈ mu rtol=2e-3
                     @test maximum(abs, parent(U[2])) < 1e-11
                     @test maximum(abs, parent(U[3])) < 1e-11
-                    @test maximum(abs, parent(pressure(state))) < 1e-10
+                    @test maximum(abs, parent(stagepressure(state))) < 1e-10
                     check_constraints(U)
 
                     # Signed perturbation shear nu*du'/dy, at both walls.

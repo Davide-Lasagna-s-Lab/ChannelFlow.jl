@@ -3,11 +3,11 @@
     # velocity is divergence-free, so convective and divergence forms agree.
     # This is an algebraic test field; it deliberately need not satisfy
     # channel wall conditions.
-    g = Grid(9, 5, 5, 2π, 2π)
+    g = Grid(5, 9, 5, 2π, 2π)
     U = VectorField((spectral(g, (x,y,z) -> y^2),
                      spectral(g, (x,y,z) -> 1.0), spectral(g, fzero)))
     original = map(field -> copy(parent(field)), U.components)
-    base = chebyshev_coefficients(g, identity)
+    base = parent(ChebyshevHelmoltzSolvers.chebyshev_coefficients(g.y))
     for form in (CF.ConvectiveForm(), CF.DivergenceForm(),
                  CF.AlternatingForm(), RotatingForm())
         op = NonLinearTerm(PhysicalField(g), U[1], base;

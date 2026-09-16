@@ -31,15 +31,29 @@ end
 Construct a physical field by evaluating `f(x,y,z)` at every grid point. The
 periodic coordinates cover `[0,Lx)` and `[0,Lz)`.
 """
-function PhysicalField(grid::G, f::Function, ::Type{T}=Float64) where {
-                       G<:Grid, T<:AbstractFloat}
-    y, x, z = points(grid)
+PhysicalField(grid::Grid, f::Function, ::Type{T}=Float64) where {T<:AbstractFloat} =
+    PhysicalField(grid, f, NotPadded(), T)
+
+"""Sample `f(x,y,z)` on the grid with the selected padding."""
+function PhysicalField(grid::Grid, f::Function, tag::Union{Padded, NotPadded},
+                       ::Type{T}=Float64) where {T<:AbstractFloat}
+    y, x, z = points(grid, tag)
     return PhysicalField(T.(f.(x, y, z)), grid)
 end
 
 """Allocate a zero physical field on the resolved grid, with real element type `T`."""
 PhysicalField(grid::Grid, ::Type{T}=Float64) where {T<:AbstractFloat} =
     PhysicalField(grid, (x, y, z) -> zero(T), T)
+
+"""
+    PhysicalField(grid, tag::Union{Padded, NotPadded}, [T=Float64])
+
+Allocate a zero physical field with the selected padding and real element
+type `T`, in storage order `(y, x, z)`.
+"""
+PhysicalField(grid::Grid, tag::Union{Padded, NotPadded},
+              ::Type{T}=Float64) where {T<:AbstractFloat} =
+    PhysicalField(zeros(T, physicalsize(grid, tag)), grid)
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                     ARRAY INTERFACE AND ALLOCATION                     ///#

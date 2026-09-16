@@ -1,11 +1,11 @@
-export FourierStokesSolver
+export StokesSolver
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                      GLOBAL FOURIER STOKES SOLVER                      ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    FourierStokesSolver(grid, nu, lambda)
+    StokesSolver(grid, nu, lambda)
 
 Cache the serial primitive-variable Stokes solve for all resolved Fourier
 modes on `grid`. `nu` is viscosity and `lambda` the temporal shift, as in
@@ -21,12 +21,12 @@ Require odd `Ny ≥ 3`, positive periodic sizes and finite positive `Lx, Lz`.
 Rebuild when the grid, viscosity or temporal shift changes. Factors and
 workspaces are reused, so one instance must not be used concurrently.
 """
-struct FourierStokesSolver{G, S, M}
+struct StokesSolver{G, S, M}
      grid::G
     modes::S
      mean::M
 
-    function FourierStokesSolver(  grid::Grid,
+    function StokesSolver(  grid::Grid,
                                      nu::Real,
                                  lambda::Real)
         Ny, Nx, Nz = physicalsize(grid, NotPadded())
@@ -53,11 +53,11 @@ end
 
 """Wrap Fourier slot `(ix, iz)` as Chebyshev coefficients without copying data."""
 _chebcolumn(U::SpectralField{T}, ix::Int, iz::Int,
-            ::ChebyshevHelmoltzSolvers.ChebCoeffs{S, N}) where {T, S, N} =
-    ChebyshevHelmoltzSolvers.ChebCoeffs{Complex{T}, N}(view(parent(U), :, ix, iz))
+            ::ChebCoeffs{S, N}) where {T, S, N} =
+    ChebCoeffs{Complex{T}, N}(view(parent(U), :, ix, iz))
 
 """
-    solve!(solver::FourierStokesSolver, U, P, R;
+    solve!(solver::StokesSolver, U, P, R;
            pressuregradient=nothing, bulkvelocity=nothing, baseflow=nothing)
 
 Overwrite the perturbation velocity `U::VectorField` and pressure
@@ -81,7 +81,7 @@ interpreted as a perturbation target. The grid itself has no base flow.
 The stage assembly remains responsible for placing base-flow viscous terms
 and any explicit forcing in `R`. This solve does not add them or advance time.
 """
-function solve!(          solver::FourierStokesSolver,
+function solve!(          solver::StokesSolver,
                                U::VectorField{F},
                                P::F,
                                R::VectorField{F};
@@ -98,7 +98,7 @@ function solve!(          solver::FourierStokesSolver,
     # Only the mean mode sees the uniform pressure gradient or bulk target.
     target = isnothing(bulkvelocity) ? nothing :
              (bulkvelocity[1] - (isnothing(baseflow) ? 0.0 :
-                _bulkmean(ChebyshevHelmoltzSolvers.ChebCoeffs(baseflow))),
+                _bulkmean(ChebCoeffs(baseflow))),
               bulkvelocity[2])
     gradients = solve!(solver.mean, map(field -> _chebcolumn(field, 1, 1, solver.mean.work), fields)...;
                        pressuregradient=pressuregradient, bulkvelocity=target)

@@ -77,7 +77,7 @@ end
     @test abs(coarse.s-mode.s) < 1e-10
     @test mode.residual < 1e-10
 
-    g = Grid(81, 8, 1, 2π, 2π)
+    g = Grid(8, 81, 1, 2π, 2π)
     nu, amplitude, T = 1/8000, 1e-7, 50.0
     # Positive kx=1 stores half the complex amplitude of a real wave. The
     # negative harmonic is implicit in the real FFT. All other modes start
@@ -85,7 +85,7 @@ end
     initial = zero_state(g)
     parent(velocity(initial)[1])[:,2,1] .= amplitude/2 .* mode.u
     parent(velocity(initial)[2])[:,2,1] .= amplitude/2 .* mode.v
-    parent(pressure(initial))[:,2,1] .= amplitude/2 .* mode.p
+    parent(stagepressure(initial))[:,2,1] .= amplitude/2 .* mode.p
     check_constraints(velocity(initial))
 
     # Unweighted volume energy from independent Gauss-Legendre quadrature

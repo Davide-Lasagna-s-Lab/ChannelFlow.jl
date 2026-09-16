@@ -1,4 +1,4 @@
-export Grid, points, Padded, NotPadded, physicalsize, spectralsize, chebyshev_coefficients
+export Grid, points, Padded, NotPadded, physicalsize, spectralsize
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                     GRID GEOMETRY AND PADDING TAGS                     ///#
@@ -8,7 +8,7 @@ struct Padded end
 struct NotPadded end
 
 """
-    Grid(Ny, Nx, Nz, Lx, Lz)
+    Grid(Nx, Ny, Nz, Lx, Lz)
 
 Grid for a Fourier--Chebyshev--Fourier discretisation.
 `Ny` is the number of Chebyshev--Lobatto nodes, ordered from the upper wall to
@@ -20,16 +20,14 @@ The base flow is a property of a physical problem and belongs to
 `ChannelFlowProblem`, not to the grid.
 """
 struct Grid{Y<:AbstractVector}
-             y::Y                # Lobatto nodes, upper wall first
-      gridsize::NTuple{3, Int}    # resolved dimensions (y, x, z)
-    domainsize::NTuple{3, Float64} # lengths (x, y, z)
+               y::Y                  # Lobatto nodes, upper wall first
+    physicalsize::NTuple{3, Int}     # number of grid points in physical space in (x, y, z) order
+      domainsize::NTuple{3, Float64} # domain lengths in (x, y, z) order
 
-    function Grid(Ny::Int, Nx::Int, Nz::Int, Lx::Real, Lz::Real)
-        # Gibson's convention uses Lobatto points from +1 to -1.
+    function Grid(Nx::Int, Ny::Int, Nz::Int, Lx::Real, Lz::Real)
         y = [cospi(n/(Ny-1)) for n = 0:Ny-1]
-        return new{typeof(y)}(y, (Ny, Nx, Nz), (Float64(Lx), 2.0, Float64(Lz)))
+        return new{typeof(y)}(y, (Nx, Ny, Nz), (Float64(Lx), 2.0, Float64(Lz)))
     end
-
 end
 
 #//////////////////////////////////////////////////////////////////////////////#
@@ -37,7 +35,10 @@ end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """Return the resolved physical array dimensions in storage order `(y, x, z)`."""
-physicalsize(grid::Grid, ::NotPadded) = grid.gridsize
+function physicalsize(grid::Grid, ::NotPadded)
+    Nx, Ny, Nz = grid.physicalsize
+    return (Ny, Nx, Nz)
+end
 
 """Return the 3/2-padded physical array dimensions in storage order `(y, x, z)`."""
 function physicalsize(grid::Grid, ::Padded)
@@ -71,39 +72,20 @@ end
 #///                     DOMAIN LENGTHS AND COORDINATES                     ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-"""Return the domain lengths `(Lx, 2, Lz)`."""
+"""Return the domain lengths in physical order `(Lx, 2, Lz)`."""
 domainsize(grid::Grid) = grid.domainsize
 
 """
-    points(grid::Grid)
+    points(grid::Grid, tag=NotPadded())
 
 Return broadcast-compatible coordinates in storage order `(y, x, z)`. The
 periodic grids cover `[0,Lx)` and `[0,Lz)` without repeated endpoints.
 """
-function points(grid::Grid)
-    Ny, Nx, Nz = physicalsize(grid, NotPadded())
+function points(grid::Grid, tag::Union{Padded, NotPadded}=NotPadded())
+    Ny, Nx, Nz = physicalsize(grid, tag)
     Lx, _, Lz = domainsize(grid)
     y = reshape(grid.y, Ny, 1, 1)
     x = reshape(range(0, Lx; length=Nx + 1)[1:Nx], 1, Nx, 1)
     z = reshape(range(0, Lz; length=Nz + 1)[1:Nz], 1, 1, Nz)
     return y, x, z
-end
-
-#//////////////////////////////////////////////////////////////////////////////#
-#///                     CHEBYSHEV PROFILE COEFFICIENTS                     ///#
-#//////////////////////////////////////////////////////////////////////////////#
-
-"""
-    chebyshev_coefficients(grid, profile)
-
-Return ordinary Chebyshev coefficients of `profile(y)` on the grid's
-wall-normal Lobatto points. The profile itself is not stored by `Grid`.
-"""
-function chebyshev_coefficients(grid::Grid, profile::Function)
-    values = profile.(grid.y)
-    coefficients = FFTW.r2r(float.(values), FFTW.REDFT00)
-    coefficients ./= length(grid.y) - 1
-    coefficients[1] /= 2
-    coefficients[end] /= 2
-    return coefficients
 end

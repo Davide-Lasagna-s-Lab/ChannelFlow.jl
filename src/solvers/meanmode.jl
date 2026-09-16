@@ -5,12 +5,12 @@ export MeanModeSolver
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    _bulkmean(a::ChebyshevHelmoltzSolvers.ChebCoeffs)
+    _bulkmean(a::ChebCoeffs)
 
 Return `integral(a(y), y=-1:1)/2` from ordinary Chebyshev coefficients.
 Only even degrees contribute: the mean of `T_n` is `1/(1-n²)` for even `n`.
 """
-function _bulkmean(a::ChebyshevHelmoltzSolvers.ChebCoeffs)
+function _bulkmean(a::ChebCoeffs)
     value = a[0]
     for n = 2:2:length(a)-1
         value += a[n]/(1-n^2)
@@ -22,9 +22,12 @@ end
     MeanModeSolver(Ny, nu, lambda)
 
 Cache the `(kx, kz) = (0, 0)` Stokes solve on `[-1, 1]`, with homogeneous
-velocity wall values. `Ny ≥ 3` is the coefficient count, `nu > 0` the
-viscosity and `lambda ≥ 0` the temporal shift; both parameters must be finite.
+velocity wall values. `Ny ≥ 3` is the coefficient count, `nu ≥ 0` the
+viscosity and `lambda ≥ 0` the temporal shift; both parameters must be finite
+and cannot vanish simultaneously.
 
+Allow `nu = 0` when the system is used as an instantaneous pressure
+projection with positive `lambda`; the pair cannot both be zero.
 One real Helmholtz factorisation serves both horizontal velocities and both
 parts of their complex coefficients. Cache the response `c` to
 `(nu*D² - lambda)c = 1`, with `c(±1) = 0`, and its bulk mean. This response
@@ -42,16 +45,18 @@ struct MeanModeSolver{H, C}
                             lambda::Real)
         Ny ≥ 3 || throw(ArgumentError("at least three Chebyshev coefficients are required"))
         nu, lambda = Float64(nu), Float64(lambda)
-        isfinite(nu) && nu > 0 || throw(ArgumentError("nu must be finite and positive"))
+        isfinite(nu) && nu >= 0 || throw(ArgumentError("nu must be finite and non-negative"))
         isfinite(lambda) && lambda ≥ 0 ||
             throw(ArgumentError("lambda must be finite and nonnegative"))
+        nu > 0 || lambda > 0 ||
+            throw(ArgumentError("nu and lambda cannot both be zero"))
 
-        velocity = ChebyshevHelmoltzSolvers.HelmoltzSolver(Ny-1, Float64)
-        ChebyshevHelmoltzSolvers.update!(velocity, nu, lambda)
-        response = ChebyshevHelmoltzSolvers.ChebCoeffs(Ny-1, Float64)
+        velocity = HelmoltzSolver(Ny-1, Float64)
+        update!(velocity, nu, lambda)
+        response = ChebCoeffs(Ny-1, Float64)
         work = similar(response)
         response[0] = 1
-        ChebyshevHelmoltzSolvers.solve!(velocity, response, 0, 0)
+        solve!(velocity, response, 0, 0)
         response_mean = _bulkmean(response)
         isfinite(response_mean) && response_mean != 0 ||
             throw(ArgumentError("the uniform-gradient response has no finite nonzero bulk mean"))
@@ -102,7 +107,7 @@ function solve!(          solver::MeanModeSolver,
                               Ry::Z,
                               Rz::Z;
                 pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
-                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {Z<:ChebyshevHelmoltzSolvers.ChebCoeffs{ComplexF64}}
+                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {Z<:ChebCoeffs{ComplexF64}}
     length(p) == length(solver.work) ||
         throw(DimensionMismatch("mode coefficients must match the solver's degree"))
     isnothing(pressuregradient) || isnothing(bulkvelocity) ||
@@ -125,7 +130,7 @@ function solve!(          solver::MeanModeSolver,
         out, source = i == 1 ? (u, Rx) : (w, Rz)
         for part in (real, imag)
             parent(solver.work) .= .-part.(parent(source))
-            ChebyshevHelmoltzSolvers.solve!(solver.velocity, solver.work, 0, 0)
+            solve!(solver.velocity, solver.work, 0, 0)
             if part === real
                 parent(out) .= parent(solver.work)
             else

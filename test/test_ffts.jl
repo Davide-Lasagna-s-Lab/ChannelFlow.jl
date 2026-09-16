@@ -3,7 +3,7 @@
     # expose swapped axes; the polynomial and Fourier modes are exactly
     # representable, so only floating-point error is expected.
     for (Nx, Nz) in ((6, 8), (7, 9), (6, 9), (7, 8))
-        g = Grid(9, Nx, Nz, 5.3, 7.1)
+        g = Grid(Nx, 9, Nz, 5.3, 7.1)
         a, b = 2π/5.3, 2π/7.1
         f(x, y, z) = 2 + 0.3y + (2y^2-1)*cos(a*x)*sin(b*z)
         u = sampled(g, f)
@@ -44,7 +44,7 @@
         @test_throws DimensionMismatch ifft(PhysicalField(g), U)
     end
 
-    g = Grid(9, 6, 8, 2π, 2π)
+    g = Grid(6, 9, 8, 2π, 2π)
     # For Nx=6 and Nz=8 these are exactly the two resolved Nyquist
     # frequencies. The solver convention removes both planes, so no
     # coefficient should survive; this checks filtering separately from the
@@ -60,7 +60,7 @@ end
     # grids. Testing x and z separately covers both the reduced and full
     # Fourier axes.
     for N in (7, 8)
-        g = Grid(9, N, N, 2π, 2π)
+        g = Grid(N, 9, N, 2π, 2π)
         # cos(3x)^2 has only a mean and mode 6. Truncation must discard
         # mode 6 without folding it back onto a retained lower mode.
         for f in ((x,y,z) -> cos(3x)^2, (x,y,z) -> cos(3z)^2)
@@ -78,7 +78,7 @@ end
     # have known coefficients; truncating Fourier columns before the DCT
     # must preserve both, for even and odd padded periodic lengths.
     for N in (7, 8)
-        g = Grid(35, N, N, 2π, 2π)
+        g = Grid(N, 35, N, 2π, 2π)
         f(x, y, z) = cos(34acos(clamp(y, -1, 1)))*cos(2x)*cos(2z)
         u = sampled(g, f)
         U = spectral(g, fzero)

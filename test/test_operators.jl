@@ -4,7 +4,7 @@
     # The larger grids suppress Fourier truncation below the test tolerances;
     # parity and unequal domain lengths still probe indexing and scaling.
     for Ny in (9, 17), (Nx, Nz) in ((40, 42), (41, 43))
-        g = Grid(Ny, Nx, Nz, 5.3, 7.1)
+        g = Grid(Nx, Ny, Nz, 5.3, 7.1)
         a, b = 2π/5.3, 2π/7.1
         p(y) = 1 + 2y + 3y^2 + 4y^3
         dp(y) = 2 + 6y + 12y^2
@@ -81,7 +81,7 @@
     # derivatives. The outer product entry is i*j, and contraction gives
     # i*(1^2+2^2+3^2)=14*i. These integer-valued operations admit exact
     # comparisons.
-    g = Grid(9, 5, 5, 2π, 2π)
+    g = Grid(5, 9, 5, 2π, 2π)
     u = VectorField(sampled(g, fzero))
     for i = 1:3
         u[i] .= i

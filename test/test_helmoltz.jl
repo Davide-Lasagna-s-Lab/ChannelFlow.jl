@@ -150,7 +150,8 @@ end
     # positive finite viscosity and a finite nonnegative shift. Exercise each
     # invalid constructor input separately.
     @test_throws ArgumentError MeanModeSolver(2, 0.03, 2.5)
-    @test_throws ArgumentError MeanModeSolver(9, 0, 2.5)
+    @test MeanModeSolver(9, 0, 2.5) isa MeanModeSolver
+    @test_throws ArgumentError MeanModeSolver(9, 0, 0)
     @test_throws ArgumentError MeanModeSolver(9, 0.03, -1)
     @test_throws ArgumentError MeanModeSolver(9, Inf, 2.5)
     @test_throws ArgumentError MeanModeSolver(9, 0.03, NaN)

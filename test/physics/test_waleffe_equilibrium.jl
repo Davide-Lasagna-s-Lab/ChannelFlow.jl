@@ -21,7 +21,7 @@ function waleffe_equilibrium(branch, Ny, N)
     y = cospi.(((0:33).+0.5)/34)
     C = [cospi((i+0.5)*j/34) for i=0:33, j=0:33]
     @test maximum(abs, stats[:,1]-y) < 5e-9
-    g = Grid(Ny,N,N,2π/1.14,2π/2.5)
+    g = Grid(N, Ny, N,2π/1.14,2π/2.5)
     state = zero_state(g)
     for (i, component) in enumerate(("u","v","w"))
         # Fortran order is (x,z,Chebyshev degree), with x varying fastest.
@@ -107,8 +107,8 @@ end
                                                   fftwflags=FFTW.ESTIMATE)
                     source, response = similar(U),similar(U)
                     problem.nlterm(0.0,U,source,false)
-                    solve!(FourierStokesSolver(g,1/400,0.0),response,
-                           pressure(initial),source)
+                    solve!(StokesSolver(g,1/400,0.0),response,
+                           stagepressure(initial),source)
                     response .-= U
                     defect = sqrt(equilibrium_diagnostics(response).energy/baseline.energy)
                     # The archive has finite resolution. Bounds distinguish its

@@ -22,8 +22,7 @@ Base.strides(A::SpectralMatrixView) = (1, size(A, 1))
 Base.IndexStyle(::Type{<:SpectralMatrixView}) = IndexLinear()
 Base.getindex(A::SpectralMatrixView, i::Int) = A.data[i]
 Base.setindex!(A::SpectralMatrixView, value, i::Int) = (A.data[i] = value)
-Base.unsafe_convert(::Type{Ptr{T}}, A::SpectralMatrixView{T}) where {T} =
-    pointer(A.data)
+Base.unsafe_convert(::Type{Ptr{T}}, A::SpectralMatrixView{T}) where {T} = pointer(A.data)
 
 """
     chebyshev_transform(prototype; inverse=false, flags, timelimit)

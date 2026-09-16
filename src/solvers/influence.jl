@@ -70,36 +70,36 @@ struct InfluenceModeSolver{H, C}
             throw(ArgumentError("InfluenceModeSolver requires kappa2 > 0; handle the mean mode separately"))
 
         P = Ny - 1
-        pressure = ChebyshevHelmoltzSolvers.HelmoltzSolver(P, Float64)
-        velocity = ChebyshevHelmoltzSolvers.HelmoltzSolver(P, Float64)
+        pressure = HelmoltzSolver(P, Float64)
+        velocity = HelmoltzSolver(P, Float64)
         pplus, pminus, vplus, vminus, pzero, vzero, work =
-            ntuple(_ -> ChebyshevHelmoltzSolvers.ChebCoeffs(P, Float64), 7)
-        cache = ntuple(_ -> ChebyshevHelmoltzSolvers.ChebCoeffs(P, Float64), 4)
+            ntuple(_ -> ChebCoeffs(P, Float64), 7)
+        cache = ntuple(_ -> ChebCoeffs(P, Float64), 4)
         shift = Float64(lambda + nu*kappa2)
 
-        ChebyshevHelmoltzSolvers.update!(pressure, 1, kappa2)
-        ChebyshevHelmoltzSolvers.update!(velocity, nu, shift)
+        update!(pressure, 1, kappa2)
+        update!(velocity, nu, shift)
 
         # ChebCoeffs starts at zero. Each homogeneous pressure solution has a
         # unit value at one wall and zero at the other; its derivative drives
         # a velocity response with zero values at both walls.
         # The backend takes boundary values in the order (+1, -1).
-        ChebyshevHelmoltzSolvers.solve!(pressure, pplus, 1, 0)
-        ChebyshevHelmoltzSolvers.diff!(work, pplus)
+        solve!(pressure, pplus, 1, 0)
+        diff!(work, pplus)
         parent(vplus) .= parent(work)
-        ChebyshevHelmoltzSolvers.solve!(velocity, vplus, 0, 0)
+        solve!(velocity, vplus, 0, 0)
 
-        ChebyshevHelmoltzSolvers.solve!(pressure, pminus, 0, 1)
-        ChebyshevHelmoltzSolvers.diff!(work, pminus)
+        solve!(pressure, pminus, 0, 1)
+        diff!(work, pminus)
         parent(vminus) .= parent(work)
-        ChebyshevHelmoltzSolvers.solve!(velocity, vminus, 0, 0)
+        solve!(velocity, vminus, 0, 0)
 
         # Rows select v'(+1), v'(-1); columns select the plus/minus response.
         # Multiplying this matrix by the two pressure amplitudes gives the
         # resulting change in the wall-normal velocity derivative at the walls.
         influence = [
-            ChebyshevHelmoltzSolvers.endpoint_derivative(vplus, :right) ChebyshevHelmoltzSolvers.endpoint_derivative(vminus, :right)
-            ChebyshevHelmoltzSolvers.endpoint_derivative(vplus, :left)  ChebyshevHelmoltzSolvers.endpoint_derivative(vminus, :left)
+            endpoint_derivative(vplus, :right) endpoint_derivative(vminus, :right)
+            endpoint_derivative(vplus, :left)  endpoint_derivative(vminus, :left)
         ]
 
         # Scale before checking the determinant: small response amplitudes alone
@@ -120,10 +120,10 @@ struct InfluenceModeSolver{H, C}
         # two momentum tau terms can later be corrected independently.
         fill!(parent(work), 0)
         work[P-1] = work[P] = 1
-        ChebyshevHelmoltzSolvers.diff!(pzero, work)
-        ChebyshevHelmoltzSolvers.solve!(pressure, pzero, 0, 0)
-        ChebyshevHelmoltzSolvers.diff!(vzero, pzero)
-        ChebyshevHelmoltzSolvers.solve!(velocity, vzero, 0, 0)
+        diff!(pzero, work)
+        solve!(pressure, pzero, 0, 0)
+        diff!(vzero, pzero)
+        solve!(velocity, vzero, 0, 0)
 
         solver = new{typeof(pressure), typeof(pplus)}(
             pressure, velocity, pplus, pminus, vplus, vminus, influence_inverse,
@@ -134,7 +134,7 @@ struct InfluenceModeSolver{H, C}
         # Mixing the old pressure derivative with the corrected velocity
         # leaves a discrete divergence residual, especially at low degree.
         # At degrees P-1 and P, vzero'' vanishes; pzero'[P] also vanishes.
-        ChebyshevHelmoltzSolvers.diff!(work, pzero)
+        diff!(work, pzero)
         solver.sigma0[1] = shift*vzero[P-1] + work[P-1]
         solver.sigma0[2] = shift*vzero[P]
         return solver
@@ -163,8 +163,8 @@ function _influence_correction!(solver::InfluenceModeSolver{H, C},
                                      p::C,
                                      v::C) where {H, C}
     # Cancel the current derivative residuals, ordered as upper/lower wall.
-    b₊ = -ChebyshevHelmoltzSolvers.endpoint_derivative(v, :right)
-    b₋ = -ChebyshevHelmoltzSolvers.endpoint_derivative(v, :left)
+    b₊ = -endpoint_derivative(v, :right)
+    b₋ = -endpoint_derivative(v, :left)
     A = solver.influence_inverse
     δ₊ = A[1, 1]*b₊ + A[1, 2]*b₋
     δ₋ = A[2, 1]*b₊ + A[2, 2]*b₋
@@ -210,7 +210,7 @@ function solve!(solver::InfluenceModeSolver,
                      p::Z,
                     Rx::Z,
                     Ry::Z,
-                    Rz::Z) where {Z<:ChebyshevHelmoltzSolvers.ChebCoeffs{ComplexF64}}
+                    Rz::Z) where {Z<:ChebCoeffs{ComplexF64}}
     length(p) == length(solver.work) ||
         throw(DimensionMismatch("mode coefficients must match the solver's degree"))
     pc, vc, r, ry = solver.cache
@@ -223,7 +223,7 @@ function solve!(solver::InfluenceModeSolver,
         @inbounds for n in eachindex(ry)
             ry[n] = imaginary ? imag(Ry[n]) : real(Ry[n])
         end
-        ChebyshevHelmoltzSolvers.diff!(r, ry)
+        diff!(r, ry)
         @inbounds for n in eachindex(r)
             r[n] += imaginary ? solver.kx*real(Rx[n]) + solver.kz*real(Rz[n]) :
                                -solver.kx*imag(Rx[n]) - solver.kz*imag(Rz[n])
@@ -246,8 +246,8 @@ function solve!(solver::InfluenceModeSolver,
     for (out, source, k) in ((u, Rx, solver.kx), (w, Rz, solver.kz))
         parent(pc) .= -k .* imag.(parent(p)) .- real.(parent(source))
         parent(vc) .=  k .* real.(parent(p)) .- imag.(parent(source))
-        ChebyshevHelmoltzSolvers.solve!(solver.velocity, pc, 0, 0)
-        ChebyshevHelmoltzSolvers.solve!(solver.velocity, vc, 0, 0)
+        solve!(solver.velocity, pc, 0, 0)
+        solve!(solver.velocity, vc, 0, 0)
         parent(out) .= complex.(parent(pc), parent(vc))
     end
     return u, v, w, p
@@ -288,13 +288,13 @@ function solve!(solver::InfluenceModeSolver{H, C},
     # Zero pressure wall values select a particular solution; they are
     # replaced by the values required by the influence correction below.
     parent(p) .= parent(r)
-    ChebyshevHelmoltzSolvers.solve!(solver.pressure, p, 0, 0)
+    solve!(solver.pressure, p, 0, 0)
 
     # Form Dp - Ry and solve for v with homogeneous wall values.
-    ChebyshevHelmoltzSolvers.diff!(solver.work, p)
+    diff!(solver.work, p)
     parent(solver.work) .-= parent(Ry)
     parent(v) .= parent(solver.work)
-    ChebyshevHelmoltzSolvers.solve!(solver.velocity, v, 0, 0)
+    solve!(solver.velocity, v, 0, 0)
 
     _influence_correction!(solver, p, v)
 
@@ -302,7 +302,7 @@ function solve!(solver::InfluenceModeSolver{H, C},
     # residual solver.lambda*v + Dp - nu*D²v - Ry at those degrees.
     # D²v has degree at most P-2, so its contribution is exactly zero here.
     P = length(p) - 1
-    ChebyshevHelmoltzSolvers.diff!(solver.work, p)
+    diff!(solver.work, p)
     sigmaNm1 = (solver.lambda*v[P-1] + solver.work[P-1] - Ry[P-1]) /
                (1 - solver.sigma0[1])
     sigmaN = (solver.lambda*v[P] + solver.work[P] - Ry[P]) /
