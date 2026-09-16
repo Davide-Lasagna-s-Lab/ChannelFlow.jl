@@ -18,6 +18,14 @@ type and grid of the scalar-field prototype `u`. Its values are not copied.
 VectorField(u::F) where {F<:AbstractField} =
     VectorField(ntuple(_ -> fill!(similar(u), zero(eltype(u))), 3))
 
+"""
+    VectorField(u, v, w)
+
+Wrap three scalar fields of the same concrete type in `(u, v, w)` order,
+without copying their data.
+"""
+VectorField(u::F, v::F, w::F) where {F<:AbstractField} = VectorField((u, v, w))
+
 """Allocate independent, uninitialised components with the same sizes and grids."""
 Base.similar(U::VectorField) = VectorField(map(similar, U.components))
 
@@ -30,6 +38,11 @@ Base.copy(U::VectorField) = VectorField(map(copy, U.components))
 Return the `i` component of the velocity field `U`.
 """
 Base.getindex(U::VectorField, i::Int) = U.components[i]
+
+"""Iterate over the three scalar components in `(u, v, w)` order, without copying."""
+Base.iterate(U::VectorField, state::Int=1) = iterate(U.components, state)
+Base.length(::VectorField) = 3
+Base.eltype(::Type{VectorField{F}}) where {F} = F
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                       COMPONENTWISE BROADCASTING                       ///#

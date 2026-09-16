@@ -24,6 +24,10 @@ struct SpectralField{T<:AbstractFloat,
         new{T, A, G}(data, grid)
 end
 
+"""Allocate a zero spectral field on the resolved grid."""
+SpectralField(grid::Grid, ::Type{T}=Float64) where {T<:AbstractFloat} =
+    SpectralField(zeros(Complex{T}, spectralsize(grid, NotPadded())), grid)
+
 #//////////////////////////////////////////////////////////////////////////////#
 #///                     ARRAY INTERFACE AND ALLOCATION                     ///#
 #//////////////////////////////////////////////////////////////////////////////#

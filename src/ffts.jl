@@ -196,13 +196,13 @@ conventions as [`ForwardFFT!`](@ref). Vector components share one transform plan
 Forward planning keywords to `ForwardFFT!`; use cached plans for repeated calls.
 """
 function FFT(u::PhysicalField{T}; flags=FFTW.ESTIMATE, kwargs...) where {T}
-    U = SpectralField(zeros(Complex{T}, spectralsize(grid(u), NotPadded())), grid(u))
+    U = SpectralField(grid(u), T)
     return ForwardFFT!(u; flags=flags, kwargs...)(U, u)
 end
 
 function FFT(u::VectorField{F}; flags=FFTW.ESTIMATE, kwargs...) where {T, F<:PhysicalField{T}}
     g = grid(u[1])
-    U = VectorField(SpectralField(zeros(Complex{T}, spectralsize(g, NotPadded())), g))
+    U = VectorField(SpectralField(g, T))
     return ForwardFFT!(u[1]; flags=flags, kwargs...)(U, u)
 end
 
