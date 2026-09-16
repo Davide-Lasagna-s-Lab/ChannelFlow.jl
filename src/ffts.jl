@@ -1,6 +1,3 @@
-import FFTW
-import LinearAlgebra
-
 export ForwardFFT!, InverseFFT!, ForwardFFT, InverseFFT, FFT, IFFT
 
 #//////////////////////////////////////////////////////////////////////////////#
@@ -12,76 +9,6 @@ export ForwardFFT!, InverseFFT!, ForwardFFT, InverseFFT, FFT, IFFT
 # therefore gives an rfft in x and a full FFT in z. A separate DCT-I in the
 # first dimension converts Lobatto values to/from Chebyshev coefficients.
 const FFT_DIMS = (2, 3)
-
-# Dense BLAS multiplication is faster than many short DCT-I transforms at
-# the wall-normal resolutions used by the present DNS. Larger systems retain
-# FFTW's asymptotically cheaper algorithm.
-struct DenseChebyshevTransform{A}
-    matrix::A
-end
-
-# Allocation-free two-dimensional view of contiguous `(y, kx, kz)` storage.
-# BLAS sees every Fourier column as one matrix column without constructing a
-# `ReshapedArray` at each transform call.
-struct SpectralMatrixView{T, A<:DenseArray{T, 3}} <: AbstractMatrix{T}
-    data::A
-end
-
-Base.size(A::SpectralMatrixView) =
-    (size(A.data, 1), length(A.data) ÷ size(A.data, 1))
-Base.strides(A::SpectralMatrixView) = (1, size(A, 1))
-Base.IndexStyle(::Type{<:SpectralMatrixView}) = IndexLinear()
-Base.getindex(A::SpectralMatrixView, i::Int) = A.data[i]
-Base.setindex!(A::SpectralMatrixView, value, i::Int) = (A.data[i] = value)
-Base.unsafe_convert(::Type{Ptr{T}}, A::SpectralMatrixView{T}) where {T} =
-    pointer(A.data)
-
-function chebyshev_transform(prototype::SpectralField;
-                             inverse::Bool=false,
-                             flags::Integer=FFTW.EXHAUSTIVE,
-                             timelimit::Real=FFTW.NO_TIMELIMIT)
-    Ny = size(prototype, 1)
-    if Ny <= 35
-        T = eltype(prototype)
-        matrix = T[(inverse ? 2 : (j == 1 || j == Ny ? 1 : 2)) *
-                   cospi((i-1)*(j-1)/(Ny-1)) for i = 1:Ny, j = 1:Ny]
-        return DenseChebyshevTransform(matrix)
-    end
-    return FFTW.plan_r2r!(parent(prototype), FFTW.REDFT00, (1,);
-                          flags=flags, timelimit=timelimit)
-end
-
-function forward_chebyshev!(dest::SpectralField,
-                            transform::DenseChebyshevTransform,
-                            src::SpectralField)
-    LinearAlgebra.BLAS.gemm!('N', 'N', true, transform.matrix,
-                             SpectralMatrixView(parent(src)), false,
-                             SpectralMatrixView(parent(dest)))
-    return dest
-end
-
-function forward_chebyshev!(dest::SpectralField, plan, src::SpectralField)
-    copyto!(parent(dest), parent(src))
-    FFTW.unsafe_execute!(plan, parent(dest), parent(dest))
-    return dest
-end
-
-function inverse_chebyshev!(dest::SpectralField,
-                            transform::DenseChebyshevTransform,
-                            src::SpectralField)
-    LinearAlgebra.BLAS.gemm!('N', 'N', true, transform.matrix,
-                             SpectralMatrixView(parent(src)), false,
-                             SpectralMatrixView(parent(dest)))
-    return dest
-end
-
-function inverse_chebyshev!(dest::SpectralField, plan, src::SpectralField)
-    copyto!(parent(dest), parent(src))
-    @views parent(dest)[1, :, :] .*= 2
-    @views parent(dest)[end, :, :] .*= 2
-    FFTW.unsafe_execute!(plan, parent(dest), parent(dest))
-    return dest
-end
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                           FORWARD TRANSFORM                            ///#
@@ -95,15 +22,15 @@ spectral storage `(n, kx, kz)`. Fourier amplitudes are normalised by the padded
 periodic size; Chebyshev coefficients use the ordinary `sum(a_n*T_n)` series.
 """
 struct ForwardFFT!{P, C, A, T}
-    plan::P          # plan from the padded physical grid to Fourier space
-    chebyplan::C     # in-place DCT-I along the wall-normal dimension
-    padded::A        # complete padded spectrum produced by the plan
-    resolved::A      # Fourier-truncated input to the Chebyshev transform
-    normalization::T # inverse periodic size and Chebyshev degree
+             plan::P  # padded physical grid to Fourier space
+        chebyplan::C  # dense or FFTW wall-normal transform
+           padded::A  # complete padded spectrum produced by the plan
+         resolved::A  # Fourier-truncated input to the Chebyshev transform
+    normalization::T  # inverse periodic size and Chebyshev degree
 end
 
-function ForwardFFT!(u::PhysicalField{T};
-                     flags::Integer=FFTW.EXHAUSTIVE,
+function ForwardFFT!(        u::PhysicalField{T};
+                         flags::Integer=FFTW.EXHAUSTIVE,
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # Only periodic dimensions are padded. All Ny Chebyshev coefficients
     # are retained; there is no wall-normal dealiasing in this implementation.
@@ -114,8 +41,8 @@ function ForwardFFT!(u::PhysicalField{T};
     # Execution later uses any real array with this type and layout.
     plan = FFTW.plan_rfft(zeros(T, Ny, Nxp, Nzp), FFT_DIMS;
                           flags=flags, timelimit=timelimit)
-    # FFTW applies this real-to-real transform to the real and imaginary
-    # parts independently. Plan for resolved columns; execution uses U itself.
+    # The wall-normal backend works only on retained Fourier columns.
+    # It writes the final coefficients into the caller's output field.
     resolved = SpectralField(zeros(Complex{T}, spectralsize(grid(u), NotPadded())), grid(u))
     chebyplan = chebyshev_transform(resolved; flags=flags, timelimit=timelimit)
     return ForwardFFT!(plan, chebyplan, padded, resolved,
@@ -180,19 +107,19 @@ end
 
 Plan the inverse transform from resolved spectral storage `(n, kx, kz)` to the
 3/2-padded physical storage `(y, xp, zp)`. The resolved input is preserved
-because the coefficients are first embedded in the internal padded buffer;
-FFTW's `brfft` is then allowed to overwrite that buffer. The wall-normal
-DCT uses a separate resolved buffer, before padding, to skip zero columns.
+by evaluating the wall-normal transform into a separate resolved buffer,
+then embedding those values into the padded Fourier spectrum. FFTW's `brfft`
+may overwrite that padded buffer. This order skips DCTs of zero columns.
 """
 struct InverseFFT!{P, C, A}
-    plan::P      # plan from the padded spectrum to the padded physical grid
-    chebyplan::C # in-place DCT-I along the wall-normal dimension
-    padded::A    # zero-padded spectrum used as destructive brfft input
-    resolved::A  # retained columns for the wall-normal transform
+         plan::P  # padded spectrum to the padded physical grid
+    chebyplan::C  # dense or FFTW wall-normal transform
+       padded::A  # zero-padded spectrum used as destructive brfft input
+     resolved::A  # retained columns for the wall-normal transform
 end
 
-function InverseFFT!(U::SpectralField{T};
-                     flags::Integer=FFTW.EXHAUSTIVE,
+function InverseFFT!(        U::SpectralField{T};
+                         flags::Integer=FFTW.EXHAUSTIVE,
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # The inverse plan must use exactly the same padded layout as the forward
     # plan. `Nxp` is passed explicitly because an rfft half-spectrum alone
@@ -304,14 +231,16 @@ end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    copy_to_padded!(dest, src)
+    copy_to_padded!(dest, src, scale=1)
 
 Embed a compact resolved spectrum in a zeroed padded spectrum. The stored
 nonnegative `kx` modes remain a prefix of dimension two. Nonnegative `kz`
 modes stay at the start of dimension three; negative modes move to its end.
+Multiply copied coefficients by `scale`; entries outside the copied blocks
+are left untouched, so the caller must zero `dest` before padding.
 """
 function copy_to_padded!(dest::SpectralField{T},
-                         src::SpectralField{T},
+                          src::SpectralField{T},
                          scale=one(T)) where {T}
     _, Nxh, Nz = size(src)
     positive, negative, padded_negative = _complex_mode_ranges(Nz, size(dest, 3))

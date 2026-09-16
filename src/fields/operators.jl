@@ -117,7 +117,7 @@ function laplacian!(OUT::S, U::S) where {S<:SpectralField}
 end
 
 #//////////////////////////////////////////////////////////////////////////////#
-#///                         SPECTRAL VECTOR CURL                           ///#
+#///                          SPECTRAL VECTOR CURL                          ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
@@ -126,7 +126,8 @@ end
 Overwrite `OUT` with the spectral curl of `U`. The two wall-normal
 derivatives use the Chebyshev recurrence. A single subsequent traversal adds
 all streamwise and spanwise Fourier contributions, avoiding separate
-derivative and sign-change passes for each component.
+derivative and sign-change passes for each component. `OUT` must have
+independent storage from `U`; this vector operation does not support aliasing.
 """
 function curl!(OUT::VectorField{S},
                  U::VectorField{S}) where {S<:SpectralField}
@@ -203,9 +204,9 @@ store the result in `out`:
 For `grad[i,j] = ∂Uᵢ/∂xⱼ`, this evaluates `(u ⋅ ∇)U`. The operation is
 pointwise and returns `out`.
 """
-function dot!(out::VectorField{F},
-                u::VectorField{F},
-             grad::GradientField{F}) where {F<:PhysicalField}
+function dot!( out::VectorField{F},
+                 u::VectorField{F},
+              grad::GradientField{F}) where {F<:PhysicalField}
     @inbounds for i = 1:3
         out[i] .= u[1].*grad[i, 1] .+ u[2].*grad[i, 2] .+ u[3].*grad[i, 3]
     end
@@ -244,8 +245,8 @@ three results in `OUT`. In components,
 
 The function returns `OUT`.
 """
-function div!(OUT::VectorField{S},
-             GRAD::GradientField{S}) where {S<:SpectralField}
+function div!( OUT::VectorField{S},
+              GRAD::GradientField{S}) where {S<:SpectralField}
     @inbounds for i = 1:3
         div!(OUT[i], GRAD[i])
     end

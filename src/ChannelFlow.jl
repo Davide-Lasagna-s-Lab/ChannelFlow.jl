@@ -1,43 +1,60 @@
+"""
+    ChannelFlow
+
+Serial Fourier--Chebyshev DNS for plane Couette and Poiseuille flow.
+
+Start with `Grid`, `Couette` or `Poiseuille`, and a `State` created by
+`zero_state` or `random_state`. Integrate with `Flows.flow(problem)` and
+inspect the result with `Postprocessor` and `flow_diagnostics`.
+
+Velocity is stored as a perturbation to `problem.baseflow`. The default
+`RotatingForm` uses pressure augmented by total kinetic energy per unit mass.
+Physical arrays have order `(y, x, z)`; spectral arrays have `(n, kx, kz)`.
+"""
 module ChannelFlow
 
+import ChebyshevHelmoltzSolvers
+import FFTW
 import Flows
+import LinearAlgebra
+import Random
 
 #//////////////////////////////////////////////////////////////////////////////#
-#///                         GRID AND SCALAR FIELDS                         ///#
+#///                   GRID, FIELDS AND SPATIAL OPERATORS                   ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
 include("grids.jl")
-
 include("fields/physicalfield.jl")
 include("fields/spectralfield.jl")
 include("fields/abstractfield.jl")
-
-#//////////////////////////////////////////////////////////////////////////////#
-#///                       FIELD OPERATIONS AND STATE                       ///#
-#//////////////////////////////////////////////////////////////////////////////#
-
-include("indexing.jl")
 include("fields/vectorfield.jl")
 include("fields/gradientfield.jl")
-include("fields/operators.jl")
 include("state.jl")
+include("indexing.jl")
+include("fields/operators.jl")
 
 #//////////////////////////////////////////////////////////////////////////////#
-#///                    DNS OPERATORS AND INITIALIZATION                    ///#
+#///                    TRANSFORMS AND MOMENTUM SOLVERS                     ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
+include("transforms/chebyshev.jl")
 include("ffts.jl")
 include("nonlinear.jl")
 include("helmoltz.jl")
-include("problem.jl")
-include("initialization.jl")
-include("postprocessing.jl")
 
 #//////////////////////////////////////////////////////////////////////////////#
-#///                            TIME INTEGRATION                            ///#
+#///               TIME INTEGRATION AND PROBLEM CONSTRUCTION                ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
 include("timesteppers/cnrk2.jl")
+include("problem.jl")
 include("timesteppers/channel.jl")
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                   INITIALIZATION AND POSTPROCESSING                    ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+include("initialization.jl")
+include("postprocessing.jl")
 
 end

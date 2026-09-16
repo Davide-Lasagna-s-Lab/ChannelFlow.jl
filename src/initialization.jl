@@ -1,5 +1,3 @@
-import Random
-
 export zero_state, random_state, project!
 
 #//////////////////////////////////////////////////////////////////////////////#
@@ -9,7 +7,9 @@ export zero_state, random_state, project!
 """
     zero_state(grid::Grid)
 
-Allocate a zero coupled state `(U, P)` on `grid`.
+Allocate `State(U, P)` with zero spectral perturbation velocity and pressure.
+A laminar base profile belongs to the problem, so it is not added here.
+Zero pressure need not be a consistent initial pressure for time stepping.
 """
 function zero_state(grid::Grid)
     P = SpectralField(zeros(ComplexF64, spectralsize(grid, NotPadded())), grid)
@@ -25,10 +25,13 @@ end
 
 Create a random real-space perturbation velocity, transform it to spectral
 storage, project it onto the divergence-free no-slip space, and return the
-coupled state `(U, P)`. Use Julia's default RNG; call `Random.seed!`
+state `State(U, P)`. `amplitude` scales Gaussian samples before projection;
+it is not a prescribed final RMS or kinetic energy. `P` is the projection
+multiplier, not a dynamically consistent initial pressure.
+Use Julia's default RNG; call `Random.seed!`
 beforehand for reproducible initialization.
 """
-function random_state(grid::Grid,
+function random_state(     grid::Grid,
                       amplitude::Real)
     amplitude >= 0 || throw(ArgumentError("amplitude must be non-negative"))
     physical = PhysicalField(zeros(Float64, physicalsize(grid, Padded())), grid)

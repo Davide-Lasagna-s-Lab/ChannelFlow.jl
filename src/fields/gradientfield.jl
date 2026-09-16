@@ -2,6 +2,7 @@
 #///             TENSOR FIELD CONSTRUCTION AND COMPONENT ACCESS             ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
+"""Three-by-three tensor stored by rows: `G[i,j] = ∂Uᵢ/∂xⱼ` for a gradient."""
 struct GradientField{F<:AbstractField, V<:VectorField{F}}
     components::NTuple{3, V}
 end

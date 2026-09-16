@@ -39,6 +39,9 @@ Create a state and integrate it with the Flows operator:
 channel = ChannelFlowProblem(grid, y -> 1-y^2, nu, dt;
                       pressuregradient=(-2nu, 0))
 state = zero_state(channel.grid)
+# Modified pressure of the laminar profile: |Ub|²/2 (up to a constant).
+pressure(state)[:, 1, 1] .= chebyshev_coefficients(channel.grid,
+                                                y -> (1-y^2)^2/2)
 I = Flows.flow(channel)
 I(state, (0.0, 1.0))
 ```
@@ -55,15 +58,15 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
     constraint::C
 
     function ChannelFlowProblem(            grid::Grid,
-                                    profile::Function,
-                                       nu::Real,
-                                       dt::Real;
-                                     form::NonlinearityForm=RotatingForm(),
-                                  forcing=nothing,
-                         pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
-                             bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing,
-                                fftwflags::Integer=FFTW.MEASURE,
-                            fftwtimelimit::Real=FFTW.NO_TIMELIMIT)
+                                         profile::Function,
+                                              nu::Real,
+                                              dt::Real;
+                                            form::NonlinearityForm=RotatingForm(),
+                                         forcing=nothing,
+                                pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
+                                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing,
+                                       fftwflags::Integer=FFTW.MEASURE,
+                                   fftwtimelimit::Real=FFTW.NO_TIMELIMIT)
         # Store only the selected mean-flow constraint. Its name is reused
         # directly as a keyword by the time-stepper and the mean-mode solve.
         isnothing(pressuregradient) || isnothing(bulkvelocity) ||
@@ -129,22 +132,3 @@ function Poiseuille(grid::Grid, nu::Real, dt::Real;
                               bulkvelocity=bulkvelocity,
                               pressuregradient=pressuregradient, kwargs...)
 end
-
-#//////////////////////////////////////////////////////////////////////////////#
-#///                      FLOWS INTEGRATION INTERFACE                       ///#
-#//////////////////////////////////////////////////////////////////////////////#
-
-"""
-    Flows.flow(channel::ChannelFlowProblem)
-
-Construct a forward Flows operator using this channel's three-stage CNRK2
-method and nominal fixed time step. Pass any coupled state created by
-`zero_state(channel.grid)` (or an independent copy) to the returned operator.
-Flows monitors and trajectory storage use the coupled velocity/pressure state.
-
-Flows may shorten the last step to reach the requested endpoint. That step
-uses a temporary CNRK2 cache with its actual duration; the configured cache
-and nominal step remain available for subsequent calls.
-"""
-Flows.flow(channel::ChannelFlowProblem) =
-    Flows.flow(channel, channel.scheme, Flows.TimeStepConstant(channel.scheme.dt))

@@ -28,11 +28,12 @@ end
 #///                     ARRAY INTERFACE AND ALLOCATION                     ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-# Accessor functions
+"""Return the grid associated with `U`."""
 grid(U::SpectralField) = U.grid
 
-# copy and similar
+"""Copy coefficients into independent storage on the same grid."""
 Base.copy(   U::SpectralField) = SpectralField(   copy(parent(U)), grid(U))
+"""Allocate uninitialised coefficients with the same shape, type and grid."""
 Base.similar(U::SpectralField) = SpectralField(similar(parent(U)), grid(U))
 
 # indexing by a scalar by default
@@ -51,10 +52,10 @@ Base.@propagate_inbounds function Base.setindex!(U::SpectralField, val, I::Integ
     return val
 end
 
-# size of the spectral data
+"""Return coefficient-array dimensions `(Ny, Nxh, Nz)`."""
 Base.size(U::SpectralField) = size(parent(U))
 
-# get underlying storage
+"""Return the underlying coefficient array, without copying."""
 Base.parent(U::SpectralField) = U.data
 
 #//////////////////////////////////////////////////////////////////////////////#

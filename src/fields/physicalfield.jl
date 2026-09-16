@@ -5,7 +5,7 @@ export PhysicalField
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    PhysicalField(grid, [T=Float64])
+    PhysicalField(data, grid)
 
 Wrap a resolved or 3/2-padded physical scalar field with storage order
 `(y, x, z)`. The first index is contiguous.
@@ -37,6 +37,7 @@ function PhysicalField(grid::G, f::Function, ::Type{T}=Float64) where {
     return PhysicalField(T.(f.(x, y, z)), grid)
 end
 
+"""Allocate a zero physical field on the resolved grid, with real element type `T`."""
 PhysicalField(grid::Grid, ::Type{T}=Float64) where {T<:AbstractFloat} =
     PhysicalField(grid, (x, y, z) -> zero(T), T)
 

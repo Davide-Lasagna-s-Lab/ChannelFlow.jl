@@ -1,5 +1,3 @@
-import FFTW
-
 export Grid, points, Padded, NotPadded, physicalsize, spectralsize, chebyshev_coefficients
 
 #//////////////////////////////////////////////////////////////////////////////#
@@ -22,16 +20,14 @@ The base flow is a property of a physical problem and belongs to
 `ChannelFlowProblem`, not to the grid.
 """
 struct Grid{Y<:AbstractVector}
-             y::Y                  # Lobatto nodes, upper wall first
-             #TODO: it's cleaner to store Nx, Ny, Nz as a tuple (in storage order)
-            Nx::Int                # resolved streamwise extent
-            Nz::Int                # resolved spanwise extent
+             y::Y                # Lobatto nodes, upper wall first
+      gridsize::NTuple{3, Int}    # resolved dimensions (y, x, z)
     domainsize::NTuple{3, Float64} # lengths (x, y, z)
 
     function Grid(Ny::Int, Nx::Int, Nz::Int, Lx::Real, Lz::Real)
         # Gibson's convention uses Lobatto points from +1 to -1.
         y = [cospi(n/(Ny-1)) for n = 0:Ny-1]
-        return new{typeof(y)}(y, Nx, Nz, (Float64(Lx), 2.0, Float64(Lz)))
+        return new{typeof(y)}(y, (Ny, Nx, Nz), (Float64(Lx), 2.0, Float64(Lz)))
     end
 
 end
@@ -41,8 +37,7 @@ end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """Return the resolved physical array dimensions in storage order `(y, x, z)`."""
-#TODO: so that we can return that tuple directly here
-physicalsize(grid::Grid, ::NotPadded) = (length(grid.y), grid.Nx, grid.Nz)
+physicalsize(grid::Grid, ::NotPadded) = grid.gridsize
 
 """Return the 3/2-padded physical array dimensions in storage order `(y, x, z)`."""
 function physicalsize(grid::Grid, ::Padded)
@@ -50,9 +45,15 @@ function physicalsize(grid::Grid, ::Padded)
     return (Ny, _paddedsize(Nx), _paddedsize(Nz))
 end
 
-#TODO: improve documentation of this function, explaining rationale, mechanisms to avoid aliasing with examples
-# Retained Nyquist planes are zero, so an even padded length is valid.
-# Do not force odd sizes: e.g. 32 -> 48 is both sufficient and FFT-friendly.
+"""
+    _paddedsize(n)
+
+Return `ceil(3n/2)` periodic samples for evaluating quadratic products.
+Resolved Nyquist modes are filtered: padding separates retained modes from
+aliases of their products before Fourier truncation. Even padded sizes are
+valid and FFT-friendly; for example, 32 resolved samples use 48 padded points.
+Only x and z are padded; the Chebyshev direction is unchanged.
+"""
 _paddedsize(n::Integer) = cld(3n, 2)
 
 """

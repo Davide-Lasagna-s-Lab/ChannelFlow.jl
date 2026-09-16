@@ -47,10 +47,10 @@ struct CNRK2{S, F<:SpectralField{Float64}, B, C} <: Flows.AbstractMethod{State, 
        baseflow::B
     baseviscous::C
 
-    function CNRK2( grid::Grid,
+    function CNRK2(    grid::Grid,
                    baseflow::B,
-                   nu::Real,
-                   dt::Real) where {B<:AbstractVector}
+                         nu::Real,
+                         dt::Real) where {B<:AbstractVector}
         nu, dt = Float64(nu), Float64(dt)
         isfinite(dt) && dt > 0 || throw(ArgumentError("dt must be finite and positive"))
         g = grid

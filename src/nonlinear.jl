@@ -7,17 +7,18 @@ export NonLinearTerm, RotatingForm
 # Abstract type representing the form used to calculate the nonlinear term.
 abstract type NonlinearityForm end
 
+"""Negative advection: `-(u ⋅ ∇)u`."""
 struct ConvectiveForm  <: NonlinearityForm end
+"""Negative flux divergence: `-∇ ⋅ (u ⊗ u)`."""
 struct DivergenceForm  <: NonlinearityForm end
+"""Alternate divergence and convective evaluations, starting with divergence."""
 struct AlternatingForm <: NonlinearityForm end
+"""Rotational acceleration `u × curl(u)` with modified pressure (default)."""
 struct RotatingForm    <: NonlinearityForm end
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                    NONLINEAR OPERATOR CONSTRUCTION                     ///#
 #//////////////////////////////////////////////////////////////////////////////#
-
-# Functor type that evaluates the nonlinear term of the governing equations
-# using a pseudo-spectral approach
 
 """
     NonLinearTerm(u, U, baseflow;
@@ -34,6 +35,11 @@ passed explicitly as `baseflow`. The evaluation
 nonlinear form using `utotal = upert + Ub(y) e_x`. The rotational form returns
 `FFT(utotal × curl(utotal))`; the other forms return negative advection.
 
+Call `Eq(t, Upert, rhs)` to overwrite `rhs`, or pass `true` as the fourth argument to
+accumulate. Input velocity is preserved. `t` supports the Flows interface;
+the stationary base flow has no explicit time dependence. The instance owns
+mutable workspaces and must not be called concurrently.
+
 For this parallel reference convective self-advection vanishes. The rotational
 form instead contributes a pressure gradient that is absorbed into its modified
 pressure variable. The sustaining viscous and pressure-gradient balance,
@@ -44,11 +50,11 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B}
         flag::Ref{Bool}   # toggled at every call in the AlternatingForm
         ifft::IFFT        # concrete callable inverse transform
         fft::FFT         # concrete callable forward transform
-    baseflow::B          # Chebyshev coefficients of the stationary profile
+    baseflow::B           # Chebyshev coefficients of the stationary profile
 
     function NonLinearTerm(            u::PhysicalField{T},
                                        U::S,
-                               baseflow::AbstractVector;
+                                baseflow::AbstractVector;
                                fftwflags::Integer=FFTW.EXHAUSTIVE,
                            fftwtimelimit::Real=FFTW.NO_TIMELIMIT,
                                     form::FORM=RotatingForm()
@@ -106,17 +112,6 @@ end
 #///                            CONVECTIVE FORM                             ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-"""
-    Eq(t, U, dUdt, add=false)
-
-Evaluate signed convective acceleration from the spectral perturbation velocity
-`U`. Overwrite `dUdt` by default; accumulate into it when `add=true`. Internal
-workspaces are reused, so one `Eq` instance must not be evaluated concurrently.
-`t` is retained for the Flows API.
-
-The gradient and FFT interfaces used below are still under development in
-ChannelFlow; this change establishes the vector/base-flow assembly contract.
-"""
 function (Eq::NonLinearTerm{T, ConvectiveForm})(   t::Real,
                                                    U::VectorField{S},
                                                 dUdt::VectorField{S},
@@ -129,8 +124,7 @@ function _convectiveform!(  Eq::NonLinearTerm,
                           dUdt::VectorField{S},
                            add::Bool) where {S<:SpectralField}
 
-    # get aliases
-    u, n, grad, TMP, GRAD  = Eq.cache
+    u, n, grad, TMP, GRAD = Eq.cache
 
     # TMP initially holds the TOTAL spectral velocity. Add the reference's
     # Chebyshev coefficients to the zero Fourier mode here,
@@ -141,7 +135,7 @@ function _convectiveform!(  Eq::NonLinearTerm,
 
     grad!(GRAD, TMP)
 
-    # compute transforms
+    # Evaluate velocity and all derivatives on the padded physical grid.
     Eq.ifft(u, TMP)
     Eq.ifft(grad, GRAD)
 
@@ -171,7 +165,8 @@ function _divergenceform!(  Eq::NonLinearTerm,
                           dUdt::VectorField{S},
                            add::Bool) where {S<:SpectralField}
 
-    # get aliases
+    # AlternatingForm shares the convective cache: its last three entries
+    # also provide the tensor workspaces required by the divergence form.
     u = Eq.cache[1]
     uu = Eq.cache[end-2]
     N  = Eq.cache[end-1]
@@ -181,16 +176,13 @@ function _divergenceform!(  Eq::NonLinearTerm,
     N .= U
     @views N[1][:, 1, 1] .+= Eq.baseflow
 
-    # transform to physical space
     Eq.ifft(u, N)
 
-    # calc outer product
     outer!(uu, u, u)
 
-    # transform to spectral space
     Eq.fft(UU, uu)
 
-    # calculate product in physical space
+    # Differentiate the transformed flux tensor in coefficient space.
     div!(N, UU)
 
     # The nonlinear contribution enters the momentum equation with minus sign.
@@ -221,13 +213,6 @@ end
 #///                             ROTATING FORM                              ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-"""
-    Eq(t, U, dUdt, add=false)  # Eq with RotatingForm()
-
-Evaluate `FFT(u_total × ω_total)`, where `ω_total = ∇ × u_total` and
-`u_total` includes the streamwise base profile. This is the rotational
-momentum form; its pressure variable absorbs `|u_total|²/2`.
-"""
 function (Eq::NonLinearTerm{T, RotatingForm})(   t::Real,
                                                  U::VectorField{S},
                                               dUdt::VectorField{S},

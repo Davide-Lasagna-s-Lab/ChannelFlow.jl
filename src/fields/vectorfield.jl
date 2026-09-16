@@ -4,7 +4,8 @@ export VectorField
 #///             VECTOR FIELD CONSTRUCTION AND COMPONENT ACCESS             ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-struct VectorField{F <: AbstractField}
+"""Three scalar components in physical order `(u, v, w)`, corresponding to `(x, y, z)`."""
+struct VectorField{F<:AbstractField}
     components::NTuple{3, F}
 end
 
@@ -51,9 +52,9 @@ function Base.Broadcast.materialize!(dest::VectorField,
     return copyto!(dest, bc)
 end
 
-"""Evaluate a component-wise broadcast, including unpacked Flows.Coupled expressions."""
+"""Evaluate a component-wise broadcast, with scalar coefficients shared by all components."""
 function Base.copyto!(dest::VectorField,
-                       bc::Base.Broadcast.Broadcasted)
+                        bc::Base.Broadcast.Broadcasted)
     bc_ = Base.Broadcast.flatten(bc)
     for i = 1:3
         args = map(arg -> arg isa VectorField ? arg[i] : arg, bc_.args)
