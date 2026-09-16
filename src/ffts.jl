@@ -1,4 +1,5 @@
 import FFTW
+import LinearAlgebra
 
 export ForwardFFT!, InverseFFT!, ForwardFFT, InverseFFT, FFT, IFFT
 
@@ -11,6 +12,76 @@ export ForwardFFT!, InverseFFT!, ForwardFFT, InverseFFT, FFT, IFFT
 # therefore gives an rfft in x and a full FFT in z. A separate DCT-I in the
 # first dimension converts Lobatto values to/from Chebyshev coefficients.
 const FFT_DIMS = (2, 3)
+
+# Dense BLAS multiplication is faster than many short DCT-I transforms at
+# the wall-normal resolutions used by the present DNS. Larger systems retain
+# FFTW's asymptotically cheaper algorithm.
+struct DenseChebyshevTransform{A}
+    matrix::A
+end
+
+# Allocation-free two-dimensional view of contiguous `(y, kx, kz)` storage.
+# BLAS sees every Fourier column as one matrix column without constructing a
+# `ReshapedArray` at each transform call.
+struct SpectralMatrixView{T, A<:DenseArray{T, 3}} <: AbstractMatrix{T}
+    data::A
+end
+
+Base.size(A::SpectralMatrixView) =
+    (size(A.data, 1), length(A.data) ÷ size(A.data, 1))
+Base.strides(A::SpectralMatrixView) = (1, size(A, 1))
+Base.IndexStyle(::Type{<:SpectralMatrixView}) = IndexLinear()
+Base.getindex(A::SpectralMatrixView, i::Int) = A.data[i]
+Base.setindex!(A::SpectralMatrixView, value, i::Int) = (A.data[i] = value)
+Base.unsafe_convert(::Type{Ptr{T}}, A::SpectralMatrixView{T}) where {T} =
+    pointer(A.data)
+
+function chebyshev_transform(prototype::SpectralField;
+                             inverse::Bool=false,
+                             flags::Integer=FFTW.EXHAUSTIVE,
+                             timelimit::Real=FFTW.NO_TIMELIMIT)
+    Ny = size(prototype, 1)
+    if Ny <= 35
+        T = eltype(prototype)
+        matrix = T[(inverse ? 2 : (j == 1 || j == Ny ? 1 : 2)) *
+                   cospi((i-1)*(j-1)/(Ny-1)) for i = 1:Ny, j = 1:Ny]
+        return DenseChebyshevTransform(matrix)
+    end
+    return FFTW.plan_r2r!(parent(prototype), FFTW.REDFT00, (1,);
+                          flags=flags, timelimit=timelimit)
+end
+
+function forward_chebyshev!(dest::SpectralField,
+                            transform::DenseChebyshevTransform,
+                            src::SpectralField)
+    LinearAlgebra.BLAS.gemm!('N', 'N', true, transform.matrix,
+                             SpectralMatrixView(parent(src)), false,
+                             SpectralMatrixView(parent(dest)))
+    return dest
+end
+
+function forward_chebyshev!(dest::SpectralField, plan, src::SpectralField)
+    copyto!(parent(dest), parent(src))
+    FFTW.unsafe_execute!(plan, parent(dest), parent(dest))
+    return dest
+end
+
+function inverse_chebyshev!(dest::SpectralField,
+                            transform::DenseChebyshevTransform,
+                            src::SpectralField)
+    LinearAlgebra.BLAS.gemm!('N', 'N', true, transform.matrix,
+                             SpectralMatrixView(parent(src)), false,
+                             SpectralMatrixView(parent(dest)))
+    return dest
+end
+
+function inverse_chebyshev!(dest::SpectralField, plan, src::SpectralField)
+    copyto!(parent(dest), parent(src))
+    @views parent(dest)[1, :, :] .*= 2
+    @views parent(dest)[end, :, :] .*= 2
+    FFTW.unsafe_execute!(plan, parent(dest), parent(dest))
+    return dest
+end
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                           FORWARD TRANSFORM                            ///#
@@ -27,6 +98,7 @@ struct ForwardFFT!{P, C, A, T}
     plan::P          # plan from the padded physical grid to Fourier space
     chebyplan::C     # in-place DCT-I along the wall-normal dimension
     padded::A        # complete padded spectrum produced by the plan
+    resolved::A      # Fourier-truncated input to the Chebyshev transform
     normalization::T # inverse periodic size and Chebyshev degree
 end
 
@@ -45,9 +117,9 @@ function ForwardFFT!(u::PhysicalField{T};
     # FFTW applies this real-to-real transform to the real and imaginary
     # parts independently. Plan for resolved columns; execution uses U itself.
     resolved = SpectralField(zeros(Complex{T}, spectralsize(grid(u), NotPadded())), grid(u))
-    chebyplan = FFTW.plan_r2r!(parent(resolved), FFTW.REDFT00, (1,);
-                              flags=flags, timelimit=timelimit)
-    return ForwardFFT!(plan, chebyplan, padded, inv(T(Nxp * Nzp * (Ny-1))))
+    chebyplan = chebyshev_transform(resolved; flags=flags, timelimit=timelimit)
+    return ForwardFFT!(plan, chebyplan, padded, resolved,
+                       inv(T(Nxp * Nzp * (Ny-1))))
 end
 
 """
@@ -73,8 +145,8 @@ function (fft::ForwardFFT!)(U::SpectralField, u::PhysicalField)
     FFTW.unsafe_execute!(fft.plan, parent(u), parent(fft.padded))
     # Fourier truncation commutes with the wall-normal transform. Discard
     # unresolved columns first, so the DCT only processes retained modes.
-    copy_from_padded!(U, fft.padded)
-    FFTW.unsafe_execute!(fft.chebyplan, parent(U), parent(U))
+    copy_from_padded!(fft.resolved, fft.padded)
+    forward_chebyshev!(U, fft.chebyplan, fft.resolved)
 
     # Apply Fourier/Chebyshev normalisation, endpoint weights and Nyquist
     # filtering in one traversal of the resolved buffer.
@@ -131,8 +203,8 @@ function InverseFFT!(U::SpectralField{T};
     plan = FFTW.plan_brfft(parent(padded), Nxp, FFT_DIMS;
                            flags=flags, timelimit=timelimit)
     resolved = SpectralField(zeros(eltype(U), spectralsize(grid(U), NotPadded())), grid(U))
-    chebyplan = FFTW.plan_r2r!(parent(resolved), FFTW.REDFT00, (1,);
-                              flags=flags, timelimit=timelimit)
+    chebyplan = chebyshev_transform(resolved; inverse=true,
+                                    flags=flags, timelimit=timelimit)
     return InverseFFT!(plan, chebyplan, padded, resolved)
 end
 
@@ -156,10 +228,7 @@ function (ifft::InverseFFT!)(u::PhysicalField, U::SpectralField)
         throw(DimensionMismatch("inverse transform requires resolved spectral input"))
     # Transform only retained Fourier columns. Padding commutes with this
     # DCT; transforming zero columns on the padded grid wastes most of its work.
-    copyto!(parent(ifft.resolved), parent(U))
-    @views parent(ifft.resolved)[1, :, :] .*= 2
-    @views parent(ifft.resolved)[end, :, :] .*= 2
-    FFTW.unsafe_execute!(ifft.chebyplan, parent(ifft.resolved), parent(ifft.resolved))
+    inverse_chebyshev!(ifft.resolved, ifft.chebyplan, U)
 
     # Preserve U and provide a disposable, zero-padded buffer to brfft.
     fill!(ifft.padded, zero(eltype(ifft.padded)))

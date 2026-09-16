@@ -212,3 +212,39 @@ source hashes in `history.csv`, rather than from one propagation median.
 
 All 1,760 interface/analytic checks and all 833 physics checks passed with
 the retained fusions.
+
+## Adaptive Chebyshev transform (2026-09-16)
+
+For `Ny ≤ 35`, the DCT-I is now represented by a cached complex Chebyshev
+matrix and applied to all retained Fourier columns with one BLAS `gemm!`.
+For larger wall-normal systems, the implementation keeps FFTW's DCT-I. This
+threshold is empirical and intentionally conservative: with one thread,
+representative isolated measurements were:
+
+| Ny / Fourier columns | FFTW DCT-I ms | Dense BLAS ms |
+|---|---:|---:|
+| 9 / 544 | 0.040 | 0.023 |
+| 17 / 544 | 0.065 | 0.061 |
+| 35 / 544 | 0.336 | 0.236 |
+| 49 / 1200 | 0.493 | 1.112 |
+| 81 / 3136 | 2.040 | 6.657 |
+| 129 / 6240 | 6.225 | 35.455 |
+
+The inverse dense matrix incorporates the Chebyshev endpoint input weights;
+the existing output scaling remains fused with Fourier padding. The forward
+plan owns one additional resolved spectral workspace. `LinearAlgebra` is now
+a runtime dependency because production calls BLAS directly.
+
+A first implementation used `reshape` around every three-dimensional buffer:
+it reduced the direct step to 31.85 ms but allocated 4,320 bytes in 90 events
+per step. `SpectralMatrixView` now exposes the same contiguous storage to
+`BLAS.gemm!` without allocating. Calling `BLAS.gemm!` explicitly is required:
+generic `mul!` does not recognise the custom view as a strided BLAS matrix and
+was substantially slower.
+
+Final ESTIMATE measurements changed from 38.86 to 30.75 ms for the direct
+step, and from 41.84 to 32.46 ms per propagated step. The direct step remains
+at zero Julia heap allocations; propagation retains 2,944 bytes and seven
+allocations per step from the Flows path. All 1,760 interface/analytic checks
+and all 833 physics checks passed, including Waleffe cases at both `Ny=35`
+(dense path) and `Ny=49` (FFTW fallback).
