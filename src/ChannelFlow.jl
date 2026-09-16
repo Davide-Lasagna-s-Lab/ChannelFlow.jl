@@ -31,6 +31,7 @@ include("nonlinear.jl")
 include("helmoltz.jl")
 include("problem.jl")
 include("initialization.jl")
+include("postprocessing.jl")
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                            TIME INTEGRATION                            ///#

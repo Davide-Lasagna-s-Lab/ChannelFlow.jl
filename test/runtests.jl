@@ -26,5 +26,6 @@ include("helpers.jl")
     include("test_helmoltz.jl")
     include("test_fourierstokes.jl")
     include("test_projection.jl")
+    include("test_postprocessing.jl")
     include("test_timestepping.jl")
 end
