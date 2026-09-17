@@ -17,7 +17,8 @@
     times = Float64[]
     force! = function (t, U, F)
         push!(times, t)
-        F .= 0
+        # Zero forcing leaves the accumulated RHS unchanged.
+        return nothing
     end
     problem = ChannelFlowProblem(g, y -> 0.0, nu, dt;
                                  forcing=force!, fftwflags=FFTW.ESTIMATE)

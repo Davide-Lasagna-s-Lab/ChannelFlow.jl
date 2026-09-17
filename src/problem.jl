@@ -6,7 +6,7 @@ export ChannelFlowProblem, CouetteFlow, PoiseuilleFlow
 
 """
     ChannelFlowProblem(grid, profile, nu, dt;
-                form=RotatingForm(), forcing=nothing,
+                form=RotatingForm(), forcing=NoForcing(),
                 pressuregradient=nothing, bulkvelocity=nothing,
                 fftwflags=FFTW.MEASURE, fftwtimelimit=FFTW.NO_TIMELIMIT)
 
@@ -16,7 +16,7 @@ velocity and `nu` is kinematic viscosity. The profile is converted to
 values at the wall-normal collocation points and stored in
 `ChannelFlowProblem`; spectral coefficients are cached inside its operators.
 Own the nonlinear operator and its FFT plans, the CNRK2 caches and modal
-solvers, the optional forcing callback, and the mean-flow constraint.
+solvers, the forcing callback, and the mean-flow constraint.
 
 `zero_state(channel.grid)` creates a perturbation velocity and its algebraic
 stage pressure. Initialise this state before integration to satisfy no slip,
@@ -32,8 +32,8 @@ independent pressure evolution equation.
 
 Specify either a constant `pressuregradient=(dPdx, dPdz)` or total
 `bulkvelocity=(Ubulk, Wbulk)`. Omitting both selects zero pressure gradient.
-The `forcing(t, U, F)` callback overwrites all three spectral components of
-an additional acceleration, following [`step!`](@ref).
+The `forcing(t, U, F)` callback adds its spectral acceleration to `F`,
+preserving its existing contents and leaving `U` unchanged; see [`step!`](@ref).
 
 Create a state and integrate it with the Flows operator:
 ```julia
@@ -41,7 +41,7 @@ channel = ChannelFlowProblem(grid, y -> 1-y^2, nu, dt;
                       pressuregradient=(-2nu, 0))
 state = zero_state(channel.grid)
 # Modified pressure of the laminar profile: |Ub|²/2 (up to a constant).
-stagepressure(state)[:, 1, 1] .= parent(chebyshev_coefficients(
+stagepressure(state)[:, 1, 1] .= parent(chebcoeffs(
     (1 .- channel.grid.y.^2).^2 ./ 2))
 I = Flows.flow(channel)
 I(state, (0.0, 1.0))
@@ -63,7 +63,7 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
                                               nu::Real,
                                               dt::Real;
                                             form::NonlinearityForm=RotatingForm(),
-                                         forcing=nothing,
+                                         forcing=NoForcing(),
                                 pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
                                     bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing,
                                        fftwflags::Integer=FFTW.MEASURE,
@@ -90,7 +90,7 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
 
         # The scalar prototypes supply types and grid information. The
         # nonlinear operator allocates form-specific caches and padded FFT plans.
-        nlterm = NonLinearTerm(PhysicalField(grid), P, parent(scheme.baseflow);
+        nlterm = NonLinearTerm(PhysicalField(grid), P, scheme.baseflow;
                               form=form, fftwflags=fftwflags, fftwtimelimit=fftwtimelimit)
 
         return new{typeof(grid), typeof(baseflow), typeof(nlterm), typeof(scheme), typeof(forcing), typeof(constraint)}(

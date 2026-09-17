@@ -52,6 +52,7 @@ include("solvers/stokes.jl")
 #///               TIME INTEGRATION AND PROBLEM CONSTRUCTION                ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
+include("forcing.jl")
 include("timesteppers/cnrk2.jl")
 include("problem.jl")
 include("timesteppers/channel.jl")
@@ -60,6 +61,7 @@ include("timesteppers/channel.jl")
 #///                   INITIALIZATION AND POSTPROCESSING                    ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
+include("pressure.jl")
 include("initialization.jl")
 include("postprocessing.jl")
 

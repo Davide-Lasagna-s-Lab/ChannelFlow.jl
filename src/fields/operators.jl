@@ -116,6 +116,19 @@ function laplacian!(OUT::S, U::S) where {S<:SpectralField}
     return OUT
 end
 
+"""
+    laplacian!(OUT::VectorField, U::VectorField)
+
+Apply the spectral Laplacian componentwise, overwriting and returning `OUT`.
+`OUT` and `U` may be the same vector field.
+"""
+function laplacian!(OUT::VectorField{S}, U::VectorField{S}) where {S<:SpectralField}
+    for i = 1:3
+        laplacian!(OUT[i], U[i])
+    end
+    return OUT
+end
+
 #//////////////////////////////////////////////////////////////////////////////#
 #///                          SPECTRAL VECTOR CURL                          ///#
 #//////////////////////////////////////////////////////////////////////////////#

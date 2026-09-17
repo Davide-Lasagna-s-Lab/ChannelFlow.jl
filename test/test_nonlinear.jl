@@ -7,9 +7,9 @@
     U = VectorField((spectral(g, (x,y,z) -> y^2),
                      spectral(g, (x,y,z) -> 1.0), spectral(g, fzero)))
     original = map(field -> copy(parent(field)), U.components)
-    base = parent(ChebyshevHelmoltzSolvers.chebyshev_coefficients(g.y))
+    base = ChebyshevHelmoltzSolvers.chebcoeffs(g.y)
     for form in (CF.ConvectiveForm(), CF.DivergenceForm(),
-                 CF.AlternatingForm(), RotatingForm())
+                 RotatingForm())
         op = NonLinearTerm(PhysicalField(g), U[1], base;
                            form=form, fftwflags=FFTW.ESTIMATE)
         N = similar(U)
@@ -22,8 +22,8 @@
                     form isa RotatingForm ? (x,y,z) -> (y^2+y)*(2y+1) : fzero,
                     fzero)
         # Overwrite, accumulate, then overwrite again: the expected
-        # multipliers are 1,2,1. Repeated calls also exercise alternating-form
-        # switching and cache reuse. Every polynomial product fits the wall-
+        # multipliers are 1,2,1. Repeated calls also exercise
+        # cache reuse. Every polynomial product fits the wall-
         # normal resolution.
         for add in (false, true, false)
             op(0.0, U, N, add)

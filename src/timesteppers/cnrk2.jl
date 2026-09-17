@@ -67,15 +67,15 @@ struct CNRK2{S,
         R = VectorField(SpectralField(grid))
 
         # Store the baseflow and its curvature in Chebyshev coefficient form
-        length(baseflow) == physicalsize(grid)[2] ||
+        length(baseflow) == physicalsize(grid, NotPadded())[1] ||
             throw(DimensionMismatch("baseflow must have one value per wall-normal point"))
 
-        baseflow = chebyshev_coefficients(baseflow)
+        baseflow = chebcoeffs(baseflow)
         basecurvature = diff2!(copy(baseflow))
         
         return new{typeof(solvers[1]),
                    typeof(Q[1]),
-                   length(baseflow)-1}(nu, dt, solvers, Q, N, R, baseflow, basecurvature)
+                   length(baseflow)-1, typeof(baseflow)}(nu, dt, solvers, Q, N, R, baseflow, basecurvature)
     end
 end
 
@@ -109,7 +109,7 @@ end
 
 """
     step!(scheme::CNRK2, nonlinear, U, P, t;
-          forcing=nothing, pressuregradient=nothing, bulkvelocity=nothing)
+          forcing=NoForcing(), pressuregradient=nothing, bulkvelocity=nothing)
 
 Advance perturbation velocity `U` and stage pressure `P` by `scheme.dt`.
 Return `(t + scheme.dt, (dPdx, dPdz))`, with the uniform pressure derivatives
@@ -118,9 +118,9 @@ scheme's grid, with distinct storage that does not overlap its caches.
 
 `nonlinear(tstage, U, N)` must overwrite `N` with signed nonlinear
 acceleration, using the total velocity including the base flow. An existing
-[`NonLinearTerm`](@ref) supplies this contract. If provided,
-`forcing(tstage, U, F)` must overwrite all three components of `F` with an
-additional spectral acceleration. Both callbacks preserve `U` and are
+[`NonLinearTerm`](@ref) supplies this contract.
+`forcing(tstage, U, F)` must add its spectral acceleration to the existing
+contents of `F`, preserving contributions already present. Both callbacks preserve `U` and are
 sampled at `t + (0, 1/3, 3/4)*dt`.
 
 Use either `pressuregradient=(dPdx, dPdz)` or total
@@ -149,7 +149,7 @@ function step!(          scheme::CNRK2{S, F},
                               U::VectorField{F},
                               P::F,
                               t::Real;
-                        forcing=nothing,
+                        forcing=NoForcing(),
                pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {S, F<:SpectralField{Float64}}
     isnothing(pressuregradient) || isnothing(bulkvelocity) ||
@@ -169,12 +169,9 @@ function step!(          scheme::CNRK2{S, F},
         tstage = t + (0.0, 1/3, 3/4)[j]*scheme.dt
 
         # Evaluate the signed nonlinear acceleration and add any optional
-        # forcing. Both callbacks overwrite their output buffers.
+        # forcing directly into the nonlinear RHS.
         nonlinear(tstage, U, N)
-        if !isnothing(forcing)
-            forcing(tstage, U, R)
-            N .+= R
-        end
+        forcing(tstage, U, N)
         oldgradient = isnothing(bulkvelocity) ? gradients :
                       _bulkpressuregradient(scheme, U, N)
 

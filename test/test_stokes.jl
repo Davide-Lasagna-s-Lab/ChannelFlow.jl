@@ -85,7 +85,7 @@
                 for field in (U.components..., P)
                     fill!(parent(field), 9+2im)
                 end
-                actual = fixedbulk ? solve!(solver, U, P, R; bulkvelocity=(base_mean+0.2*2/3, -0.1*2/3), baseflow=parent(ChebyshevHelmoltzSolvers.chebyshev_coefficients(profile.(grid.y)))) :
+                actual = fixedbulk ? solve!(solver, U, P, R; bulkvelocity=(base_mean+0.2*2/3, -0.1*2/3), baseflow=parent(ChebyshevHelmoltzSolvers.chebcoeffs(profile.(grid.y)))) :
                                      solve!(solver, U, P, R; pressuregradient=gradients)
                 # Recover the known pressure gradients, all velocity
                 # coefficients and the pressure field, while preserving every
