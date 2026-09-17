@@ -1,4 +1,4 @@
-export zero_state, random_state
+export zero_state, random_state, roll_state
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                         ZERO STATE ALLOCATION                          ///#
@@ -48,4 +48,34 @@ function random_state(problem::ChannelFlowProblem, epsilon::Real)
     P = pressure(U, problem)
 
     return State(U, P)
+end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                      STREAMWISE ROLL INITIALIZATION                    ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+"""
+    roll_state(problem::ChannelFlowProblem, amplitude; β=2π/domainsize(problem.grid)[3])
+
+Create a streamwise-independent roll with zero streamwise perturbation velocity.
+The cross-stream components are analytically divergence-free and vanish at
+`y = ±1`. The default `β` is the fundamental spanwise wavenumber; other values
+must be integer multiples of it for periodicity.
+
+Return a `State` with the physical or modified pressure appropriate to `problem`.
+The laminar base flow is not added to the perturbation velocity.
+"""
+function roll_state(problem::ChannelFlowProblem, amplitude::Real;
+                    β::Real=2π/domainsize(problem.grid)[3])
+    β != 0 || throw(ArgumentError("β must be nonzero"))
+    grid = problem.grid
+    u₀(x, y, z) = 0.0
+    v₀(x, y, z) = amplitude * (1-y^2)^2 * cos(β*z)
+    w₀(x, y, z) = 4 * amplitude/β * y*(1-y^2) * sin(β*z)
+
+    # The analytic roll already satisfies incompressibility and no slip.
+    U = FFT(VectorField(PhysicalField(grid, u₀),
+                        PhysicalField(grid, v₀),
+                        PhysicalField(grid, w₀)))
+    return State(U, pressure(U, problem))
 end

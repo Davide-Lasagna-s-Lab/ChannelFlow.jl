@@ -28,11 +28,12 @@ end
 """
     PhysicalField(grid, f, [T=Float64])
 
-Construct a physical field by evaluating `f(x,y,z)` at every grid point. The
-periodic coordinates cover `[0,Lx)` and `[0,Lz)`.
+Construct a physical field by evaluating `f(x,y,z)` at every 3/2-padded grid
+point. The periodic coordinates cover `[0,Lx)` and `[0,Lz)`. Pass `NotPadded()`
+explicitly to sample the resolved grid.
 """
 PhysicalField(grid::Grid, f::Function, ::Type{T}=Float64) where {T<:AbstractFloat} =
-    PhysicalField(grid, f, NotPadded(), T)
+    PhysicalField(grid, f, Padded(), T)
 
 """Sample `f(x,y,z)` on the grid with the selected padding."""
 function PhysicalField(grid::Grid, f::Function, tag::Union{Padded, NotPadded},
@@ -41,7 +42,7 @@ function PhysicalField(grid::Grid, f::Function, tag::Union{Padded, NotPadded},
     return PhysicalField(T.(f.(x, y, z)), grid)
 end
 
-"""Allocate a zero physical field on the resolved grid, with real element type `T`."""
+"""Allocate a zero physical field on the 3/2-padded grid, with real element type `T`."""
 PhysicalField(grid::Grid, ::Type{T}=Float64) where {T<:AbstractFloat} =
     PhysicalField(grid, (x, y, z) -> zero(T), T)
 
