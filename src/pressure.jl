@@ -113,11 +113,16 @@ equations for nonzero modes, and omit excluded Nyquist planes. The zero mode
 satisfies `P_y = A_y` through degree `Ny-2`, with zero volume mean pressure.
 """
 function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:SpectralField{Float64}}
+
+    # Grid geometry and resolved Fourier dimensions; y is the first array axis.
     g = grid(A[1])
     Ny, Nxh, Nz = size(A[1])
     Ny >= 3 || throw(ArgumentError("pressure reconstruction requires Ny ≥ 3"))
     Lx, _, Lz = domainsize(g)
     _, Nx, _ = physicalsize(g, NotPadded())
+
+    # Initially P holds the Poisson source. Each modal solve overwrites its
+    # own column with pressure coefficients, leaving A and v unchanged.
     P = similar(A[1])
     div!(P, A)
 
@@ -125,46 +130,74 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
     # Real and imaginary sources share factors and a real coefficient buffer.
     solver = HelmoltzSolver(Ny-1; neumann=true)
     work = ChebCoeffs(Ny-1)
+
+    # NONZERO FOURIER MODES
+    # Solve (Dyy - kx² - kz²) P = div(A) with wall-normal momentum conditions.
     for iz = 1:Nz, ix = 1:Nxh
+
+        # The singular mean mode is handled below; Nyquist planes are excluded.
         (ix == 1 && iz == 1) && continue
         ((iseven(Nx) && ix == Nxh) ||
          (iseven(Nz) && iz == (Nz >> 1)+1)) && continue
+
+        # x contains the nonnegative half-spectrum; z follows signed FFT order.
         kx = (2π/Lx)*(ix-1)
         kz = (2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
         update!(solver, 1.0, kx^2 + kz^2)
+
         rhs = view(parent(P), :, ix, iz)
         normal = view(parent(A[2]), :, ix, iz)
+
+        # WALL DATA: P_y = A_y + nu*v_yy at y = +1 and -1.
+        # Both derivatives point along +y, rather than the outward wall normal.
+        # T_n(±1) = (±1)^n evaluates the normal acceleration.
         # T_n''(+1) = n²(n²-1)/3 and T_n''(-1) = (-1)^n T_n''(+1).
         # Evaluate the viscous wall terms directly without a derivative field.
         upper = sum(normal)
         lower = sum((-1)^(j-1)*normal[j] for j = 1:Ny)
+
         for n = 2:Ny-1
             wall = nu * (n^2*(n^2-1)/3) * v[n+1, ix, iz]
             upper += wall
             lower += iseven(n) ? wall : -wall
         end
+
+        # REAL PART: reuse the modal factors with a real coefficient workspace.
         parent(work) .= real.(rhs)
         solve!(solver, work, real(upper), real(lower))
+
         # Preserve the imaginary source until its own solve is complete.
         rhs .= complex.(parent(work), imag.(rhs))
+
+        # IMAGINARY PART: solve with the same factors, then assemble complex P.
         parent(work) .= imag.(rhs)
         solve!(solver, work, imag(upper), imag(lower))
         rhs .= complex.(real.(rhs), parent(work))
     end
 
+    # ZERO FOURIER MODE
     # For the mean mode, incompressibility and impermeability give v = 0
     # throughout the channel, so there is no viscous contribution. Thus
     # P_y = A_y. Truncate the unrepresentable highest-degree primitive and
     # choose the constant coefficient to give zero physical volume mean.
     normal = view(parent(A[2]), :, 1, 1)
     mean = ChebCoeffs(view(parent(P), :, 1, 1))
+
+    # Integrate the retained Chebyshev series using neighbouring coefficients.
+    # The constant source has a different normalization from higher degrees.
     for n = 1:Ny-1
         lower = n == 1 ? normal[1] : normal[n]/2
         upper = n+1 < Ny-1 ? normal[n+2]/2 : zero(eltype(normal))
         mean[n] = (lower-upper)/n
     end
+
+    # Fix the additive constant by the physical volume mean, not by setting
+    # the zeroth Chebyshev coefficient alone to zero.
     mean[0] = 0
     mean[0] = -_bulkmean(mean)
+
+    # Restore the spectral convention after all retained modes are solved.
     zero_nyquist!(P)
+
     return P
 end
