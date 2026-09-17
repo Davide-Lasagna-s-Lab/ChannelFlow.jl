@@ -44,7 +44,7 @@ function ForwardFFT!(        u::PhysicalField{T};
     # The wall-normal backend works only on retained Fourier columns.
     # It writes the final coefficients into the caller's output field.
     resolved = SpectralField(zeros(Complex{T}, spectralsize(grid(u), NotPadded())), grid(u))
-    chebyplan = chebyshev_transform(resolved; flags=flags, timelimit=timelimit)
+    chebyplan = plan_cheb(resolved; flags=flags, timelimit=timelimit)
     return ForwardFFT!(plan, chebyplan, padded, resolved,
                        inv(T(Nxp * Nzp * (Ny-1))))
 end
@@ -73,7 +73,7 @@ function (fft::ForwardFFT!)(U::SpectralField, u::PhysicalField)
     # Fourier truncation commutes with the wall-normal transform. Discard
     # unresolved columns first, so the DCT only processes retained modes.
     copy_from_padded!(fft.resolved, fft.padded)
-    forward_chebyshev!(U, fft.chebyplan, fft.resolved)
+    LinearAlgebra.mul!(U, fft.chebyplan, fft.resolved)
 
     # Apply Fourier/Chebyshev normalisation, endpoint weights and Nyquist
     # filtering in one traversal of the resolved buffer.
@@ -130,7 +130,7 @@ function InverseFFT!(        U::SpectralField{T};
     plan = FFTW.plan_brfft(parent(padded), Nxp, FFT_DIMS;
                            flags=flags, timelimit=timelimit)
     resolved = SpectralField(zeros(eltype(U), spectralsize(grid(U), NotPadded())), grid(U))
-    chebyplan = chebyshev_transform(resolved; inverse=true,
+    chebyplan = plan_icheb(resolved;
                                     flags=flags, timelimit=timelimit)
     return InverseFFT!(plan, chebyplan, padded, resolved)
 end
@@ -155,7 +155,7 @@ function (ifft::InverseFFT!)(u::PhysicalField, U::SpectralField)
         throw(DimensionMismatch("inverse transform requires resolved spectral input"))
     # Transform only retained Fourier columns. Padding commutes with this
     # DCT; transforming zero columns on the padded grid wastes most of its work.
-    inverse_chebyshev!(ifft.resolved, ifft.chebyplan, U)
+    LinearAlgebra.mul!(ifft.resolved, ifft.chebyplan, U)
 
     # Preserve U and provide a disposable, zero-padded buffer to brfft.
     fill!(ifft.padded, zero(eltype(ifft.padded)))

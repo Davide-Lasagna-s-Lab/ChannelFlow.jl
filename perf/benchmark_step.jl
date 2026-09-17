@@ -80,7 +80,7 @@ function benchmark_step(; record=false, profile=false, cpu=false, measure=false)
                    ("inverse_scalar", () -> c.nlterm.ifft(u[1], tmp[1])),
                    ("forward_scalar", () -> c.nlterm.fft(tmp[1], u[1])),
                    ("inverse_chebyshev", () ->
-                       ChannelFlow.inverse_chebyshev!(c.nlterm.ifft.resolved,
+                       LinearAlgebra.mul!(c.nlterm.ifft.resolved,
                                                       c.nlterm.ifft.chebyplan,
                                                       tmp[1])),
                    ("inverse_fourier", () -> FFTW.unsafe_execute!(c.nlterm.ifft.plan, parent(c.nlterm.ifft.padded), parent(u[1]))))

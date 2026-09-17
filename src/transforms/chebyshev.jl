@@ -1,78 +1,113 @@
 #//////////////////////////////////////////////////////////////////////////////#
-#///                      CHEBYSHEV TRANSFORM BACKENDS                      ///#
+#///                         CHEBYSHEV TRANSFORM PLANS                       ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-# Dense BLAS multiplication is faster than many short DCT-I transforms at
-# the wall-normal resolutions used by the present DNS. Larger systems retain
-# FFTW's asymptotically cheaper algorithm.
-struct DenseChebyshevTransform{A}
+"""Dense wall-normal transform plan; endpoint input weights are in the matrix."""
+struct GEMMChebyshevPlan{A}
     matrix::A
 end
 
-# Allocation-free two-dimensional view of contiguous `(y, kx, kz)` storage.
-# BLAS sees every Fourier column as one matrix column without constructing a
-# `ReshapedArray` at each transform call.
-struct SpectralMatrixView{T, A<:DenseArray{T, 3}} <: AbstractMatrix{T}
-    data::A
+"""FFTW DCT-I plan with a compile-time inverse endpoint-weighting flag."""
+struct FFTWChebyshevPlan{INVERSE, P}
+    plan::P
 end
 
-Base.size(A::SpectralMatrixView) =
-    (size(A.data, 1), length(A.data) ÷ size(A.data, 1))
+#//////////////////////////////////////////////////////////////////////////////#
+#///                        SPECTRAL MATRIX VIEW                            ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+"""
+    SpectralMatrixView(U::SpectralField)
+
+Expose contiguous `(y, kx, kz)` field storage as a `(Ny, Nxh*Nz)` matrix
+without copying. This lightweight view gives BLAS access to every Fourier
+column without allocating a ReshapedArray on each transform call.
+"""
+struct SpectralMatrixView{T, F<:SpectralField} <: AbstractMatrix{T}
+    field::F
+
+    function SpectralMatrixView(U::SpectralField{T, A}) where {T, A<:DenseArray}
+        return new{eltype(U), typeof(U)}(U)
+    end
+end
+
+function Base.size(A::SpectralMatrixView)
+    Ny, Nxh, Nz = size(A.field)
+    return (Ny, Nxh*Nz)
+end
 Base.strides(A::SpectralMatrixView) = (1, size(A, 1))
 Base.IndexStyle(::Type{<:SpectralMatrixView}) = IndexLinear()
-Base.getindex(A::SpectralMatrixView, i::Int) = A.data[i]
-Base.setindex!(A::SpectralMatrixView, value, i::Int) = (A.data[i] = value)
-Base.unsafe_convert(::Type{Ptr{T}}, A::SpectralMatrixView{T}) where {T} = pointer(A.data)
+Base.getindex(A::SpectralMatrixView, i::Int) = parent(A.field)[i]
+Base.setindex!(A::SpectralMatrixView, value, i::Int) = (parent(A.field)[i] = value)
+Base.unsafe_convert(::Type{Ptr{T}}, A::SpectralMatrixView{T}) where {T} = pointer(parent(A.field))
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                          PLAN CONSTRUCTION                             ///#
+#//////////////////////////////////////////////////////////////////////////////#
 
 """
-    chebyshev_transform(prototype; inverse=false, flags, timelimit)
+    plan_cheb(U::SpectralField, backend=:auto; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
-Build the wall-normal DCT-I backend for resolved Fourier columns. Use a dense
-BLAS matrix through Ny=35 (the measured small-grid crossover) and FFTW above
-that size. The inverse matrix includes endpoint input weights; output scaling
-is applied by the enclosing Fourier--Chebyshev transform in either direction.
+Plan the forward, unnormalised wall-normal DCT-I for the layout and type of
+`U`. Execute with `mul!(dest, plan, src)` using distinct matching buffers.
+The enclosing ForwardFFT! applies coefficient normalization afterwards.
+Select `:gemm` or `:fftw` explicitly. The default `:auto` uses GEMM through
+Ny=35 and FFTW above that measured crossover. FFTW planning may overwrite
+the supplied `U`; `flags` and `timelimit` apply only to FFTW.
 """
-function chebyshev_transform(prototype::SpectralField;
-                               inverse::Bool=false,
-                                 flags::Integer=FFTW.EXHAUSTIVE,
-                             timelimit::Real=FFTW.NO_TIMELIMIT)
-    Ny = size(prototype, 1)
-    if Ny <= 35
-        T = eltype(prototype)
-        matrix = T[(inverse ? 2 : (j == 1 || j == Ny ? 1 : 2)) *
-                   cospi((i-1)*(j-1)/(Ny-1)) for i = 1:Ny, j = 1:Ny]
-        return DenseChebyshevTransform(matrix)
+plan_cheb(U::SpectralField, backend::Symbol=:auto; kwargs...) =
+    _plan_cheb(U, Val(false), backend; kwargs...)
+
+"""
+    plan_icheb(U::SpectralField, backend=:auto; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
+
+Plan inverse wall-normal evaluation, including doubled endpoint inputs.
+Execute with `mul!(dest, plan, src)` using distinct matching buffers.
+The result is twice the evaluated Chebyshev series: InverseFFT! applies
+its remaining factor of 1/2 during Fourier padding. Backend selection and
+planning side effects match [`plan_cheb`](@ref).
+"""
+plan_icheb(U::SpectralField, backend::Symbol=:auto; kwargs...) =
+    _plan_cheb(U, Val(true), backend; kwargs...)
+
+function _plan_cheb(U::SpectralField, ::Val{INVERSE}, backend::Symbol;
+                   flags::Integer=FFTW.EXHAUSTIVE,
+                   timelimit::Real=FFTW.NO_TIMELIMIT) where {INVERSE}
+    Ny = size(U, 1)
+    backend in (:auto, :gemm, :fftw) ||
+        throw(ArgumentError("backend must be :auto, :gemm or :fftw"))
+    if backend == :gemm || (backend == :auto && Ny <= 35)
+        T = eltype(U)
+        matrix = T[2cospi((i-1)*(j-1)/(Ny-1)) for i = 1:Ny, j = 1:Ny]
+        # Forward DCT-I counts endpoint inputs once; the inverse counts them twice.
+        if !INVERSE
+            @views matrix[:, 1] ./= 2
+            @views matrix[:, end] ./= 2
+        end
+        return GEMMChebyshevPlan(matrix)
     end
-    return FFTW.plan_r2r!(parent(prototype), FFTW.REDFT00, (1,);
-                          flags=flags, timelimit=timelimit)
+    plan = FFTW.plan_r2r!(parent(U), FFTW.REDFT00, (1,);
+                         flags=flags, timelimit=timelimit)
+    return FFTWChebyshevPlan{INVERSE, typeof(plan)}(plan)
 end
 
-"""Apply a forward wall-normal transform, preserving `src`; buffers must be distinct."""
-function forward_chebyshev!(     dest::SpectralField,
-                            transform::DenseChebyshevTransform,
-                                  src::SpectralField)
-    LinearAlgebra.BLAS.gemm!('N', 'N', true, transform.matrix,
-                             SpectralMatrixView(parent(src)), false,
-                             SpectralMatrixView(parent(dest)))
+#//////////////////////////////////////////////////////////////////////////////#
+#///                            PLAN EXECUTION                              ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+"""Apply the dense plan, preserving `src`; source and destination must not alias."""
+function LinearAlgebra.mul!(dest::SpectralField, plan::GEMMChebyshevPlan, src::SpectralField)
+    LinearAlgebra.BLAS.gemm!('N', 'N', true, plan.matrix, SpectralMatrixView(src), false, SpectralMatrixView(dest))
     return dest
 end
 
-function forward_chebyshev!(dest::SpectralField, plan, src::SpectralField)
+"""Apply the FFTW plan to distinct buffers, preserving the source coefficients."""
+function LinearAlgebra.mul!(dest::SpectralField, plan::FFTWChebyshevPlan{INV}, src::SpectralField) where {INV}
     copyto!(parent(dest), parent(src))
-    FFTW.unsafe_execute!(plan, parent(dest), parent(dest))
-    return dest
-end
-
-# The inverse matrix already contains its endpoint input weights.
-inverse_chebyshev!(     dest::SpectralField,
-                  transform::DenseChebyshevTransform,
-                        src::SpectralField) = forward_chebyshev!(dest, transform, src)
-
-"""Apply FFTW DCT-I after doubling endpoint coefficients in the destination buffer."""
-function inverse_chebyshev!(dest::SpectralField, plan, src::SpectralField)
-    copyto!(parent(dest), parent(src))
-    @views parent(dest)[1, :, :] .*= 2
-    @views parent(dest)[end, :, :] .*= 2
-    FFTW.unsafe_execute!(plan, parent(dest), parent(dest))
+    if INV
+        @views parent(dest)[1, :, :] .*= 2
+        @views parent(dest)[end, :, :] .*= 2
+    end
+    FFTW.unsafe_execute!(plan.plan, parent(dest), parent(dest))
     return dest
 end
