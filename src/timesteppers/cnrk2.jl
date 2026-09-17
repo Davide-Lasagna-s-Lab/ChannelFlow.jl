@@ -156,7 +156,7 @@ function step!(          scheme::CNRK2{S, F},
         throw(ArgumentError("specify either pressuregradient or bulkvelocity"))
     g = scheme.solvers[1].grid
     for field in (U.components..., P)
-        grid(field) === g || throw(ArgumentError("fields must use the scheme's grid"))
+        grid(field) == g || throw(ArgumentError("fields must use the scheme's grid"))
         size(field) == spectralsize(g, NotPadded()) ||
             throw(DimensionMismatch("fields must have the resolved spectral size"))
     end

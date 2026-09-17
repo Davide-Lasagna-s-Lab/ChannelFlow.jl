@@ -30,6 +30,11 @@ struct Grid{Y<:AbstractVector}
     end
 end
 
+"""Compare grid resolution, domain lengths and wall-normal nodes by value."""
+Base.:(==)(a::Grid, b::Grid) =
+    a === b || (a.physicalsize == b.physicalsize &&
+                a.domainsize == b.domainsize && a.y == b.y)
+
 #//////////////////////////////////////////////////////////////////////////////#
 #///                  PHYSICAL AND SPECTRAL STORAGE SIZES                   ///#
 #//////////////////////////////////////////////////////////////////////////////#

@@ -91,7 +91,7 @@ function solve!(          solver::StokesSolver,
     fields = (U.components..., P, R.components...)
     expected = spectralsize(solver.grid, NotPadded())
     for field in fields
-        grid(field) === solver.grid || throw(ArgumentError("fields must use the solver's grid"))
+        grid(field) == solver.grid || throw(ArgumentError("fields must use the solver's grid"))
         size(field) == expected || throw(DimensionMismatch("fields must have the resolved spectral size"))
     end
 
