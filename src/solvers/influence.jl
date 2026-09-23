@@ -98,8 +98,8 @@ struct InfluenceModeSolver{H, C}
         # Multiplying this matrix by the two pressure amplitudes gives the
         # resulting change in the wall-normal velocity derivative at the walls.
         influence = [
-            endpoint_derivative(vplus, :right) endpoint_derivative(vminus, :right)
-            endpoint_derivative(vplus, :left)  endpoint_derivative(vminus, :left)
+            diff(vplus, :right) diff(vminus, :right)
+            diff(vplus, :left)  diff(vminus, :left)
         ]
 
         # Scale before checking the determinant: small response amplitudes alone
@@ -163,8 +163,8 @@ function _influence_correction!(solver::InfluenceModeSolver{H, C},
                                      p::C,
                                      v::C) where {H, C}
     # Cancel the current derivative residuals, ordered as upper/lower wall.
-    b₊ = -endpoint_derivative(v, :right)
-    b₋ = -endpoint_derivative(v, :left)
+    b₊ = -diff(v, :right)
+    b₋ = -diff(v, :left)
     A = solver.influence_inverse
     δ₊ = A[1, 1]*b₊ + A[1, 2]*b₋
     δ₋ = A[2, 1]*b₊ + A[2, 2]*b₋

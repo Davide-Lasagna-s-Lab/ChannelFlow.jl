@@ -56,8 +56,8 @@ function check_stokes(solver, u, v, w, p, Rx, Ry, Rz, nu)
     # No slip together with incompressibility requires the normal derivative
     # of v to vanish at both walls. Checking it explicitly detects incomplete
     # influence-matrix boundary correction.
-    @test abs(endpoint_derivative(v, :left)) < 2e-11
-    @test abs(endpoint_derivative(v, :right)) < 2e-11
+    @test abs(diff(v, :left)) < 2e-11
+    @test abs(diff(v, :right)) < 2e-11
 end
 
 @testset "Complex primitive-variable mode" begin

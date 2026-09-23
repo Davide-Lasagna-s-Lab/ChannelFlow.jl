@@ -1,5 +1,5 @@
 using ChannelFlow
-using ChebyshevHelmoltzSolvers: ChebCoeffs, diff!, endpoint_derivative
+using ChebyshevHelmoltzSolvers: ChebCoeffs, diff!
 using FFTW
 using LinearAlgebra
 using Test

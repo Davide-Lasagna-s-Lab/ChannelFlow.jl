@@ -96,8 +96,8 @@ function _bulkpressuregradient(scheme::CNRK2, U::VectorField, N::VectorField)
     return ntuple(2) do i
         component = i == 1 ? 1 : 3
         u = _chebcolumn(U[component], 1, 1, scheme.basecurvature)
-        shear = endpoint_derivative(u, :right) -
-                endpoint_derivative(u, :left)
+        shear = diff(u, :right) -
+                diff(u, :left)
         base = i == 1 ? scheme.nu*_bulkmean(scheme.basecurvature) : 0.0
         return scheme.nu*real(shear)/2 + base + real(_bulkmean(_chebcolumn(N[component], 1, 1, scheme.basecurvature)))
     end

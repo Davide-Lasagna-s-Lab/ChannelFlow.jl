@@ -120,8 +120,8 @@ function power_input(U::VectorField{<:SpectralField}, nu::Real;
         # sign at the lower wall is its outward-normal orientation.
         upper = sum(parent(mean))
         lower = sum((-1)^n * mean[n] for n = 0:length(mean)-1)
-        input += nu/2 * real(conj(upper)*endpoint_derivative(mean, :right) -
-                             conj(lower)*endpoint_derivative(mean, :left))
+        input += nu/2 * real(conj(upper)*diff(mean, :right) -
+                             conj(lower)*diff(mean, :left))
         input -= gradient * real(_bulkmean(mean))
     end
     return input
