@@ -8,9 +8,9 @@ export ChannelFlowProblem, CouetteFlow, PoiseuilleFlow
     ChannelFlowProblem(grid, profile, nu, dt;
                 form=RotatingForm(), forcing=NoForcing(),
                 pressuregradient=nothing, bulkvelocity=nothing,
-                fftwflags=FFTW.MEASURE, fftwtimelimit=FFTW.NO_TIMELIMIT)
+                chebbackend=:fftw, fftwflags=FFTW.MEASURE, fftwtimelimit=FFTW.NO_TIMELIMIT)
 
-Assemble a serial channel/Couette DNS with a fixed nominal time step. The
+Assemble a serial Poiseuille/Couette DNS with a fixed nominal time step. The
 domain is supplied by `grid`; `profile(y)` is the stationary streamwise base
 velocity and `nu` is kinematic viscosity. The profile is converted to
 values at the wall-normal collocation points and stored in
@@ -34,6 +34,10 @@ Specify either a constant `pressuregradient=(dPdx, dPdz)` or total
 `bulkvelocity=(Ubulk, Wbulk)`. Omitting both selects zero pressure gradient.
 The `forcing(t, U, F)` callback adds its spectral acceleration to `F`,
 preserving its existing contents and leaving `U` unchanged; see [`step!`](@ref).
+
+Choose `chebbackend=:fftw` (default) or `:gemm` for the wall-normal
+transforms. Periodic transforms always use FFTW; its planning options remain
+controlled by `fftwflags` and `fftwtimelimit`.
 
 Create a state and integrate it with the Flows operator:
 ```julia
@@ -66,6 +70,7 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
                                          forcing=NoForcing(),
                                 pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
                                     bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing,
+                                     chebbackend::Symbol=:fftw,
                                        fftwflags::Integer=FFTW.MEASURE,
                                    fftwtimelimit::Real=FFTW.NO_TIMELIMIT)
         # Store only the selected mean-flow constraint. Its name is reused
@@ -91,7 +96,8 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
         # The scalar prototypes supply types and grid information. The
         # nonlinear operator allocates form-specific caches and padded FFT plans.
         nlterm = NonLinearTerm(PhysicalField(grid), P, scheme.baseflow;
-                              form=form, fftwflags=fftwflags, fftwtimelimit=fftwtimelimit)
+                              form=form, chebbackend=chebbackend,
+                              fftwflags=fftwflags, fftwtimelimit=fftwtimelimit)
 
         return new{typeof(grid), typeof(baseflow), typeof(nlterm), typeof(scheme), typeof(forcing), typeof(constraint)}(
             grid, baseflow, nlterm, scheme, forcing, constraint)

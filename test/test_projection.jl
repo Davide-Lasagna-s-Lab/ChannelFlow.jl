@@ -30,7 +30,7 @@
                       (x,y,z) -> q(y)*hz(x,z))
         U = VectorField(ntuple(i -> spectral(g, (x,y,z) ->
                                 exact[i](x,y,z)+correction[i](x,y,z)), 3))
-        problem = ChannelFlowProblem(g, fzero, 0.01, 0.01;
+        problem = ChannelFlowProblem(g, y -> 0.0, 0.01, 0.01;
                                      form=CF.ConvectiveForm(),
                                      fftwflags=FFTW.ESTIMATE)
         # Projection updates and returns the supplied velocity in place.
@@ -59,21 +59,19 @@
     # mean mode. These are perturbation means because projection receives no
     # base flow. Independent quadrature and wall/divergence checks verify the
     # imposed values and admissibility together.
-    problem = ChannelFlowProblem(g, fzero, 0.01, 0.01;
+    problem = ChannelFlowProblem(g, y -> 0.0, 0.01, 0.01;
                                  bulkvelocity=(0.2, -0.1),
                                  fftwflags=FFTW.ESTIMATE)
     U = project!(velocity(zero_state(g)), problem)
     @test real(bulkmean(ChebCoeffs(view(parent(U[1]), :, 1, 1)))) ≈ 0.2 atol=2e-12
     @test real(bulkmean(ChebCoeffs(view(parent(U[3]), :, 1, 1)))) ≈ -0.1 atol=2e-12
     check_constraints(U)
-    # Reject nonfinite constraints, components attached to different domains,
-    # and padded spectral storage. Matching array dimensions alone cannot
-    # establish a common grid.
-    other = Grid(5, 9, 5, 3π, 2π)
-    bad = VectorField((U[1], spectral(other, fzero), U[3]))
-    @test_throws ArgumentError project!(bad, problem)
-    padded = SpectralField(zeros(ComplexF64, spectralsize(g, Padded())), g)
-    @test_throws DimensionMismatch project!(VectorField(padded), problem)
+    # Nonfinite bulk targets must be rejected at problem construction.
+    # Projection assumes resolved fields on the problem's grid; it no longer
+    # provides the removed component-grid validation interface.
+    @test_throws ArgumentError ChannelFlowProblem(g, y -> 0.0, 0.01, 0.01;
+                                                  bulkvelocity=(NaN, 0.0),
+                                                  fftwflags=FFTW.ESTIMATE)
 end
 
 @testset "Pressure associated with the nonlinear form" begin
@@ -90,7 +88,7 @@ end
 
 @testset "Reproducible random initialization" begin
     g = Grid(5, 9, 5, 2π, 2π)
-    problem = ChannelFlowProblem(g, fzero, 0.01, 0.01;
+    problem = ChannelFlowProblem(g, y -> 0.0, 0.01, 0.01;
                                  fftwflags=FFTW.ESTIMATE)
     # Reseeding the default generator with the same seed must reproduce both
     # velocity and pressure exactly. Nonzero output rules out a trivial zero

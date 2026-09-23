@@ -22,12 +22,13 @@ end
     MeanModeSolver(Ny, nu, lambda)
 
 Cache the `(kx, kz) = (0, 0)` Stokes solve on `[-1, 1]`, with homogeneous
-velocity wall values. `Ny ≥ 3` is the coefficient count, `nu ≥ 0` the
+velocity wall values. `Ny ≥ 3` is the coefficient count, `nu > 0` the
 viscosity and `lambda ≥ 0` the temporal shift; both parameters must be finite
-and cannot vanish simultaneously.
+with strictly positive viscosity.
 
-Allow `nu = 0` when the system is used as an instantaneous pressure
-projection with positive `lambda`; the pair cannot both be zero.
+Zero viscosity removes the differential operator needed to impose two wall
+conditions and is not supported. Pressure reconstruction uses a separate
+Neumann Poisson solve instead.
 One real Helmholtz factorisation serves both horizontal velocities and both
 parts of their complex coefficients. Cache the response `c` to
 `(nu*D² - lambda)c = 1`, with `c(±1) = 0`, and its bulk mean. This response
@@ -45,11 +46,9 @@ struct MeanModeSolver{H, C}
                             lambda::Real)
         Ny ≥ 3 || throw(ArgumentError("at least three Chebyshev coefficients are required"))
         nu, lambda = Float64(nu), Float64(lambda)
-        isfinite(nu) && nu >= 0 || throw(ArgumentError("nu must be finite and non-negative"))
+        isfinite(nu) && nu > 0 || throw(ArgumentError("nu must be finite and positive"))
         isfinite(lambda) && lambda ≥ 0 ||
             throw(ArgumentError("lambda must be finite and nonnegative"))
-        nu > 0 || lambda > 0 ||
-            throw(ArgumentError("nu and lambda cannot both be zero"))
 
         velocity = HelmoltzSolver(Ny-1, Float64)
         update!(velocity, nu, lambda)

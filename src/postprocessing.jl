@@ -1,219 +1,178 @@
-export Postprocessor, kinetic_energy, dissipation_rate, power_input,
-       flow_diagnostics
+export kinetic_energy, dissipation_rate, power_input
+export laminar_kinetic_energy, laminar_dissipation_rate, laminar_power_input
+
 
 #//////////////////////////////////////////////////////////////////////////////#
-#///                        POSTPROCESSING WORKSPACE                        ///#
+#///                        VOLUME INNER PRODUCT                            ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    Postprocessor(grid; fftwflags=FFTW.MEASURE,
-                  fftwtimelimit=FFTW.NO_TIMELIMIT)
+    dot(u::PhysicalField, v::PhysicalField)
+    dot(U::SpectralField, V::SpectralField)
+    dot(U::VectorField, V::VectorField)
 
-Allocate reusable workspaces for volume-integrated channel-flow diagnostics.
-The physical buffers use the 3/2-padded periodic grid, while wall-normal
-integration uses Clenshaw--Curtis weights on the Chebyshev--Lobatto points.
-All reported integrals are divided by the domain volume. The quadrature is
-exact through degree Ny-1; products of resolved polynomials may have higher
-degree and their integrals require wall-normal resolution checks.
-
-The workspace uses Float64 and must be used with fields on its grid. Calls
-preserve the input state but overwrite internal buffers; do not share one
-instance across concurrent calls. Use `flow_diagnostics` when all three
-quantities are needed, so transforms are shared.
+Return the volume-averaged inner product `⟨u ⋅ v⟩`. Physical fields use
+periodic averaging and Clenshaw--Curtis quadrature in y; spectral fields
+use Fourier orthogonality and the exact unweighted Chebyshev product
+integrals, without transforms. Inputs are preserved. Physical quadrature is
+exact through degree Ny-1; the spectral method integrates the represented
+polynomial products exactly. These routines allocate their work arrays.
 """
-struct Postprocessor{PV, PG, SV, SG, I, W}
-             velocity::PV  # padded physical velocity
-             gradient::PG  # padded physical velocity gradient
-    spectral_velocity::SV  # resolved coefficients including optional base flow
-    spectral_gradient::SG  # derivatives of spectral_velocity
-                 ifft::I   # shared inverse-transform plan
-              weights::W   # unweighted integration on [-1, 1]
-end
-
-function Postprocessor(         grid::Grid;
-                           fftwflags::Integer=FFTW.MEASURE,
-                       fftwtimelimit::Real=FFTW.NO_TIMELIMIT)
-    Ny = length(grid.y)
-    spectral = SpectralField(zeros(ComplexF64,
-                                   spectralsize(grid, NotPadded())), grid)
-    physical = PhysicalField(zeros(Float64,
-                                   physicalsize(grid, Padded())), grid)
-    spectral_velocity = VectorField(spectral)
-    spectral_gradient = GradientField(spectral)
-    velocity = VectorField(physical)
-    gradient = GradientField(physical)
-    ifft = InverseFFT!(spectral; flags=fftwflags,
-                       timelimit=fftwtimelimit)
-
-    # Interpolatory quadrature: transpose(C)*w gives the exact integral of every
-    # represented Chebyshev polynomial on [-1,1].
+function LinearAlgebra.dot(u::PhysicalField, v::PhysicalField)
+    Ny, Nx, Nz = size(u)
+    # Match the exact unweighted integrals of T_n on [-1, 1]. Divide by
+    # the wall-normal length and periodic point count for a volume average.
     C = [cospi(i*j/(Ny-1)) for i = 0:Ny-1, j = 0:Ny-1]
     moments = [iseven(j) ? 2/(1-j^2) : 0.0 for j = 0:Ny-1]
-    weights = transpose(C) \ moments
-    return Postprocessor(velocity, gradient, spectral_velocity,
-                         spectral_gradient, ifft, weights)
+    weights = reshape(transpose(C) \ moments, Ny, 1, 1)
+    return sum(weights .* parent(u) .* parent(v))/(2Nx*Nz)
 end
+
+function LinearAlgebra.dot(U::SpectralField{T}, V::SpectralField{T}) where {T}
+    grid(U) == grid(V) || throw(ArgumentError("fields must share a grid"))
+    size(U) == size(V) == spectralsize(grid(U), NotPadded()) ||
+        throw(DimensionMismatch("expected resolved spectral fields"))
+    Ny, Nxh, Nz = size(U)
+    _, Nx, _ = physicalsize(grid(U), NotPadded())
+
+    # M[m+1,n+1] = integral(T_m*T_n, -1, 1)/2. Ordinary Chebyshev
+    # coefficients are not orthogonal for the unweighted physical integral.
+    moment(n) = iseven(n) ? one(T)/(1-n^2) : zero(T)
+    M = [(moment(m+n) + moment(abs(m-n)))/2 for m = 0:Ny-1, n = 0:Ny-1]
+    work = zeros(Complex{T}, Ny)
+    result = zero(T)
+    for iz = 1:Nz, ix = 1:Nxh
+        # Exclude the same Nyquist planes as the transforms. Positive kx
+        # represents both members of a conjugate pair; kx=0 appears once.
+        ((iseven(Nx) && ix == Nxh) ||
+         (iseven(Nz) && iz == (Nz >> 1)+1)) && continue
+        u = view(parent(U), :, ix, iz)
+        v = view(parent(V), :, ix, iz)
+        LinearAlgebra.mul!(work, M, v)
+        result += (ix == 1 ? 1 : 2) * real(LinearAlgebra.dot(u, work))
+    end
+    return result
+end
+
+LinearAlgebra.dot(U::VectorField, V::VectorField) =
+    sum(LinearAlgebra.dot(U[i], V[i]) for i = 1:3)
+
+"""
+    norm(U::VectorField)
+
+Return the root-mean-square field magnitude `sqrt(⟨|U|²⟩)`, rather than
+an unweighted norm of stored coefficients. Spectral input requires no transforms.
+"""
+LinearAlgebra.norm(u::VectorField{<:PhysicalField}) = sqrt(LinearAlgebra.dot(u, u))
+LinearAlgebra.norm(U::VectorField{<:SpectralField}) = sqrt(LinearAlgebra.dot(U, U))
 
 #//////////////////////////////////////////////////////////////////////////////#
-#///                          INTEGRAL DIAGNOSTICS                          ///#
+#///                      KINETIC ENERGY AND DISSIPATION                     ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    kinetic_energy(post, U; baseflow=nothing)
+    kinetic_energy(U::VectorField)
 
-Return the volume-averaged kinetic energy `⟨|u|²⟩/2`. `U` stores the
-perturbation velocity; pass the base-flow Chebyshev coefficients to measure
-the total velocity instead. A `State` may be passed in place of `U`; its
-pressure is not used.
+Return volume-averaged kinetic energy `⟨|U|²⟩/2`. Accept physical or spectral
+velocity. The supplied field is used as-is: add the base profile beforehand
+if total rather than perturbation energy is desired.
 """
-function kinetic_energy(post::Postprocessor,
-                           U::VectorField{<:SpectralField};
-                        baseflow=nothing)
-    u = _total_velocity!(post, U, baseflow)
-    return _kinetic_energy(post, u)
+kinetic_energy(U::VectorField) = LinearAlgebra.norm(U)^2/2
+
+"""
+    dissipation_rate(U::VectorField{<:SpectralField}, nu)
+
+Return `nu*⟨|curl(U)|²⟩`, allocating a spectral vorticity field. This equals
+the volume-averaged viscous dissipation for incompressible channel velocity
+with periodic x,z and impermeable, uniformly moving no-slip walls. It is an
+integral identity, not a pointwise equality with strain-based dissipation.
+Include the base profile in `U` to obtain total-flow dissipation.
+"""
+function dissipation_rate(U::VectorField{<:SpectralField}, nu::Real)
+    omega = similar(U)
+    curl!(omega, U)
+    return nu * LinearAlgebra.norm(omega)^2
 end
 
-"""
-    dissipation_rate(post, U, nu; baseflow=nothing)
-
-Return `nu*⟨sum(i,j) |∂u_i/∂x_j|²⟩` for the perturbation or total
-velocity. This is a volume average, using the gradient-norm convention of
-the channel energy balance. With incompressible velocity and the channel's
-impermeable, uniformly moving no-slip walls, its integral agrees with that
-of `2nu*S:S`, where `S` is the strain-rate tensor.
-"""
-function dissipation_rate(post::Postprocessor,
-                             U::VectorField{<:SpectralField},
-                            nu::Real;
-                          baseflow=nothing)
-    _total_velocity!(post, U, baseflow)
-    gradient = _total_gradient!(post)
-    return _dissipation_rate(post, gradient, nu)
-end
 
 """
-    power_input(post, U, nu; baseflow=nothing,
-                pressuregradient=(0, 0))
+    power_input(U::VectorField{<:SpectralField}, nu; pressuregradient=(0, 0))
 
-Return total power input per unit volume. It includes work by moving walls and
-work by the uniform streamwise/spanwise pressure gradient. Wall velocities
-and wall shear are evaluated from `U` plus the optional base flow, assuming
-impermeable channel walls. The upper/lower contributions have opposite
-outward-normal signs. Pressure work is `-dPdx*⟨u⟩ - dPdz*⟨w⟩`.
+Return power input per unit volume from moving walls and a uniform pressure
+gradient `(dPdx, dPdz)`, on the channel interval `[-1, 1]`:
+`nu/2 * [u⋅∂y(u)]₋₁⁺¹ - dPdx*⟨u⟩ - dPdz*⟨w⟩`.
 
-For constant bulk flux, pass the actual pressure gradients returned by the
-Stokes/time-step solve. Work by an additional body force is not included.
-Without `baseflow`, this function only evaluates work on the supplied field;
-it does not include perturbation-energy production by base shear.
+Assume impermeable, spatially uniform no-slip wall velocities. Then only the
+zero Fourier mode contributes to wall work, so no transforms are needed.
+Include the base profile in `U` to obtain total-flow input, as for
+[`kinetic_energy`](@ref) and [`dissipation_rate`](@ref).
+For constant-flux simulations, supply the actual pressure gradient from the
+solver. Additional body-force work and perturbation production by base shear
+are not included. The input is preserved.
 """
-function power_input(            post::Postprocessor,
-                                    U::VectorField{<:SpectralField},
-                                   nu::Real;
-                     baseflow=nothing,
+function power_input(U::VectorField{<:SpectralField}, nu::Real;
                      pressuregradient::NTuple{2, Real}=(0, 0))
-    velocity = _total_velocity!(post, U, baseflow)
-    gradient = _total_gradient!(post)
-    return _power_input(post, velocity, gradient, nu, pressuregradient)
+    input = 0.0
+    for (i, gradient) in zip((1, 3), pressuregradient)
+        mean = ChebCoeffs(view(parent(U[i]), :, 1, 1))
+
+        # Uniform wall velocities multiply plane-averaged shear. The minus
+        # sign at the lower wall is its outward-normal orientation.
+        upper = sum(parent(mean))
+        lower = sum((-1)^n * mean[n] for n = 0:length(mean)-1)
+        input += nu/2 * real(conj(upper)*endpoint_derivative(mean, :right) -
+                             conj(lower)*endpoint_derivative(mean, :left))
+        input -= gradient * real(_bulkmean(mean))
+    end
+    return input
+end
+
+#//////////////////////////////////////////////////////////////////////////////#
+#///                         LAMINAR FLOW DIAGNOSTICS                        ///#
+#//////////////////////////////////////////////////////////////////////////////#
+
+# Embed the streamwise base profile in the zero Fourier mode so the same
+# exact spectral integrals are used for laminar and instantaneous fields.
+function _laminar_velocity(problem::ChannelFlowProblem)
+    U = VectorField(SpectralField(problem.grid))
+    U[1][:, 1, 1] .= parent(problem.scheme.baseflow)
+    return U
 end
 
 """
-    flow_diagnostics(post, U, nu; baseflow=nothing,
-                     pressuregradient=(0, 0))
+    laminar_kinetic_energy(problem::ChannelFlowProblem)
 
-Return a named tuple with fields `kinetic_energy`, `dissipation_rate` and
-`power_input`. Evaluate velocity and gradient once, then share them between
-the three reductions. Keywords and conventions match the individual functions.
-
-```julia
-post = Postprocessor(problem.grid)
-d = flow_diagnostics(post, state, problem.scheme.nu;
-                     baseflow=parent(problem.scheme.baseflow),
-                     pressuregradient=(0.0, 0.0))  # Couette, no imposed gradient
-```
+Return the volume-averaged energy of the stored base profile, `⟨Ub²⟩/2`.
+For standard Couette and Poiseuille flow this is `1/6` and `4/15`, respectively.
 """
-function flow_diagnostics(            post::Postprocessor,
-                                         U::VectorField{<:SpectralField},
-                                        nu::Real;
-                          baseflow=nothing,
-                          pressuregradient::NTuple{2, Real}=(0, 0))
-    velocity = _total_velocity!(post, U, baseflow)
-    gradient = _total_gradient!(post)
-    return (; kinetic_energy=_kinetic_energy(post, velocity),
-            dissipation_rate=_dissipation_rate(post, gradient, nu),
-            power_input=_power_input(post, velocity, gradient, nu,
-                                     pressuregradient))
-end
+laminar_kinetic_energy(problem::ChannelFlowProblem) =
+    kinetic_energy(_laminar_velocity(problem))
 
-#//////////////////////////////////////////////////////////////////////////////#
-#///                            STATE INTERFACE                             ///#
-#//////////////////////////////////////////////////////////////////////////////#
+"""
+    laminar_dissipation_rate(problem::ChannelFlowProblem)
 
-# State overloads retain the same explicit base-flow convention.
-kinetic_energy(post::Postprocessor, state::State; kwargs...) =
-    kinetic_energy(post, velocity(state); kwargs...)
-dissipation_rate(post::Postprocessor, state::State, nu::Real; kwargs...) =
-    dissipation_rate(post, velocity(state), nu; kwargs...)
-power_input(post::Postprocessor, state::State, nu::Real; kwargs...) =
-    power_input(post, velocity(state), nu; kwargs...)
-flow_diagnostics(post::Postprocessor, state::State, nu::Real; kwargs...) =
-    flow_diagnostics(post, velocity(state), nu; kwargs...)
+Return the base-profile dissipation `nu*⟨(∂y Ub)²⟩`.
+For standard Couette and Poiseuille flow this is `nu` and `4nu/3`, respectively.
+"""
+laminar_dissipation_rate(problem::ChannelFlowProblem) =
+    dissipation_rate(_laminar_velocity(problem), problem.scheme.nu)
 
-#//////////////////////////////////////////////////////////////////////////////#
-#///                     TOTAL-VELOCITY CACHE ASSEMBLY                      ///#
-#//////////////////////////////////////////////////////////////////////////////#
+"""
+    laminar_power_input(problem::ChannelFlowProblem; pressuregradient=...)
 
-"""Copy perturbation coefficients, add the optional profile, then inverse-transform."""
-function _total_velocity!(post::Postprocessor,
-                             U::VectorField{S},
-                          baseflow) where {S<:SpectralField}
-    post.spectral_velocity .= U
-    if !isnothing(baseflow)
-        length(baseflow) == size(U[1], 1) ||
-            throw(DimensionMismatch("baseflow must have one coefficient per wall-normal point"))
-        @views post.spectral_velocity[1][:, 1, 1] .+= baseflow
-    end
-    post.ifft(post.velocity, post.spectral_velocity)
-    return post.velocity
-end
+Return moving-wall and pressure-gradient work for the stored base profile.
+Use the problem's prescribed pressure gradient when present. For constant-flux
+problems, default to `(nu*⟨Ub''⟩, 0)`, the gradient sustaining a quadratic
+laminar profile; this assumes the prescribed flux matches that profile.
+Override `pressuregradient` to evaluate a different driving gradient.
+Additional body-force work is not included.
 
-"""Differentiate the prepared total velocity and evaluate its physical gradient."""
-function _total_gradient!(post::Postprocessor)
-    grad!(post.spectral_gradient, post.spectral_velocity)
-    post.ifft(post.gradient, post.spectral_gradient)
-    return post.gradient
-end
-
-#//////////////////////////////////////////////////////////////////////////////#
-#///                  VOLUME QUADRATURE AND ENERGY BALANCE                  ///#
-#//////////////////////////////////////////////////////////////////////////////#
-
-"""Apply unweighted wall-normal quadrature and periodic volume averaging."""
-function _volume_average(f::F, post::Postprocessor, values) where {F}
-    _, Nx, Nz = size(values)
-    integral = zero(eltype(values))
-    @inbounds for iz = 1:Nz, ix = 1:Nx, iy = 1:length(post.weights)
-        integral += post.weights[iy]*f(values[iy, ix, iz])
-    end
-    return integral/(2Nx*Nz)
-end
-
-_kinetic_energy(post, velocity) =
-    sum(_volume_average(abs2, post, parent(velocity[i])) for i = 1:3)/2
-
-_dissipation_rate(post, gradient, nu) =
-    nu*sum(_volume_average(abs2, post, parent(gradient[i, j]))
-           for i = 1:3, j = 1:3)
-
-function _power_input(post, velocity, gradient, nu, pressuregradient)
-    _, Nx, Nz = size(velocity[1])
-    # y is ordered from +1 to -1: upper work minus lower work.
-    wall = 0.0
-    @inbounds for i = 1:3, iz = 1:Nz, ix = 1:Nx
-        wall += velocity[i][1, ix, iz]*gradient[i, 2][1, ix, iz] -
-                velocity[i][end, ix, iz]*gradient[i, 2][end, ix, iz]
-    end
-    wall *= nu/(2Nx*Nz)
-    pressure = -pressuregradient[1]*_volume_average(identity, post, parent(velocity[1])) -
-               pressuregradient[2]*_volume_average(identity, post, parent(velocity[3]))
-    return wall + pressure
+For standard, consistently driven Couette and Poiseuille flow the result is
+`nu` and `4nu/3`, respectively, equal to laminar dissipation.
+"""
+function laminar_power_input(problem::ChannelFlowProblem;
+                             pressuregradient=get(problem.constraint, :pressuregradient,
+                                 (problem.scheme.nu * real(_bulkmean(problem.scheme.basecurvature)), 0)))
+    return power_input(_laminar_velocity(problem), problem.scheme.nu;
+                       pressuregradient=pressuregradient)
 end

@@ -5,7 +5,7 @@ Serial Fourier--Chebyshev DNS for plane Couette and Poiseuille flow.
 
 Start with `Grid`, `CouetteFlow` or `PoiseuilleFlow`, and a `State` created by
 `zero_state` or `random_state`. Integrate with `Flows.flow(problem)` and
-inspect the result with `Postprocessor` and `flow_diagnostics`.
+inspect the velocity with `kinetic_energy` and `dissipation_rate`.
 
 Velocity is stored as a perturbation to `problem.baseflow`. The accompanying
 stage pressure is algebraic; the default `RotatingForm` uses pressure augmented
@@ -20,6 +20,7 @@ import FFTW
 import Flows
 import LinearAlgebra
 import Random
+import Serialization
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                   GRID, FIELDS AND SPATIAL OPERATORS                   ///#
@@ -32,6 +33,7 @@ include("fields/abstractfield.jl")
 include("fields/vectorfield.jl")
 include("fields/gradientfield.jl")
 include("state.jl")
+include("fields/io.jl")
 include("indexing.jl")
 include("fields/operators.jl")
 

@@ -18,7 +18,7 @@
     @test vec(z) ≈ (0:7) .* (7/8)
     # Use y^2=(T_2+T_0)/2 to obtain the coefficients by hand. This checks the
     # constant coefficient normalization as well as polynomial conversion.
-    @test parent(ChebyshevHelmoltzSolvers.chebyshev_coefficients(1 .+ 2 .* g.y .+ 3 .* g.y.^2)) ≈
+    @test parent(ChebyshevHelmoltzSolvers.chebcoeffs(1 .+ 2 .* g.y .+ 3 .* g.y.^2)) ≈
           [2.5, 2, 1.5, zeros(6)...] atol=1e-13
 
     # Different weights on x, y and z expose argument-order mistakes in the

@@ -15,7 +15,7 @@ const FFT_DIMS = (2, 3)
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    ForwardFFT!(u; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
+    ForwardFFT!(u; chebbackend=:fftw, flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
 Plan the Fourier--Chebyshev transform from physical storage `(y, x, z)` to
 spectral storage `(n, kx, kz)`. Fourier amplitudes are normalised by the padded
@@ -30,6 +30,7 @@ struct ForwardFFT!{P, C, A, T}
 end
 
 function ForwardFFT!(        u::PhysicalField{T};
+                   chebbackend::Symbol=:fftw,
                          flags::Integer=FFTW.EXHAUSTIVE,
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # Only periodic dimensions are padded. All Ny Chebyshev coefficients
@@ -44,7 +45,7 @@ function ForwardFFT!(        u::PhysicalField{T};
     # The wall-normal backend works only on retained Fourier columns.
     # It writes the final coefficients into the caller's output field.
     resolved = SpectralField(zeros(Complex{T}, spectralsize(grid(u), NotPadded())), grid(u))
-    chebyplan = plan_cheb(resolved; flags=flags, timelimit=timelimit)
+    chebyplan = plan_cheb(resolved, chebbackend; flags=flags, timelimit=timelimit)
     return ForwardFFT!(plan, chebyplan, padded, resolved,
                        inv(T(Nxp * Nzp * (Ny-1))))
 end
@@ -103,7 +104,7 @@ end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    InverseFFT!(U; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
+    InverseFFT!(U; chebbackend=:fftw, flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
 Plan the inverse transform from resolved spectral storage `(n, kx, kz)` to the
 3/2-padded physical storage `(y, xp, zp)`. The resolved input is preserved
@@ -119,6 +120,7 @@ struct InverseFFT!{P, C, A}
 end
 
 function InverseFFT!(        U::SpectralField{T};
+                   chebbackend::Symbol=:fftw,
                          flags::Integer=FFTW.EXHAUSTIVE,
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # The inverse plan must use exactly the same padded layout as the forward
@@ -130,7 +132,7 @@ function InverseFFT!(        U::SpectralField{T};
     plan = FFTW.plan_brfft(parent(padded), Nxp, FFT_DIMS;
                            flags=flags, timelimit=timelimit)
     resolved = SpectralField(zeros(eltype(U), spectralsize(grid(U), NotPadded())), grid(U))
-    chebyplan = plan_icheb(resolved;
+    chebyplan = plan_icheb(resolved, chebbackend;
                                     flags=flags, timelimit=timelimit)
     return InverseFFT!(plan, chebyplan, padded, resolved)
 end

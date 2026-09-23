@@ -4,6 +4,7 @@ authors = ["Davide Lasagna <davide.lasagna@soton.ac.uk>"]
 version = "0.1.0"
 
 [deps]
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -11,8 +12,8 @@ Flows = "d910d432-2c57-11e9-263c-df934de6853d"
 ChebyshevHelmoltzSolvers = "9051723b-82e1-492c-809d-4ceeb94e2557"
 
 [sources]
-Flows = {path = "../Flows.jl"}
-ChebyshevHelmoltzSolvers = {path = "../CanonicalFlows/ChebyshevHelmoltzSolvers.jl"}
+Flows = {url = "https://github.com/Davide-Lasagna-s-Lab/Flows.jl.git"}
+ChebyshevHelmoltzSolvers = {url = "https://github.com/Davide-Lasagna-s-Lab/ChebyshevHelmoltzSolvers.jl.git"}
 
 [compat]
 FFTW = "1"

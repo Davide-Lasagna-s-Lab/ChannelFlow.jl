@@ -46,20 +46,20 @@ Base.unsafe_convert(::Type{Ptr{T}}, A::SpectralMatrixView{T}) where {T} = pointe
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    plan_cheb(U::SpectralField, backend=:auto; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
+    plan_cheb(U::SpectralField, backend=:fftw; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
 Plan the forward, unnormalised wall-normal DCT-I for the layout and type of
 `U`. Execute with `mul!(dest, plan, src)` using distinct matching buffers.
 The enclosing ForwardFFT! applies coefficient normalization afterwards.
-Select `:gemm` or `:fftw` explicitly. The default `:auto` uses GEMM through
-Ny=35 and FFTW above that measured crossover. FFTW planning may overwrite
+The default backend is `:fftw`; select `:gemm` for matrix multiplication.
+Optional `:auto` uses GEMM through Ny=35 and FFTW above. FFTW planning may overwrite
 the supplied `U`; `flags` and `timelimit` apply only to FFTW.
 """
-plan_cheb(U::SpectralField, backend::Symbol=:auto; kwargs...) =
+plan_cheb(U::SpectralField, backend::Symbol=:fftw; kwargs...) =
     _plan_cheb(U, Val(false), backend; kwargs...)
 
 """
-    plan_icheb(U::SpectralField, backend=:auto; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
+    plan_icheb(U::SpectralField, backend=:fftw; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
 Plan inverse wall-normal evaluation, including doubled endpoint inputs.
 Execute with `mul!(dest, plan, src)` using distinct matching buffers.
@@ -67,7 +67,7 @@ The result is twice the evaluated Chebyshev series: InverseFFT! applies
 its remaining factor of 1/2 during Fourier padding. Backend selection and
 planning side effects match [`plan_cheb`](@ref).
 """
-plan_icheb(U::SpectralField, backend::Symbol=:auto; kwargs...) =
+plan_icheb(U::SpectralField, backend::Symbol=:fftw; kwargs...) =
     _plan_cheb(U, Val(true), backend; kwargs...)
 
 function _plan_cheb(U::SpectralField, ::Val{INVERSE}, backend::Symbol;

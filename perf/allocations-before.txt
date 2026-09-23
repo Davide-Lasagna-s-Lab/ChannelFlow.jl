@@ -1,9 +1,0 @@
-Commit: be56ce25852e322b6e2467aa0e1de24841a55d15; dirty_source=true; source_sha256=515db9b257e62df177525c79718c38fb4554632b6d9e203d86f61f05190d0952
-One warmed direct step; 1% allocation sampling (counts and bytes below are sampled). Grouped by first solver frame.
-20416 bytes	229 allocations	solve! at /Users/dl1f12/Dropbox/Codes/ChannelFlow.jl/src/helmoltz.jl:225
-19424 bytes	367 allocations	solve! at /Users/dl1f12/Dropbox/Codes/CanonicalFlows/ChebyshevHelmoltzSolvers.jl/src/helmoltz.jl:103
-18368 bytes	228 allocations	solve! at /Users/dl1f12/Dropbox/Codes/CanonicalFlows/ChebyshevHelmoltzSolvers.jl/src/helmoltz.jl:125
-10944 bytes	195 allocations	ChebCoeffs at /Users/dl1f12/Dropbox/Codes/CanonicalFlows/ChebyshevHelmoltzSolvers.jl/src/chebcoeffs.jl:28
-4224 bytes	33 allocations	diff! at /Users/dl1f12/Dropbox/Codes/CanonicalFlows/ChebyshevHelmoltzSolvers.jl/src/chebcoeffs.jl:81
-2288 bytes	11 allocations	#solve!#32 at /Users/dl1f12/Dropbox/Codes/ChannelFlow.jl/src/helmoltz.jl:563
-160 bytes	20 allocations	solve! at /Users/dl1f12/Dropbox/Codes/ChannelFlow.jl/src/helmoltz.jl:236

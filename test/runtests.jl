@@ -20,6 +20,7 @@ include("helpers.jl")
 
 @testset "ChannelFlow interfaces and analytic numerical checks" begin
     include("test_fields.jl")
+    include("test_fieldio.jl")
     include("test_ffts.jl")
     include("test_operators.jl")
     include("test_nonlinear.jl")
