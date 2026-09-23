@@ -3,7 +3,7 @@
 # statistics or establish the time integration convergence order.
 using ChannelFlow
 import ChebyshevHelmoltzSolvers
-using ChebyshevHelmoltzSolvers: ChebCoeffs, diff!
+using ChebyshevHelmoltzSolvers: diff!
 using FFTW
 using LinearAlgebra
 using Random

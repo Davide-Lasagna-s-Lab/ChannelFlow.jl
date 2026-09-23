@@ -25,7 +25,7 @@
     # functional constructor. The zero constructor and shape rejection
     # establish allocation defaults and grid/storage consistency.
     f(x, y, z) = x + 2y + 3z
-    u = PhysicalField(g, f)
+    u = PhysicalField(g, f, NotPadded())
     @test parent(u) ≈ f.(x, y, z)
     @test all(iszero, PhysicalField(g))
     @test_throws DimensionMismatch PhysicalField(zeros(2, 2, 2), g)
@@ -43,7 +43,7 @@
         @test parent(other) == parent(field)
         # Broadcast must operate on stored values; scalar indexing must
         # address the same storage. Index zero is invalid for a field array,
-        # unlike degree indexing in ChebCoeffs.
+        # as for ordinary coefficient vectors.
         work .= 2 .* field .+ 1
         @test parent(work) ≈ 2 .* parent(field) .+ 1
         work[1, 2, 3] = 4

@@ -5,15 +5,15 @@ export MeanModeSolver
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    _bulkmean(a::ChebCoeffs)
+    _bulkmean(a::AbstractVector)
 
 Return `integral(a(y), y=-1:1)/2` from ordinary Chebyshev coefficients.
 Only even degrees contribute: the mean of `T_n` is `1/(1-n²)` for even `n`.
 """
-function _bulkmean(a::ChebCoeffs)
-    value = a[0]
+function _bulkmean(a::AbstractVector)
+    value = a[1]
     for n = 2:2:length(a)-1
-        value += a[n]/(1-n^2)
+        value += a[n+1]/(1-n^2)
     end
     return value
 end
@@ -22,7 +22,7 @@ end
     MeanModeSolver(Ny, nu, lambda)
 
 Cache the `(kx, kz) = (0, 0)` Stokes solve on `[-1, 1]`, with homogeneous
-velocity wall values. `Ny ≥ 3` is the coefficient count, `nu > 0` the
+velocity wall values. `Ny ≥ 4` is the coefficient count, `nu > 0` the
 viscosity and `lambda ≥ 0` the temporal shift; both parameters must be finite
 with strictly positive viscosity.
 
@@ -40,11 +40,12 @@ struct MeanModeSolver{H, C}
          response::C
     response_mean::Float64
              work::C
+         solution::C
 
     function MeanModeSolver(    Ny::Int,
                                 nu::Real,
                             lambda::Real)
-        Ny ≥ 3 || throw(ArgumentError("at least three Chebyshev coefficients are required"))
+        Ny ≥ 4 || throw(ArgumentError("at least four Chebyshev coefficients are required"))
         nu, lambda = Float64(nu), Float64(lambda)
         isfinite(nu) && nu > 0 || throw(ArgumentError("nu must be finite and positive"))
         isfinite(lambda) && lambda ≥ 0 ||
@@ -52,15 +53,17 @@ struct MeanModeSolver{H, C}
 
         velocity = HelmoltzSolver(Ny-1, Float64)
         update!(velocity, nu, lambda)
-        response = ChebCoeffs(Ny-1, Float64)
+        response = zeros(Float64, Ny)
         work = similar(response)
-        response[0] = 1
-        solve!(velocity, response, 0, 0)
+        solution = similar(response)
+        fill!(work, 0)
+        work[1] = 1
+        solve!(velocity, response, work, 0, 0)
         response_mean = _bulkmean(response)
         isfinite(response_mean) && response_mean != 0 ||
             throw(ArgumentError("the uniform-gradient response has no finite nonzero bulk mean"))
         return new{typeof(velocity), typeof(response)}(
-            velocity, response, response_mean, work)
+            velocity, response, response_mean, work, solution)
     end
 end
 
@@ -90,7 +93,7 @@ and impose zero bulk mean on `p`. Degree `P` of `Ry` is the normal-momentum
 tau residual: representing its integral would require degree `P+1`.
 Pressure wall values are determined by momentum, not prescribed.
 
-All seven fields must be `ChebCoeffs{ComplexF64}` of the solver's degree and
+All seven fields must be `AbstractVector{ComplexF64}` of the solver's degree and
 the same concrete storage type. Preserve the sources; outputs must have
 distinct storage and must not overlap inputs or solver workspaces. For real
 physical fields the zero-mode coefficients are real. Real and imaginary
@@ -106,7 +109,7 @@ function solve!(          solver::MeanModeSolver,
                               Ry::Z,
                               Rz::Z;
                 pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
-                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {Z<:ChebCoeffs{ComplexF64}}
+                    bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing) where {Z<:AbstractVector{ComplexF64}}
     length(p) == length(solver.work) ||
         throw(DimensionMismatch("mode coefficients must match the solver's degree"))
     isnothing(pressuregradient) || isnothing(bulkvelocity) ||
@@ -116,24 +119,24 @@ function solve!(          solver::MeanModeSolver,
     # its unrepresentable degree-P+1 integral back into lower coefficients.
     P = length(p) - 1
     for n = 1:P
-        lower = n == 1 ? Ry[0] : Ry[n-1]/2
-        upper = n+1 < P ? Ry[n+1]/2 : zero(eltype(Ry))
-        p[n] = (lower-upper)/n
+        lower = n == 1 ? Ry[1] : Ry[n]/2
+        upper = n+1 < P ? Ry[n+2]/2 : zero(eltype(Ry))
+        p[n+1] = (lower-upper)/n
     end
-    p[0] = 0
-    p[0] = -_bulkmean(p)
-    fill!(parent(v), 0)
+    p[1] = 0
+    p[1] = -_bulkmean(p)
+    fill!(v, 0)
 
     gradients = isnothing(pressuregradient) ? (0.0, 0.0) : pressuregradient
     return ntuple(2) do i
         out, source = i == 1 ? (u, Rx) : (w, Rz)
         for part in (real, imag)
-            parent(solver.work) .= .-part.(parent(source))
-            solve!(solver.velocity, solver.work, 0, 0)
+            solver.work .= .-part.(source)
+            solve!(solver.velocity, solver.solution, solver.work, 0, 0)
             if part === real
-                parent(out) .= parent(solver.work)
+                out .= solver.solution
             else
-                parent(out) .+= im .* parent(solver.work)
+                out .+= im .* solver.solution
             end
         end
 
@@ -141,7 +144,7 @@ function solve!(          solver::MeanModeSolver,
         # its mean gives the scalar constraint on the unknown gradient.
         gradient = isnothing(bulkvelocity) ? gradients[i] :
                    (bulkvelocity[i]-real(_bulkmean(out)))/solver.response_mean
-        parent(out) .+= gradient .* parent(solver.response)
+        out .+= gradient .* solver.response
         return gradient
     end
 end

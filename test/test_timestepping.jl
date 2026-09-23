@@ -44,10 +44,10 @@
     @test problem.scheme.dt == dt
     @test all(all(isfinite, field) for field in (U.components..., P))
     # The low-level step interface must enforce the same exclusive
-    # constraints. A state belonging to another grid object must also be
-    # rejected by the configured flow adapter, even when its dimensions match.
+    # constraints. A state belonging to a different domain must be rejected even when dimensions match.
+    # Equal grids remain valid after serialization and reloading.
     @test_throws ArgumentError step!(problem.scheme, problem.nlterm, U, P, 0;
                                     pressuregradient=(0,0), bulkvelocity=(0,0))
-    other = zero_state(Grid(5, 9, 5, 2π, 2π))
+    other = zero_state(Grid(5, 9, 5, 3π, 2π))
     @test_throws ArgumentError flow(other, (0.0, dt))
 end

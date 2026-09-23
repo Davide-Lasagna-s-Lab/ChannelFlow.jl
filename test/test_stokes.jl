@@ -122,10 +122,10 @@
                 # Quadrature of the mean Fourier column verifies the
                 # total/perturbation bulk conversion and the pressure gauge
                 # independently of the solver internal mean formula.
-                @test real(bulkmean(ChebCoeffs(view(parent(U[1]), :, 1, 1)))) + base_mean ≈
+                @test real(bulkmean(view(parent(U[1]), :, 1, 1))) + base_mean ≈
                       base_mean+0.2*2/3 atol=2e-11
-                @test real(bulkmean(ChebCoeffs(view(parent(U[3]), :, 1, 1)))) ≈ -0.1*2/3 atol=2e-11
-                @test abs(bulkmean(ChebCoeffs(view(parent(P), :, 1, 1)))) < 2e-12
+                @test real(bulkmean(view(parent(U[3]), :, 1, 1))) ≈ -0.1*2/3 atol=2e-11
+                @test abs(bulkmean(view(parent(P), :, 1, 1))) < 2e-12
             end
         end
     end

@@ -1,13 +1,13 @@
 # Construct reference Chebyshev coefficients directly with a DCT-I on Lobatto
 # nodes. This bypasses the package Fourier transform and its mode indexing.
 # Dividing by P and halving the endpoint coefficients gives f(y) =
-# sum(a[n]*T_n(y)), including an unhalved constant term.
+# sum(a[n+1]*T_n(y)), including an unhalved constant term.
 function coefficients(f, Ny)
     P = Ny - 1
     a = FFTW.r2r(ComplexF64[f(cospi(n/P)) for n = 0:P], FFTW.REDFT00)/P
     a[1] /= 2
     a[end] /= 2
-    return ChebCoeffs(a)
+    return a
 end
 
 # Allocate a separate derivative for residual checks. This helper uses the
@@ -15,9 +15,8 @@ end
 # comparisons against explicitly differentiated analytic polynomials.
 derivative(a) = diff!(similar(a), a)
 # Evaluate the polynomial at the walls without transforming to physical space:
-# T_n(1)=1 and T_n(-1)=(-1)^n. ChebCoeffs uses degree-based, zero-origin
-# indexing.
-wallvalue(a, side) = sum(a[n]*(side == :right ? 1 : (-1)^n) for n = 0:length(a)-1)
+# T_n(1)=1 and T_n(-1)=(-1)^n. Coefficient n is stored at index n+1.
+wallvalue(a, side) = sum(a[n+1]*(side == :right ? 1 : (-1)^n) for n = 0:length(a)-1)
 
 # Independent Gauss--Legendre quadrature of the polynomial, rather than
 # the coefficient formula used by the solver's bulk constraint.
@@ -28,7 +27,7 @@ function bulkmean(a)
     # degree N-1 polynomials exactly in exact arithmetic.
     N = length(a)
     nodes, vectors = eigen(SymTridiagonal(zeros(N), [n/sqrt(4n^2-1) for n = 1:N-1]))
-    return sum(vectors[1, j]^2 * sum(a[n]*cos(n*acos(nodes[j])) for n = 0:N-1)
+    return sum(vectors[1, j]^2 * sum(a[n+1]*cos(n*acos(nodes[j])) for n = 0:N-1)
                for j = 1:N)
 end
 

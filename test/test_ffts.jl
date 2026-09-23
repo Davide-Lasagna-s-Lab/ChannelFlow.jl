@@ -40,8 +40,8 @@
         # These plans operate on padded physical storage. An ordinary unpadded
         # PhysicalField must be rejected, rather than silently transformed
         # with incompatible dimensions.
-        @test_throws DimensionMismatch fft(U, PhysicalField(g))
-        @test_throws DimensionMismatch ifft(PhysicalField(g), U)
+        @test_throws DimensionMismatch fft(U, PhysicalField(g, NotPadded()))
+        @test_throws DimensionMismatch ifft(PhysicalField(g, NotPadded()), U)
     end
 
     g = Grid(6, 9, 8, 2π, 2π)

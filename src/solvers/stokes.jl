@@ -52,9 +52,8 @@ struct StokesSolver{G, S, M}
 end
 
 """Wrap Fourier slot `(ix, iz)` as Chebyshev coefficients without copying data."""
-_chebcolumn(U::SpectralField{T}, ix::Int, iz::Int,
-            ::ChebCoeffs{S, N}) where {T, S, N} =
-    ChebCoeffs{Complex{T}, N}(view(parent(U), :, ix, iz))
+_chebcolumn(U::SpectralField, ix::Int, iz::Int, ::AbstractVector) =
+    view(parent(U), :, ix, iz)
 
 """
     solve!(solver::StokesSolver, U, P, R;
@@ -98,7 +97,7 @@ function solve!(          solver::StokesSolver,
     # Only the mean mode sees the uniform pressure gradient or bulk target.
     target = isnothing(bulkvelocity) ? nothing :
              (bulkvelocity[1] - (isnothing(baseflow) ? 0.0 :
-                _bulkmean(ChebCoeffs(baseflow))),
+                _bulkmean(baseflow)),
               bulkvelocity[2])
     gradients = solve!(solver.mean, map(field -> _chebcolumn(field, 1, 1, solver.mean.work), fields)...;
                        pressuregradient=pressuregradient, bulkvelocity=target)

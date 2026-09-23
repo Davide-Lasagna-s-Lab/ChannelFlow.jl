@@ -10,15 +10,18 @@
         for (nu, lambda) in ((0.1, 0.0), (0.03, 2.5)), amplitude in (1.0, -0.4)
             ChebyshevHelmoltzSolvers.update!(solver, nu, lambda)
             forcing(y) = amplitude*(nu*(-0.4+0.6y)-lambda*exact(y))
-            rhs = ChebCoeffs(real.(parent(coefficients(forcing, Ny))))
+            rhs = real.(parent(coefficients(forcing, Ny)))
             expected = real.(parent(coefficients(y -> amplitude*exact(y), Ny)))
-            result = ChebyshevHelmoltzSolvers.solve!(solver, rhs,
+            source = copy(rhs)
+            saved = copy(source)
+            result = ChebyshevHelmoltzSolvers.solve!(solver, rhs, source,
                          amplitude*exact(1), amplitude*exact(-1))
-            # The scalar solve overwrites and returns rhs. Compare every
+            @test source == saved
+            # The scalar solve preserves source and returns rhs. Compare every
             # coefficient to the analytic polynomial, then evaluate both
             # endpoints independently to verify boundary ordering and values.
             @test result === rhs
-            @test parent(rhs) ≈ expected atol=2e-12
+            @test rhs ≈ expected atol=2e-12
             @test wallvalue(rhs, :right) ≈ amplitude*exact(1) atol=2e-12
             @test wallvalue(rhs, :left) ≈ amplitude*exact(-1) atol=2e-12
         end
@@ -32,18 +35,18 @@ end
 function check_stokes(solver, u, v, w, p, Rx, Ry, Rz, nu)
     P = length(p) - 1
     dp = derivative(p)
-    divergence = im*solver.kx .* parent(u) .+ parent(derivative(v)) .+
-                 im*solver.kz .* parent(w)
+    divergence = im*solver.kx .* u .+ parent(derivative(v)) .+
+                 im*solver.kz .* w
     # Incompressibility applies to all coefficients, including the highest
     # degrees; it is not relaxed by the momentum tau treatment.
     @test norm(divergence, Inf) < 2e-10
 
-    for (field, source, gradp) in ((u, Rx, im*solver.kx .* parent(p)),
-                                   (v, Ry, parent(dp)),
-                                   (w, Rz, im*solver.kz .* parent(p)))
-        residual = solver.lambda .* parent(field) .-
+    for (field, source, gradp) in ((u, Rx, im*solver.kx .* p),
+                                   (v, Ry, dp),
+                                   (w, Rz, im*solver.kz .* p))
+        residual = solver.lambda .* field .-
                    nu .* parent(derivative(derivative(field))) .+
-                   gradp .- parent(source)
+                   gradp .- source
         # With maximum degree P, the momentum equations retain degrees 0
         # through P-2 (array entries 1:P-1). The two remaining equations
         # impose wall conditions, so demanding zero momentum residual in those
@@ -102,23 +105,23 @@ end
             Rz = coefficients(y -> shift*wfun(y) -
                                    nu*(im*kz/kappa2*d3vfun(y)-kx*d2qfun(y)) +
                                    im*kz*pfun(y), Ny)
-            source = map(x -> copy(parent(x)), (Rx, Ry, Rz))
-            responses = map(x -> copy(parent(x)),
+            source = map(x -> copy(x), (Rx, Ry, Rz))
+            responses = map(x -> copy(x),
                             (solver.pressure_plus, solver.pressure_minus,
                              solver.velocity_plus, solver.velocity_minus,
                              solver.pressure_zero, solver.velocity_zero))
-            u, v, w, p = ntuple(_ -> ChebCoeffs(Ny-1, ComplexF64), 4)
+            u, v, w, p = ntuple(_ -> zeros(ComplexF64, Ny), 4)
 
             # Repeated solves must overwrite the outputs without changing
             # either the source or the precomputed influence/tau responses.
             for _ = 1:2
                 @test solve!(solver, u, v, w, p, Rx, Ry, Rz) == (u, v, w, p)
                 for (field, exact) in zip((u, v, w, p), (ufun, vfun, wfun, pfun))
-                    @test norm(parent(field)-parent(coefficients(exact, Ny)), Inf) < 2e-10
+                    @test norm(field-parent(coefficients(exact, Ny)), Inf) < 2e-10
                 end
                 check_stokes(solver, u, v, w, p, Rx, Ry, Rz, nu)
-                @test map(parent, (Rx, Ry, Rz)) == source
-                @test map(parent, (solver.pressure_plus, solver.pressure_minus,
+                @test map(identity, (Rx, Ry, Rz)) == source
+                @test map(identity, (solver.pressure_plus, solver.pressure_minus,
                                    solver.velocity_plus, solver.velocity_minus,
                                    solver.pressure_zero, solver.velocity_zero)) == responses
             end
@@ -130,9 +133,9 @@ end
     Ny = 17
     solver = InfluenceModeSolver(Ny, 1.25, -1.75, 0.03, 2.5)
     data = zeros(ComplexF64, Ny, 7)
-    u, v, w, p, Rx, Ry, Rz = ntuple(i -> ChebCoeffs(view(data, :, i)), 7)
+    u, v, w, p, Rx, Ry, Rz = ntuple(i -> view(data, :, i), 7)
     for (j, rhs) in enumerate((Rx, Ry, Rz)), n = 0:Ny-1
-        rhs[n] = complex(sin((j+1)*(n+1)), cos((j+2)*(n+1)))/(n+1)^2
+        rhs[n+1] = complex(sin((j+1)*(n+1)), cos((j+2)*(n+1)))/(n+1)^2
     end
     source = copy(data[:, 5:7])
     solve!(solver, u, v, w, p, Rx, Ry, Rz)
@@ -141,7 +144,7 @@ end
 
     # An incompatible coefficient count must fail before a modal solve can
     # index or overwrite the wrong storage.
-    wrong = ntuple(_ -> ChebCoeffs(8, ComplexF64), 7)
+    wrong = ntuple(_ -> zeros(ComplexF64, 9), 7)
     @test_throws DimensionMismatch solve!(solver, wrong...)
 end
 
@@ -172,9 +175,9 @@ end
             Rx = coefficients(y -> lambda*ufun(y)+nu*(1.2+1.2y+1.2y^2)+gradients[1], Ny)
             Ry = coefficients(y -> 1+0.8y+0.6y^2, Ny)
             Rz = coefficients(y -> lambda*wfun(y)-nu*(0.6-0.9y)+gradients[2], Ny)
-            source = map(x -> copy(parent(x)), (Rx, Ry, Rz))
-            response = copy(parent(solver.response))
-            u, v, w, p = ntuple(_ -> ChebCoeffs(Ny-1, ComplexF64), 4)
+            source = map(x -> copy(x), (Rx, Ry, Rz))
+            response = copy(solver.response)
+            u, v, w, p = ntuple(_ -> zeros(ComplexF64, Ny), 4)
 
             # Prescribing either the known pressure gradients or the known
             # means must recover the same fields and gradients. Repetition
@@ -185,7 +188,7 @@ end
                                      solve!(solver, u, v, w, p, Rx, Ry, Rz; pressuregradient=gradients)
                 @test all(abs.(actual .- gradients) .< 2e-11)
                 for (field, exact) in zip((u, w, p), (ufun, wfun, pfun))
-                    @test norm(parent(field)-parent(coefficients(exact, Ny)), Inf) < 2e-10
+                    @test norm(field-parent(coefficients(exact, Ny)), Inf) < 2e-10
                 end
                 # Verify the special zero-mode constraints: v=0, zero-mean
                 # pressure gauge, the two bulk velocities and dp/dy=Ry.
@@ -195,21 +198,21 @@ end
                 @test abs(bulkmean(p)) < 2e-12
                 @test bulkmean(u) ≈ means[1] atol=2e-11
                 @test bulkmean(w) ≈ means[2] atol=2e-11
-                @test norm(parent(derivative(p))-parent(Ry), Inf) < 2e-10
+                @test norm(parent(derivative(p))-Ry, Inf) < 2e-10
                 # The uniform pressure gradient contributes only to Chebyshev
                 # degree zero. Check retained momentum equations and both
                 # walls separately; the last two momentum coefficients are tau
                 # residuals, not equations required to vanish.
                 for (field, rhs, gradient) in ((u, Rx, actual[1]), (w, Rz, actual[2]))
-                    residual = lambda .* parent(field) .-
-                               nu .* parent(derivative(derivative(field))) .- parent(rhs)
+                    residual = lambda .* field .-
+                               nu .* parent(derivative(derivative(field))) .- rhs
                     residual[1] += gradient
                     @test norm(residual[1:Ny-2], Inf) < 2e-10
                     @test abs(wallvalue(field, :right)) < 2e-11
                     @test abs(wallvalue(field, :left)) < 2e-11
                 end
-                @test map(parent, (Rx, Ry, Rz)) == source
-                @test parent(solver.response) == response
+                @test map(identity, (Rx, Ry, Rz)) == source
+                @test solver.response == response
             end
         end
     end
@@ -219,14 +222,14 @@ end
     Ny, nu, lambda = 17, 0.03, 2.5
     solver = MeanModeSolver(Ny, nu, lambda)
     data = zeros(ComplexF64, Ny, 7)
-    u, v, w, p, Rx, Ry, Rz = ntuple(i -> ChebCoeffs(view(data, :, i)), 7)
+    u, v, w, p, Rx, Ry, Rz = ntuple(i -> view(data, :, i), 7)
     # Zero forcing must produce zero fields and zero returned gradients even
     # with view-backed coefficient arrays. Then nonzero complex forcing
     # exercises the same storage and both real-factor solve passes.
     @test solve!(solver, u, v, w, p, Rx, Ry, Rz) == (0.0, 0.0)
     @test all(iszero, data)
     for (i, rhs) in enumerate((Rx, Ry, Rz)), n = 0:Ny-1
-        rhs[n] = complex(sin(i*(n+1)), cos((i+1)*(n+1)))/(n+1)^2
+        rhs[n+1] = complex(sin(i*(n+1)), cos((i+1)*(n+1)))/(n+1)^2
     end
     source = copy(data[:, 5:7])
     gradients = solve!(solver, u, v, w, p, Rx, Ry, Rz; bulkvelocity=(0.2, -0.1))
@@ -241,15 +244,15 @@ end
     # forcing coefficient therefore cannot be integrated within this space:
     # the final residual must equal minus that coefficient, while every lower
     # residual vanishes.
-    normal = parent(derivative(p))-parent(Ry)
+    normal = parent(derivative(p))-Ry
     @test norm(normal[1:Ny-1], Inf) < 2e-11
-    @test normal[end] ≈ -Ry[Ny-1] atol=2e-12
+    @test normal[end] ≈ -Ry[Ny] atol=2e-12
     # As above, add the returned constant gradient only to degree zero and
     # test the retained momentum equations plus no-slip walls. Source columns
     # must survive these view-backed solves unchanged.
     for (field, rhs, gradient) in ((u, Rx, gradients[1]), (w, Rz, gradients[2]))
-        residual = lambda .* parent(field) .-
-                   nu .* parent(derivative(derivative(field))) .- parent(rhs)
+        residual = lambda .* field .-
+                   nu .* parent(derivative(derivative(field))) .- rhs
         residual[1] += gradient
         @test norm(residual[1:Ny-2], Inf) < 2e-10
         @test abs(wallvalue(field, :right)) < 2e-11
@@ -261,17 +264,16 @@ end
     # coefficient storage validation.
     @test_throws ArgumentError solve!(solver, u, v, w, p, Rx, Ry, Rz;
                                       pressuregradient=(0, 0), bulkvelocity=(0, 0))
-    wrong = ntuple(_ -> ChebCoeffs(8, ComplexF64), 7)
+    wrong = ntuple(_ -> zeros(ComplexF64, 9), 7)
     @test_throws DimensionMismatch solve!(solver, wrong...)
 
-    # The smallest mean-mode system recovers the quadratic polynomial.
-    # With three coefficients and zero shift, u=1-y^2 has mean 2/3 and
-    # coefficients (1/2,0,-1/2). Zero forcing then requires gradient=-2*nu.
-    # This probes the minimum system size and bulk-response sign.
-    small = ntuple(_ -> ChebCoeffs(2, ComplexF64), 7)
-    gradients = solve!(MeanModeSolver(3, nu, 0), small...; bulkvelocity=(2/3, 0))
+    # The structured factorisation requires at least four coefficients.
+    @test_throws ArgumentError MeanModeSolver(3, nu, 0)
+    small = ntuple(_ -> zeros(ComplexF64, 5), 7)
+    gradients = solve!(MeanModeSolver(5, nu, 0), small...; bulkvelocity=(2/3, 0))
     @test all(abs.(gradients .- (-2nu, 0)) .< 2e-12)
-    @test parent(small[1]) ≈ [0.5, 0, -0.5]
+    @test small[1] ≈ [0.5, 0, -0.5, 0, 0]
+
 end
 
 
@@ -285,9 +287,9 @@ end
     # derivative.
     for Ny in (5, 9), lambda in (0.0, 2.5)
         solver = InfluenceModeSolver(Ny, 2.0, -2.0, 1.0, lambda)
-        u, v, w, p, Rx, Ry, Rz = ntuple(_ -> ChebCoeffs(Ny-1, ComplexF64), 7)
+        u, v, w, p, Rx, Ry, Rz = ntuple(_ -> zeros(ComplexF64, Ny), 7)
         for (j, rhs) in enumerate((Rx, Ry, Rz)), n in 0:Ny-1
-            rhs[n] = complex(sin(j+n), cos(2j+n))/(n+1)
+            rhs[n+1] = complex(sin(j+n), cos(2j+n))/(n+1)
         end
         solve!(solver, u, v, w, p, Rx, Ry, Rz)
         check_stokes(solver, u, v, w, p, Rx, Ry, Rz, 1.0)

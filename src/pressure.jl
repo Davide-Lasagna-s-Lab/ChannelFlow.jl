@@ -48,7 +48,7 @@ function project!(U::VectorField{F}, problem::ChannelFlowProblem) where {F<:Spec
 
     solve!(solver, U, phi, R;
            bulkvelocity=bulkvelocity,
-           baseflow=parent(problem.scheme.baseflow))
+           baseflow=problem.scheme.baseflow)
 
     return U
 end
@@ -128,8 +128,9 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
 
     # Reuse the structured Neumann tau solver for each nonzero Fourier mode.
     # Real and imaginary sources share factors and a real coefficient buffer.
-    solver = HelmoltzSolver(Ny-1; neumann=true)
-    work = ChebCoeffs(Ny-1)
+    solver = HelmoltzSolver(Ny-1; neum=true)
+    work = zeros(Ny)
+    solution = similar(work)
 
     # NONZERO FOURIER MODES
     # Solve (Dyy - kx² - kz²) P = div(A) with wall-normal momentum conditions.
@@ -164,15 +165,15 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
 
         # REAL PART: reuse the modal factors with a real coefficient workspace.
         parent(work) .= real.(rhs)
-        solve!(solver, work, real(upper), real(lower))
+        solve!(solver, solution, work, real(upper), real(lower))
 
         # Preserve the imaginary source until its own solve is complete.
-        rhs .= complex.(parent(work), imag.(rhs))
+        rhs .= complex.(parent(solution), imag.(rhs))
 
         # IMAGINARY PART: solve with the same factors, then assemble complex P.
         parent(work) .= imag.(rhs)
-        solve!(solver, work, imag(upper), imag(lower))
-        rhs .= complex.(real.(rhs), parent(work))
+        solve!(solver, solution, work, imag(upper), imag(lower))
+        rhs .= complex.(real.(rhs), parent(solution))
     end
 
     # ZERO FOURIER MODE
@@ -181,20 +182,20 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
     # P_y = A_y. Truncate the unrepresentable highest-degree primitive and
     # choose the constant coefficient to give zero physical volume mean.
     normal = view(parent(A[2]), :, 1, 1)
-    mean = ChebCoeffs(view(parent(P), :, 1, 1))
+    mean = view(parent(P), :, 1, 1)
 
     # Integrate the retained Chebyshev series using neighbouring coefficients.
     # The constant source has a different normalization from higher degrees.
     for n = 1:Ny-1
         lower = n == 1 ? normal[1] : normal[n]/2
         upper = n+1 < Ny-1 ? normal[n+2]/2 : zero(eltype(normal))
-        mean[n] = (lower-upper)/n
+        mean[n+1] = (lower-upper)/n
     end
 
     # Fix the additive constant by the physical volume mean, not by setting
     # the zeroth Chebyshev coefficient alone to zero.
-    mean[0] = 0
-    mean[0] = -_bulkmean(mean)
+    mean[1] = 0
+    mean[1] = -_bulkmean(mean)
 
     # Restore the spectral convention after all retained modes are solved.
     zero_nyquist!(P)

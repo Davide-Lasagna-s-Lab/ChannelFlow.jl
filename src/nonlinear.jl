@@ -46,7 +46,7 @@ form instead contributes a pressure gradient that is absorbed into its modified
 pressure variable. The sustaining viscous and pressure-gradient balance,
 additional forcing and pressure projection are handled outside this operator.
 """
-struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B<:ChebCoeffs{T}}
+struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B<:AbstractVector{T}}
        cache::CACHE # cache specific to the selected nonlinear form
         ifft::IFFT  # concrete callable inverse transform
          fft::FFT   # concrete callable forward transform
@@ -54,7 +54,7 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B<:ChebCoeffs{
 
     function NonLinearTerm(             u::PhysicalField{T},
                                        U::SpectralField{T},
-                                baseflow::ChebCoeffs{T};
+                                baseflow::AbstractVector{T};
                              chebbackend::Symbol=:fftw,
                                fftwflags::Integer=FFTW.EXHAUSTIVE,
                            fftwtimelimit::Real=FFTW.NO_TIMELIMIT,
@@ -122,7 +122,7 @@ function (Eq::NonLinearTerm{T, ConvectiveForm})(   t::Real,
     # before either gradient evaluation or inverse transformation. Adding it
     # only to the physical advecting velocity would omit the v*Ub' shear term.
     TMP .= U
-    @views TMP[1][:, 1, 1] .+= parent(Eq.baseflow)
+    @views TMP[1][:, 1, 1] .+= Eq.baseflow
 
     grad!(GRAD, TMP)
 
@@ -152,7 +152,7 @@ function (Eq::NonLinearTerm{T, DivergenceForm})(   t::Real,
 
     # Form the total velocity, including the base profile in the zero mode.
     N .= U
-    @views N[1][:, 1, 1] .+= parent(Eq.baseflow)
+    @views N[1][:, 1, 1] .+= Eq.baseflow
 
     Eq.ifft(u, N)
 
@@ -178,7 +178,7 @@ function (Eq::NonLinearTerm{T, RotatingForm})(   t::Real,
     u, n, ω, TMP, Ω = Eq.cache
 
     TMP .= U
-    @views TMP[1][:, 1, 1] .+= parent(Eq.baseflow)
+    @views TMP[1][:, 1, 1] .+= Eq.baseflow
 
     curl!(Ω, TMP)
 

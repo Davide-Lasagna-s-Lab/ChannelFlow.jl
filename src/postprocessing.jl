@@ -114,12 +114,12 @@ function power_input(U::VectorField{<:SpectralField}, nu::Real;
                      pressuregradient::NTuple{2, Real}=(0, 0))
     input = 0.0
     for (i, gradient) in zip((1, 3), pressuregradient)
-        mean = ChebCoeffs(view(parent(U[i]), :, 1, 1))
+        mean = view(parent(U[i]), :, 1, 1)
 
         # Uniform wall velocities multiply plane-averaged shear. The minus
         # sign at the lower wall is its outward-normal orientation.
-        upper = sum(parent(mean))
-        lower = sum((-1)^n * mean[n] for n = 0:length(mean)-1)
+        upper = sum(mean)
+        lower = sum((-1)^n * mean[n+1] for n = 0:length(mean)-1)
         input += nu/2 * real(conj(upper)*diff(mean, :right) -
                              conj(lower)*diff(mean, :left))
         input -= gradient * real(_bulkmean(mean))

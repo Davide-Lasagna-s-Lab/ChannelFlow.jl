@@ -41,8 +41,7 @@ profile changes. The caller retains velocity and stage pressure between steps.
 """
 struct CNRK2{S, 
              F<:SpectralField, 
-             P, 
-             C<:ChebCoeffs{<:Real, P}} <: Flows.AbstractMethod{State, Flows.NormalMode, 3}
+             C<:AbstractVector{<:Real}} <: Flows.AbstractMethod{State, Flows.NormalMode, 3}
                nu::Float64
                dt::Float64
           solvers::NTuple{3, S}
@@ -75,7 +74,7 @@ struct CNRK2{S,
         
         return new{typeof(solvers[1]),
                    typeof(Q[1]),
-                   length(baseflow)-1, typeof(baseflow)}(nu, dt, solvers, Q, N, R, baseflow, basecurvature)
+                   typeof(baseflow)}(nu, dt, solvers, Q, N, R, baseflow, basecurvature)
     end
 end
 
@@ -192,14 +191,14 @@ function step!(          scheme::CNRK2{S, F},
             derivative!(N[i], P)
             R[i] .= lambda .* U[i] .+ scheme.nu .* R[i] .- N[i] .+ weight .* Q[i]
         end
-        @views R[1][:, 1, 1] .+= 2 * scheme.nu .* parent(scheme.basecurvature)
+        @views R[1][:, 1, 1] .+= 2 * scheme.nu .* scheme.basecurvature
         R[1][1, 1, 1] -= oldgradient[1]
         R[3][1, 1, 1] -= oldgradient[2]
 
         gradients = solve!(scheme.solvers[j], U, P, R;
                            pressuregradient=pressuregradient,
                            bulkvelocity=bulkvelocity,
-                           baseflow=parent(scheme.baseflow))
+                           baseflow=scheme.baseflow)
     end
     return t+scheme.dt, gradients
 end

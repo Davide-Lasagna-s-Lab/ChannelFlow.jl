@@ -39,7 +39,7 @@ struct InfluenceModeSolver{H, C}
         InfluenceModeSolver(Ny, kx, kz, nu, lambda)
 
     Construct and factorise the pressure/velocity systems for a fixed Fourier mode
-    and time-stepping coefficient. `Ny ≥ 3` is the odd number of Chebyshev
+    and time-stepping coefficient. `Ny ≥ 5` is the odd number of Chebyshev
     coefficients, `kx` and `kz` are physical wavenumbers (including the factors
     `2π/Lx` and `2π/Lz`), `nu` is viscosity, and `lambda` is the temporal shift.
     The mode must be nonzero; its squared wavenumber is `kappa2 = kx² + kz²`.
@@ -62,8 +62,8 @@ struct InfluenceModeSolver{H, C}
                                      kz::Real,
                                      nu::Real,
                                  lambda::Real)
-        Ny ≥ 3 && isodd(Ny) ||
-            throw(ArgumentError("Gibson's tau correction requires odd Ny ≥ 3"))
+        Ny ≥ 5 && isodd(Ny) ||
+            throw(ArgumentError("Gibson's tau correction requires odd Ny ≥ 5"))
         kx, kz = Float64(kx), Float64(kz)
         kappa2 = kx^2 + kz^2
         kappa2 > 0 ||
@@ -73,26 +73,25 @@ struct InfluenceModeSolver{H, C}
         pressure = HelmoltzSolver(P, Float64)
         velocity = HelmoltzSolver(P, Float64)
         pplus, pminus, vplus, vminus, pzero, vzero, work =
-            ntuple(_ -> ChebCoeffs(P, Float64), 7)
-        cache = ntuple(_ -> ChebCoeffs(P, Float64), 4)
+            ntuple(_ -> zeros(Float64, P+1), 7)
+        cache = ntuple(_ -> zeros(Float64, P+1), 4)
         shift = Float64(lambda + nu*kappa2)
 
         update!(pressure, 1, kappa2)
         update!(velocity, nu, shift)
 
-        # ChebCoeffs starts at zero. Each homogeneous pressure solution has a
+        # Each homogeneous pressure solution has a
         # unit value at one wall and zero at the other; its derivative drives
         # a velocity response with zero values at both walls.
         # The backend takes boundary values in the order (+1, -1).
-        solve!(pressure, pplus, 1, 0)
+        solve!(pressure, pplus, work, 1, 0)
         diff!(work, pplus)
-        parent(vplus) .= parent(work)
-        solve!(velocity, vplus, 0, 0)
+        solve!(velocity, vplus, work, 0, 0)
 
-        solve!(pressure, pminus, 0, 1)
+        fill!(work, 0)
+        solve!(pressure, pminus, work, 0, 1)
         diff!(work, pminus)
-        parent(vminus) .= parent(work)
-        solve!(velocity, vminus, 0, 0)
+        solve!(velocity, vminus, work, 0, 0)
 
         # Rows select v'(+1), v'(-1); columns select the plus/minus response.
         # Multiplying this matrix by the two pressure amplitudes gives the
@@ -118,12 +117,12 @@ struct InfluenceModeSolver{H, C}
         # Gibson's auxiliary B0 problem uses (T_{P-1} + T_P)' as the pressure
         # source. Both parities fit in one pair (pzero, vzero), so each of the
         # two momentum tau terms can later be corrected independently.
-        fill!(parent(work), 0)
-        work[P-1] = work[P] = 1
-        diff!(pzero, work)
-        solve!(pressure, pzero, 0, 0)
-        diff!(vzero, pzero)
-        solve!(velocity, vzero, 0, 0)
+        fill!(work, 0)
+        work[P] = work[P+1] = 1
+        diff!(work)
+        solve!(pressure, pzero, work, 0, 0)
+        diff!(work, pzero)
+        solve!(velocity, vzero, work, 0, 0)
 
         solver = new{typeof(pressure), typeof(pplus)}(
             pressure, velocity, pplus, pminus, vplus, vminus, influence_inverse,
@@ -135,8 +134,8 @@ struct InfluenceModeSolver{H, C}
         # leaves a discrete divergence residual, especially at low degree.
         # At degrees P-1 and P, vzero'' vanishes; pzero'[P] also vanishes.
         diff!(work, pzero)
-        solver.sigma0[1] = shift*vzero[P-1] + work[P-1]
-        solver.sigma0[2] = shift*vzero[P]
+        solver.sigma0[1] = shift*vzero[P] + work[P]
+        solver.sigma0[2] = shift*vzero[P+1]
         return solver
     end
 end
@@ -170,10 +169,10 @@ function _influence_correction!(solver::InfluenceModeSolver{H, C},
     δ₋ = A[2, 1]*b₊ + A[2, 2]*b₋
 
     # A pressure response and its velocity response share one amplitude.
-    parent(p) .+= δ₊ .* parent(solver.pressure_plus) .+
-                  δ₋ .* parent(solver.pressure_minus)
-    parent(v) .+= δ₊ .* parent(solver.velocity_plus) .+
-                  δ₋ .* parent(solver.velocity_minus)
+    p .+= δ₊ .* solver.pressure_plus .+
+                  δ₋ .* solver.pressure_minus
+    v .+= δ₊ .* solver.velocity_plus .+
+                  δ₋ .* solver.velocity_minus
     return p, v
 end
 
@@ -193,7 +192,7 @@ u(±1) = v(±1) = w(±1) = 0.
 Here `D = d/dy` and `solver.lambda` includes `nu*(kx² + kz²)`. This is
 the modal solve performed by Channelflow's `TauSolver::solve`.
 
-All input and output fields are `ChebCoeffs{ComplexF64}` with the solver's
+All input and output fields are `AbstractVector{ComplexF64}` with the solver's
 degree and the same concrete storage type. Overwrite `u, v, w, p` and return
 `(u, v, w, p)`; preserve `Rx, Ry, Rz`. Outputs must have distinct storage
 and must not overlap inputs or the solver's cache.
@@ -210,7 +209,7 @@ function solve!(solver::InfluenceModeSolver,
                      p::Z,
                     Rx::Z,
                     Ry::Z,
-                    Rz::Z) where {Z<:ChebCoeffs{ComplexF64}}
+                    Rz::Z) where {Z<:AbstractVector{ComplexF64}}
     length(p) == length(solver.work) ||
         throw(DimensionMismatch("mode coefficients must match the solver's degree"))
     pc, vc, r, ry = solver.cache
@@ -244,11 +243,11 @@ function solve!(solver::InfluenceModeSolver,
     # The horizontal momentum sources are i*k*p - R. Reuse the p/v
     # workspaces for their real/imaginary parts and the cached velocity factors.
     for (out, source, k) in ((u, Rx, solver.kx), (w, Rz, solver.kz))
-        parent(pc) .= -k .* imag.(parent(p)) .- real.(parent(source))
-        parent(vc) .=  k .* real.(parent(p)) .- imag.(parent(source))
-        solve!(solver.velocity, pc, 0, 0)
-        solve!(solver.velocity, vc, 0, 0)
-        parent(out) .= complex.(parent(pc), parent(vc))
+        pc .= -k .* imag.(p) .- real.(source)
+        vc .=  k .* real.(p) .- imag.(source)
+        solve!(solver.velocity, ry, pc, 0, 0)
+        solve!(solver.velocity, r, vc, 0, 0)
+        out .= complex.(ry, r)
     end
     return u, v, w, p
 end
@@ -258,8 +257,8 @@ end
 
 Overwrite `p` and `v` with the pressure and wall-normal velocity of one
 nonzero Fourier mode, using Gibson's influence-matrix and tau corrections.
-All four arguments are ordinary real `ChebCoeffs` expansions of degree
-`P = Ny - 1`, indexed from `0` to `P`.
+All four arguments are ordinary real coefficient vectors of degree
+`P = Ny - 1`, indexed from `1` to `P+1`.
 
 The particular problems are
 ```text
@@ -287,14 +286,12 @@ function solve!(solver::InfluenceModeSolver{H, C},
                     Ry::C) where {H, C}
     # Zero pressure wall values select a particular solution; they are
     # replaced by the values required by the influence correction below.
-    parent(p) .= parent(r)
-    solve!(solver.pressure, p, 0, 0)
+    solve!(solver.pressure, p, r, 0, 0)
 
     # Form Dp - Ry and solve for v with homogeneous wall values.
     diff!(solver.work, p)
-    parent(solver.work) .-= parent(Ry)
-    parent(v) .= parent(solver.work)
-    solve!(solver.velocity, v, 0, 0)
+    solver.work .-= Ry
+    solve!(solver.velocity, v, solver.work, 0, 0)
 
     _influence_correction!(solver, p, v)
 
@@ -303,17 +300,17 @@ function solve!(solver::InfluenceModeSolver{H, C},
     # D²v has degree at most P-2, so its contribution is exactly zero here.
     P = length(p) - 1
     diff!(solver.work, p)
-    sigmaNm1 = (solver.lambda*v[P-1] + solver.work[P-1] - Ry[P-1]) /
+    sigmaNm1 = (solver.lambda*v[P] + solver.work[P] - Ry[P]) /
                (1 - solver.sigma0[1])
-    sigmaN = (solver.lambda*v[P] + solver.work[P] - Ry[P]) /
+    sigmaN = (solver.lambda*v[P+1] + solver.work[P+1] - Ry[P+1]) /
              (1 - solver.sigma0[2])
 
     # sigma_m = sigma1_m/(1 - sigma0_m) includes the auxiliary response's
     # own tau contribution. Since P is even and differentiation swaps
     # parity, the pressure correction uses the opposite parity to velocity.
-    @inbounds for n = 0:P
-        p[n] += (iseven(n) ? sigmaNm1 : sigmaN) * solver.pressure_zero[n]
-        v[n] += (iseven(n) ? sigmaN : sigmaNm1) * solver.velocity_zero[n]
+    @inbounds for n = 1:P+1
+        p[n] += (iseven(n-1) ? sigmaNm1 : sigmaN) * solver.pressure_zero[n]
+        v[n] += (iseven(n-1) ? sigmaN : sigmaNm1) * solver.velocity_zero[n]
     end
     return p, v
 end
