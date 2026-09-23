@@ -8,7 +8,7 @@ export PhysicalField
     PhysicalField(data, grid)
 
 Wrap a resolved or 3/2-padded physical scalar field with storage order
-`(y, x, z)`. The first index is contiguous.
+`(x, z, y)`. The first index is contiguous.
 """
 struct PhysicalField{T<:AbstractFloat,
                      A<:DenseArray{T, 3},
@@ -50,7 +50,7 @@ PhysicalField(grid::Grid, ::Type{T}=Float64) where {T<:AbstractFloat} =
     PhysicalField(grid, tag::Union{Padded, NotPadded}, [T=Float64])
 
 Allocate a zero physical field with the selected padding and real element
-type `T`, in storage order `(y, x, z)`.
+type `T`, in storage order `(x, z, y)`.
 """
 PhysicalField(grid::Grid, tag::Union{Padded, NotPadded},
               ::Type{T}=Float64) where {T<:AbstractFloat} =

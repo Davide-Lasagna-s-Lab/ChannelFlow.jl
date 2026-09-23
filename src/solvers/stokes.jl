@@ -7,14 +7,13 @@ export StokesSolver
 """
     StokesSolver(grid, nu, lambda)
 
-Cache the serial primitive-variable Stokes solve for all resolved Fourier
+Cache the batched primitive-variable Stokes solve for all resolved Fourier
 modes on `grid`. `nu` is viscosity and `lambda` the temporal shift, as in
 [`InfluenceModeSolver`](@ref) and [`MeanModeSolver`](@ref).
 
-Store a separate mean-mode solver and an influence solver for each active
-nonzero mode. `modes[ix, iz]` follows the FFT storage order: nonnegative `kx`,
-then positive and negative `kz` in their FFT slots. The mean and excluded
-Nyquist slots contain `nothing`; they allocate no influence systems.
+Store a separate mean-mode solver and one bank of batched influence systems.
+Rows follow flattened `(kx,kz)` FFT storage. The mean slot is overwritten
+by its dedicated solve and excluded Nyquist planes are cleared afterwards.
 Physical wavenumbers include `2π/Lx` and `2π/Lz`.
 
 Require odd `Ny ≥ 3`, positive periodic sizes and finite positive `Lx, Lz`.
@@ -29,7 +28,7 @@ struct StokesSolver{G, S, M}
     function StokesSolver(  grid::Grid,
                                      nu::Real,
                                  lambda::Real)
-        Ny, Nx, Nz = physicalsize(grid, NotPadded())
+        Nx, Nz, Ny = physicalsize(grid, NotPadded())
         Lx, _, Lz = domainsize(grid)
         isodd(Ny) || throw(ArgumentError("Gibson's tau correction requires odd Ny"))
         Nx > 0 && Nz > 0 || throw(ArgumentError("Nx and Nz must be positive"))
@@ -37,23 +36,20 @@ struct StokesSolver{G, S, M}
             throw(ArgumentError("Lx and Lz must be finite and positive"))
 
         mean = MeanModeSolver(Ny, nu, lambda)
-        _, Nxh, _ = spectralsize(grid, NotPadded())
-        modes = [if (ix == 1 && iz == 1) ||
-                    (iseven(Nx) && ix == Nxh) ||
-                    (iseven(Nz) && iz == (Nz >> 1)+1)
-                     nothing
-                 else
-                     kx = (2π/Lx)*(ix-1)
-                     kz = (2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
-                     InfluenceModeSolver(Ny, kx, kz, nu, lambda)
-                 end for ix = 1:Nxh, iz = 1:Nz]
+        Nxh, _, _ = spectralsize(grid, NotPadded())
+        kx = vec([(2π/Lx)*(ix-1) for ix=1:Nxh, iz=1:Nz])
+        kz = vec([(2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
+                  for ix=1:Nxh, iz=1:Nz])
+        # The zero slot is overwritten by the separate mean-mode solve.
+        # A nonsingular placeholder keeps every field a direct matrix view.
+        modes = BatchedInfluenceSolver(Ny, kx, kz, nu, lambda)
         return new{typeof(grid), typeof(modes), typeof(mean)}(grid, modes, mean)
     end
 end
 
 """Wrap Fourier slot `(ix, iz)` as Chebyshev coefficients without copying data."""
 _chebcolumn(U::SpectralField, ix::Int, iz::Int, ::AbstractVector) =
-    view(parent(U), :, ix, iz)
+    view(parent(U), ix, iz, :)
 
 """
     solve!(solver::StokesSolver, U, P, R;
@@ -64,7 +60,7 @@ Overwrite the perturbation velocity `U::VectorField` and pressure
 fields must store `ComplexF64` coefficients on the solver's grid, with the
 resolved size `spectralsize(grid, NotPadded())`.
 
-Apply the modal Stokes systems through views of contiguous Chebyshev columns.
+Apply the modal Stokes systems through zero-copy `(system, coefficient)` matrix views.
 Treat the mean separately and set all output Nyquist planes to zero. Sources
 are preserved, including excluded modes. Outputs must have distinct storage
 and must not overlap inputs or solver workspaces. Input spectra must satisfy
@@ -99,15 +95,10 @@ function solve!(          solver::StokesSolver,
              (bulkvelocity[1] - (isnothing(baseflow) ? 0.0 :
                 _bulkmean(baseflow)),
               bulkvelocity[2])
+    solve!(solver.modes, map(spectralmatrix, fields)...)
     gradients = solve!(solver.mean, map(field -> _chebcolumn(field, 1, 1, solver.mean.work), fields)...;
                        pressuregradient=pressuregradient, bulkvelocity=target)
 
-    _, Nxh, Nz = expected
-    for iz = 1:Nz, ix = 1:Nxh
-        mode = solver.modes[ix, iz]
-        isnothing(mode) && continue
-        solve!(mode, map(field -> _chebcolumn(field, ix, iz, solver.mean.work), fields)...)
-    end
     for field in (U.components..., P)
         zero_nyquist!(field)
     end

@@ -12,7 +12,7 @@
     Re, A, T = 100.0, 0.1, 4.0
     nu = 1/Re
     g = Grid(5, 33, 8, 2π, 2π)
-    Ny, Nx, Nz = physicalsize(g, Padded())
+    Nx, Nz, Ny = physicalsize(g, Padded())
 
     # Integrate physical-space energy with interpolatory Chebyshev quadrature.
     # The weights reproduce integral(T_j,-1,1), independently of the solver's
@@ -20,7 +20,7 @@
     C = [cospi(i*j/(Ny-1)) for i=0:Ny-1, j=0:Ny-1]
     moments = [iseven(j) ? 2/(1-j^2) : 0.0 for j=0:Ny-1]
     weights = transpose(C) \ moments
-    energy(u) = sum(weights .* vec(sum(abs2, u; dims=(2,3))))/(4Nx*Nz)
+    energy(u) = sum(weights .* vec(sum(abs2, u; dims=(1,2))))/(4Nx*Nz)
 
     for (name, profile, gradient) in (("Poiseuille", y -> 1-y^2, -2nu),
                                       ("Couette", y -> y, 0.0)), n in (1,3)
@@ -72,7 +72,7 @@
                           1e-3*nu*A*alpha*exp(-mu*t)
                     # beta=1 has zero periodic mean, so no perturbation flux
                     # or unintended change of the sustained base is allowed.
-                    @test maximum(abs, parent(U[1])[:,1,1]) < 1e-10
+                    @test maximum(abs, parent(U[1])[1, 1, :]) < 1e-10
                     t == T && push!(errors,error)
                 end
             end

@@ -66,7 +66,7 @@ struct CNRK2{S,
         R = VectorField(SpectralField(grid))
 
         # Store the baseflow and its curvature in Chebyshev coefficient form
-        length(baseflow) == physicalsize(grid, NotPadded())[1] ||
+        length(baseflow) == physicalsize(grid, NotPadded())[3] ||
             throw(DimensionMismatch("baseflow must have one value per wall-normal point"))
 
         baseflow = chebcoeffs(baseflow)
@@ -191,7 +191,7 @@ function step!(          scheme::CNRK2{S, F},
             derivative!(N[i], P)
             R[i] .= lambda .* U[i] .+ scheme.nu .* R[i] .- N[i] .+ weight .* Q[i]
         end
-        @views R[1][:, 1, 1] .+= 2 * scheme.nu .* scheme.basecurvature
+        @views R[1][1, 1, :] .+= 2 * scheme.nu .* scheme.basecurvature
         R[1][1, 1, 1] -= oldgradient[1]
         R[3][1, 1, 1] -= oldgradient[2]
 

@@ -33,7 +33,7 @@
                 # leaving stale output will fail.
                 if (iseven(Nx) && mx == Nx÷2) || (iseven(Nz) && mz == -Nz÷2)
                     for field in R.components
-                        @views parent(field)[:, ix, iz] .= 7+3im
+                        @views parent(field)[ix, iz, :] .= 7+3im
                     end
                     continue
                 end
@@ -72,7 +72,7 @@
                 rzf = y -> shift*wf(y)-nu*d2wf(y)+(meanmode ? gradients[2] : im*kz*pf(y))
                 for (field, f) in zip((exact.components..., exactP, R.components...),
                                       (uf, vf, wf, pf, rxf, ryf, rzf))
-                    @views parent(field)[:, ix, iz] .= parent(coefficients(f, Ny))
+                    @views parent(field)[ix, iz, :] .= parent(coefficients(f, Ny))
                 end
             end
             source = map(field -> copy(parent(field)), R.components)
@@ -117,15 +117,15 @@
                     # coefficients carry tau residuals for the wall
                     # conditions.
                     ChannelFlow.zero_nyquist!(work)
-                    @test norm(view(parent(work), 1:Ny-2, :, :), Inf) < 2e-10
+                    @test norm(view(parent(work), :, :, 1:Ny-2), Inf) < 2e-10
                 end
                 # Quadrature of the mean Fourier column verifies the
                 # total/perturbation bulk conversion and the pressure gauge
                 # independently of the solver internal mean formula.
-                @test real(bulkmean(view(parent(U[1]), :, 1, 1))) + base_mean ≈
+                @test real(bulkmean(view(parent(U[1]), 1, 1, :))) + base_mean ≈
                       base_mean+0.2*2/3 atol=2e-11
-                @test real(bulkmean(view(parent(U[3]), :, 1, 1))) ≈ -0.1*2/3 atol=2e-11
-                @test abs(bulkmean(view(parent(P), :, 1, 1))) < 2e-12
+                @test real(bulkmean(view(parent(U[3]), 1, 1, :))) ≈ -0.1*2/3 atol=2e-11
+                @test abs(bulkmean(view(parent(P), 1, 1, :))) < 2e-12
             end
         end
     end

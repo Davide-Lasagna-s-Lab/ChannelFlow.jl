@@ -116,10 +116,10 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
 
     # Grid geometry and resolved Fourier dimensions; y is the first array axis.
     g = grid(A[1])
-    Ny, Nxh, Nz = size(A[1])
+    Nxh, Nz, Ny = size(A[1])
     Ny >= 3 || throw(ArgumentError("pressure reconstruction requires Ny ≥ 3"))
     Lx, _, Lz = domainsize(g)
-    _, Nx, _ = physicalsize(g, NotPadded())
+    Nx, _, _ = physicalsize(g, NotPadded())
 
     # Initially P holds the Poisson source. Each modal solve overwrites its
     # own column with pressure coefficients, leaving A and v unchanged.
@@ -146,8 +146,8 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
         kz = (2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
         update!(solver, 1.0, kx^2 + kz^2)
 
-        rhs = view(parent(P), :, ix, iz)
-        normal = view(parent(A[2]), :, ix, iz)
+        rhs = view(parent(P), ix, iz, :)
+        normal = view(parent(A[2]), ix, iz, :)
 
         # WALL DATA: P_y = A_y + nu*v_yy at y = +1 and -1.
         # Both derivatives point along +y, rather than the outward wall normal.
@@ -158,7 +158,7 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
         lower = sum((-1)^(j-1)*normal[j] for j = 1:Ny)
 
         for n = 2:Ny-1
-            wall = nu * (n^2*(n^2-1)/3) * v[n+1, ix, iz]
+            wall = nu * (n^2*(n^2-1)/3) * v[ix, iz, n+1]
             upper += wall
             lower += iseven(n) ? wall : -wall
         end
@@ -181,8 +181,8 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
     # throughout the channel, so there is no viscous contribution. Thus
     # P_y = A_y. Truncate the unrepresentable highest-degree primitive and
     # choose the constant coefficient to give zero physical volume mean.
-    normal = view(parent(A[2]), :, 1, 1)
-    mean = view(parent(P), :, 1, 1)
+    normal = view(parent(A[2]), 1, 1, :)
+    mean = view(parent(P), 1, 1, :)
 
     # Integrate the retained Chebyshev series using neighbouring coefficients.
     # The constant source has a different normalization from higher degrees.

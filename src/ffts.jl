@@ -4,11 +4,11 @@ export ForwardFFT!, InverseFFT!, ForwardFFT, InverseFFT, FFT, IFFT
 #///                   FOURIER-CHEBYSHEV TRANSFORM LAYOUT                   ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-# Array storage is `(y,x,z)`. FFTW applies the real transform along the first
-# entry and complex transforms along the remaining entries. Using `(2,3)`
+# Array storage is `(x,z,y)`. FFTW applies the real transform along the first
+# entry and complex transforms along the remaining entries. Using `(1,2)`
 # therefore gives an rfft in x and a full FFT in z. A separate DCT-I in the
-# first dimension converts Lobatto values to/from Chebyshev coefficients.
-const FFT_DIMS = (2, 3)
+# last dimension converts Lobatto values to/from Chebyshev coefficients.
+const FFT_DIMS = (1, 2)
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                           FORWARD TRANSFORM                            ///#
@@ -17,8 +17,8 @@ const FFT_DIMS = (2, 3)
 """
     ForwardFFT!(u; chebbackend=:fftw, flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
-Plan the Fourier--Chebyshev transform from physical storage `(y, x, z)` to
-spectral storage `(n, kx, kz)`. Fourier amplitudes are normalised by the padded
+Plan the Fourier--Chebyshev transform from physical storage `(x, z, y)` to
+spectral storage `(kx, kz, n)`. Fourier amplitudes are normalised by the padded
 periodic size; Chebyshev coefficients use the ordinary `sum(a_n*T_n)` series.
 """
 struct ForwardFFT!{P, C, A, T}
@@ -35,12 +35,12 @@ function ForwardFFT!(        u::PhysicalField{T};
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # Only periodic dimensions are padded. All Ny Chebyshev coefficients
     # are retained; there is no wall-normal dealiasing in this implementation.
-    Ny, Nxp, Nzp = physicalsize(grid(u), Padded())
+    Nxp, Nzp, Ny = physicalsize(grid(u), Padded())
     padded = SpectralField(
         zeros(Complex{T}, spectralsize(grid(u), Padded())), grid(u))
 
     # Execution later uses any real array with this type and layout.
-    plan = FFTW.plan_rfft(zeros(T, Ny, Nxp, Nzp), FFT_DIMS;
+    plan = FFTW.plan_rfft(zeros(T, Nxp, Nzp, Ny), FFT_DIMS;
                           flags=flags, timelimit=timelimit)
     # The wall-normal backend works only on retained Fourier columns.
     # It writes the final coefficients into the caller's output field.
@@ -106,8 +106,8 @@ end
 """
     InverseFFT!(U; chebbackend=:fftw, flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
-Plan the inverse transform from resolved spectral storage `(n, kx, kz)` to the
-3/2-padded physical storage `(y, xp, zp)`. The resolved input is preserved
+Plan the inverse transform from resolved spectral storage `(kx, kz, n)` to the
+3/2-padded physical storage `(xp, zp, y)`. The resolved input is preserved
 by evaluating the wall-normal transform into a separate resolved buffer,
 then embedding those values into the padded Fourier spectrum. FFTW's `brfft`
 may overwrite that padded buffer. This order skips DCTs of zero columns.
@@ -126,7 +126,7 @@ function InverseFFT!(        U::SpectralField{T};
     # The inverse plan must use exactly the same padded layout as the forward
     # plan. `Nxp` is passed explicitly because an rfft half-spectrum alone
     # cannot distinguish an even physical length from the adjacent odd one.
-    _, Nxp, _ = physicalsize(grid(U), Padded())
+    Nxp, _, _ = physicalsize(grid(U), Padded())
     padded = SpectralField(
         zeros(eltype(U), spectralsize(grid(U), Padded())), grid(U))
     plan = FFTW.plan_brfft(parent(padded), Nxp, FFT_DIMS;
@@ -236,38 +236,38 @@ end
     copy_to_padded!(dest, src, scale=1)
 
 Embed a compact resolved spectrum in a zeroed padded spectrum. The stored
-nonnegative `kx` modes remain a prefix of dimension two. Nonnegative `kz`
-modes stay at the start of dimension three; negative modes move to its end.
+nonnegative `kx` modes remain a prefix of dimension one. Nonnegative `kz`
+modes stay at the start of dimension two; negative modes move to its end.
 Multiply copied coefficients by `scale`; entries outside the copied blocks
 are left untouched, so the caller must zero `dest` before padding.
 """
 function copy_to_padded!(dest::SpectralField{T},
                           src::SpectralField{T},
                          scale=one(T)) where {T}
-    _, Nxh, Nz = size(src)
-    positive, negative, padded_negative = _complex_mode_ranges(Nz, size(dest, 3))
+    Nxh, Nz, _ = size(src)
+    positive, negative, padded_negative = _complex_mode_ranges(Nz, size(dest, 2))
 
-    @views parent(dest)[:, 1:Nxh, positive] .= scale .* parent(src)[:, :, positive]
-    @views parent(dest)[:, 1:Nxh, padded_negative] .= scale .* parent(src)[:, :, negative]
+    @views parent(dest)[1:Nxh, positive, :] .= scale .* parent(src)[:, positive, :]
+    @views parent(dest)[1:Nxh, padded_negative, :] .= scale .* parent(src)[:, negative, :]
     return dest
 end
 
 """Apply transform scaling, Chebyshev endpoint weights and Nyquist filtering."""
 function normalize_forward!(U::SpectralField, normalization)
-    Ny, Nxh, Nz = size(U)
-    _, Nx, _ = physicalsize(grid(U), NotPadded())
+    Nxh, Nz, Ny = size(U)
+    Nx, _, _ = physicalsize(grid(U), NotPadded())
     xnyquist = iseven(Nx) ? (Nx >> 1) + 1 : 0
     znyquist = iseven(Nz) ? (Nz >> 1) + 1 : 0
 
     @inbounds for iz = 1:Nz, ix = 1:Nxh
         if ix == xnyquist || iz == znyquist
             for iy = 1:Ny
-                U[iy, ix, iz] = 0
+                U[ix, iz, iy] = 0
             end
         else
             for iy = 1:Ny
                 endpoint = (iy == 1 || iy == Ny) ? 0.5 : 1.0
-                U[iy, ix, iz] *= normalization*endpoint
+                U[ix, iz, iy] *= normalization*endpoint
             end
         end
     end
@@ -281,11 +281,11 @@ Truncate a padded spectrum to the modes represented by `dest`. This is the
 inverse index mapping of [`copy_to_padded!`](@ref).
 """
 function copy_from_padded!(dest::SpectralField{T}, src::SpectralField{T}) where {T}
-    _, Nxh, Nz = size(dest)
-    positive, negative, padded_negative = _complex_mode_ranges(Nz, size(src, 3))
+    Nxh, Nz, _ = size(dest)
+    positive, negative, padded_negative = _complex_mode_ranges(Nz, size(src, 2))
 
-    @views parent(dest)[:, :, positive] .= parent(src)[:, 1:Nxh, positive]
-    @views parent(dest)[:, :, negative] .= parent(src)[:, 1:Nxh, padded_negative]
+    @views parent(dest)[:, positive, :] .= parent(src)[1:Nxh, positive, :]
+    @views parent(dest)[:, negative, :] .= parent(src)[1:Nxh, padded_negative, :]
     return dest
 end
 
@@ -310,9 +310,9 @@ size is even. The indices are shared by compact and padded spectra because both
 Nyquist modes belong to the leading nonnegative-frequency blocks.
 """
 function zero_nyquist!(U::SpectralField)
-    _, Nx, Nz = physicalsize(grid(U), NotPadded())
+    Nx, Nz, _ = physicalsize(grid(U), NotPadded())
     data = parent(U)
-    iseven(Nx) && (@views data[:, (Nx >> 1) + 1, :] .= 0)
-    iseven(Nz) && (@views data[:, :, (Nz >> 1) + 1] .= 0)
+    iseven(Nx) && (@views data[(Nx >> 1) + 1, :, :] .= 0)
+    iseven(Nz) && (@views data[:, (Nz >> 1) + 1, :] .= 0)
     return U
 end

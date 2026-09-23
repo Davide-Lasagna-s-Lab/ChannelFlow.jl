@@ -16,30 +16,8 @@ end
 #///                        SPECTRAL MATRIX VIEW                            ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-"""
-    SpectralMatrixView(U::SpectralField)
-
-Expose contiguous `(y, kx, kz)` field storage as a `(Ny, Nxh*Nz)` matrix
-without copying. This lightweight view gives BLAS access to every Fourier
-column without allocating a ReshapedArray on each transform call.
-"""
-struct SpectralMatrixView{T, F<:SpectralField} <: AbstractMatrix{T}
-    field::F
-
-    function SpectralMatrixView(U::SpectralField{T, A}) where {T, A<:DenseArray}
-        return new{eltype(U), typeof(U)}(U)
-    end
-end
-
-function Base.size(A::SpectralMatrixView)
-    Ny, Nxh, Nz = size(A.field)
-    return (Ny, Nxh*Nz)
-end
-Base.strides(A::SpectralMatrixView) = (1, size(A, 1))
-Base.IndexStyle(::Type{<:SpectralMatrixView}) = IndexLinear()
-Base.getindex(A::SpectralMatrixView, i::Int) = parent(A.field)[i]
-Base.setindex!(A::SpectralMatrixView, value, i::Int) = (parent(A.field)[i] = value)
-Base.unsafe_convert(::Type{Ptr{T}}, A::SpectralMatrixView{T}) where {T} = pointer(parent(A.field))
+"""View Fourier systems as rows and Chebyshev coefficients as columns, without copying."""
+spectralmatrix(U::SpectralField) = reshape(parent(U), :, size(U, 3))
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                          PLAN CONSTRUCTION                             ///#
@@ -73,7 +51,7 @@ plan_icheb(U::SpectralField, backend::Symbol=:fftw; kwargs...) =
 function _plan_cheb(U::SpectralField, ::Val{INVERSE}, backend::Symbol;
                    flags::Integer=FFTW.EXHAUSTIVE,
                    timelimit::Real=FFTW.NO_TIMELIMIT) where {INVERSE}
-    Ny = size(U, 1)
+    Ny = size(U, 3)
     backend in (:auto, :gemm, :fftw) ||
         throw(ArgumentError("backend must be :auto, :gemm or :fftw"))
     if backend == :gemm || (backend == :auto && Ny <= 35)
@@ -86,7 +64,7 @@ function _plan_cheb(U::SpectralField, ::Val{INVERSE}, backend::Symbol;
         end
         return GEMMChebyshevPlan(matrix)
     end
-    plan = FFTW.plan_r2r!(parent(U), FFTW.REDFT00, (1,);
+    plan = FFTW.plan_r2r!(parent(U), FFTW.REDFT00, (3,);
                          flags=flags, timelimit=timelimit)
     return FFTWChebyshevPlan{INVERSE, typeof(plan)}(plan)
 end
@@ -97,7 +75,7 @@ end
 
 """Apply the dense plan, preserving `src`; source and destination must not alias."""
 function LinearAlgebra.mul!(dest::SpectralField, plan::GEMMChebyshevPlan, src::SpectralField)
-    LinearAlgebra.BLAS.gemm!('N', 'N', true, plan.matrix, SpectralMatrixView(src), false, SpectralMatrixView(dest))
+    LinearAlgebra.mul!(spectralmatrix(dest), spectralmatrix(src), transpose(plan.matrix))
     return dest
 end
 
@@ -105,8 +83,8 @@ end
 function LinearAlgebra.mul!(dest::SpectralField, plan::FFTWChebyshevPlan{INV}, src::SpectralField) where {INV}
     copyto!(parent(dest), parent(src))
     if INV
-        @views parent(dest)[1, :, :] .*= 2
-        @views parent(dest)[end, :, :] .*= 2
+        @views parent(dest)[:, :, 1] .*= 2
+        @views parent(dest)[:, :, end] .*= 2
     end
     FFTW.unsafe_execute!(plan.plan, parent(dest), parent(dest))
     return dest

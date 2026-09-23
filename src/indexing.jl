@@ -7,7 +7,7 @@ export @loop_jk_i
 """
     @loop_jk_i size(U) expression
 
-Traverse `(n, kx, kz)` storage with the Chebyshev index innermost. In the
+Traverse `(kx, kz, n)` storage with the Chebyshev index innermost. In the
 expression, `_i`, `_j`, `_k` are one-based array indices; `j` and `k` are
 integer streamwise and signed spanwise Fourier modes. Physical derivatives
 must still multiply by `2π/Lx` or `2π/Lz`. The loop uses `@inbounds`, so all
@@ -15,7 +15,7 @@ arrays accessed by the expression must have compatible dimensions.
 """
 macro loop_jk_i(SIZE, expr)
     quote
-        Ny, Nxh, Nz = $(esc(SIZE))
+        Nxh, Nz, Ny = $(esc(SIZE))
         @inbounds for $(esc(:_k)) = 1:Nz
             $(esc(:k)) = $(esc(:_k)) <= (Nz >> 1) + 1 ?
                         $(esc(:_k)) - 1 : $(esc(:_k)) - 1 - Nz

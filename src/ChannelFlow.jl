@@ -10,7 +10,7 @@ inspect the velocity with `kinetic_energy` and `dissipation_rate`.
 Velocity is stored as a perturbation to `problem.baseflow`. The accompanying
 stage pressure is algebraic; the default `RotatingForm` uses pressure augmented
 by total kinetic energy per unit mass.
-Physical arrays have order `(y, x, z)`; spectral arrays have `(n, kx, kz)`.
+Physical arrays have order `(x, z, y)`; spectral arrays have `(kx, kz, n)`.
 """
 module ChannelFlow
 
@@ -48,6 +48,7 @@ include("nonlinear.jl")
 # remain in ChannelFlow; these files do not introduce nested modules.
 include("solvers/influence.jl")
 include("solvers/meanmode.jl")
+include("solvers/batchedinfluence.jl")
 include("solvers/stokes.jl")
 
 #//////////////////////////////////////////////////////////////////////////////#

@@ -19,7 +19,7 @@ problem, time, forcing and time-stepper caches are not saved.
 """
 function savefield(path::AbstractString,
                    field::Union{PhysicalField, SpectralField, VectorField, GradientField, State})
-    Serialization.serialize(path, field)
+    Serialization.serialize(path, (; format=:ChannelFlow, version=2, layout=:xzy, field))
     return path
 end
 
@@ -37,8 +37,24 @@ domain lengths and wall-normal nodes.
 The simulation time must be supplied separately.
 """
 function loadfield(path::AbstractString)
-    field = Serialization.deserialize(path)
+    record = Serialization.deserialize(path)
+    if record isa NamedTuple && haskey(record, :format) && record.format == :ChannelFlow
+        record.version == 2 && record.layout == :xzy ||
+            throw(ArgumentError("unsupported ChannelFlow file format"))
+        field = record.field
+    else
+        # Files written before versioned storage used (y,x,z) arrays.
+        field = _legacy_layout(record)
+    end
     field isa Union{PhysicalField, SpectralField, VectorField, GradientField, State} ||
         throw(ArgumentError("file does not contain a ChannelFlow field or state"))
     return field
 end
+
+# Convert old fields once when loading, never inside the time-stepper.
+_legacy_layout(f::PhysicalField) = PhysicalField(permutedims(parent(f),(2,3,1)), grid(f))
+_legacy_layout(f::SpectralField) = SpectralField(permutedims(parent(f),(2,3,1)), grid(f))
+_legacy_layout(f::VectorField) = VectorField(map(_legacy_layout, f.components))
+_legacy_layout(f::GradientField) = GradientField(map(_legacy_layout, f.components))
+_legacy_layout(s::State) = State(_legacy_layout(velocity(s)), _legacy_layout(stagepressure(s)))
+_legacy_layout(x) = throw(ArgumentError("file does not contain a ChannelFlow field or state"))

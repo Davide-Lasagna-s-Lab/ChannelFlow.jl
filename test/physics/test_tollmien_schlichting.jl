@@ -83,9 +83,9 @@ end
     # negative harmonic is implicit in the real FFT. All other modes start
     # at zero, but the nonlinear DNS is free to generate them during evolution.
     initial = zero_state(g)
-    parent(velocity(initial)[1])[:,2,1] .= amplitude/2 .* mode.u
-    parent(velocity(initial)[2])[:,2,1] .= amplitude/2 .* mode.v
-    parent(stagepressure(initial))[:,2,1] .= amplitude/2 .* mode.p
+    parent(velocity(initial)[1])[2, 1, :] .= amplitude/2 .* mode.u
+    parent(velocity(initial)[2])[2, 1, :] .= amplitude/2 .* mode.v
+    parent(stagepressure(initial))[2, 1, :] .= amplitude/2 .* mode.p
     check_constraints(velocity(initial))
 
     # Unweighted volume energy from independent Gauss-Legendre quadrature
@@ -97,9 +97,9 @@ end
     weights = 2 .* vectors[1,:].^2
     function energy(U)
         total = 0.0
-        for f in U.components, ix=1:size(f,2), iz=1:size(f,3)
-            multiplicity = ix == 1 || ix == size(f,2) ? 1 : 2
-            total += multiplicity*sum(weights .* abs2.(C*parent(f)[:,ix,iz]))/4
+        for f in U.components, ix=1:size(f,1), iz=1:size(f,2)
+            multiplicity = ix == 1 || ix == size(f,1) ? 1 : 2
+            total += multiplicity*sum(weights .* abs2.(C*parent(f)[ix, iz, :]))/4
         end
         return total
     end
@@ -121,8 +121,8 @@ end
                 # Track complex modal amplitude by projection on the initial
                 # v profile. Each 10-unit interval advances less than pi, so
                 # incremental phase unwrapping cannot miss a revolution.
-                v0 = parent(velocity(initial)[2])[:,2,1]
-                modal = dot(v0,parent(U[2])[:,2,1])/dot(v0,v0)
+                v0 = parent(velocity(initial)[2])[2, 1, :]
+                modal = dot(v0,parent(U[2])[2, 1, :])/dot(v0,v0)
                 phase += angle(modal/previous)
                 previous = modal
                 @test log(abs(modal))/t ≈ real(reference) rtol=0.02

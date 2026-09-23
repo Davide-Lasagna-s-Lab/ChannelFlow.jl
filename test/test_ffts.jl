@@ -18,8 +18,8 @@
         # end. This analytic oracle prevents matching forward/inverse scaling
         # errors from hiding in a round trip.
         exact = zeros(ComplexF64, size(U))
-        exact[1, 1, 1], exact[2, 1, 1] = 2, 0.3
-        exact[3, 2, 2], exact[3, 2, end] = -0.25im, 0.25im
+        exact[1, 1, 1], exact[1, 1, 2] = 2, 0.3
+        exact[2, 2, 3], exact[2, end, 3] = -0.25im, 0.25im
         @test parent(U) ≈ exact atol=2e-13
         # The forward transform must preserve its physical input. The inverse
         # must return the provided destination, recover the original samples
@@ -66,7 +66,7 @@ end
         for f in ((x,y,z) -> cos(3x)^2, (x,y,z) -> cos(3z)^2)
             U = spectral(g, f)
             exact = zeros(ComplexF64, size(U))
-            exact[1,1,1] = 0.5
+            exact[1, 1, 1] = 0.5
             @test parent(U) ≈ exact atol=2e-13
         end
     end
@@ -86,10 +86,26 @@ end
         ifft = InverseFFT!(U; flags=FFTW.ESTIMATE)
         fft(U, u)
         expected = zeros(ComplexF64, size(U))
-        expected[35, 3, 3] = expected[35, 3, end-1] = 0.25
+        expected[3, 3, 35] = expected[3, end-1, 35] = 0.25
         @test parent(U) ≈ expected atol=2e-12
         original = copy(parent(u))
         ifft(u, U)
         @test parent(u) ≈ original atol=2e-12
     end
+end
+
+@testset "Chebyshev backends with coefficient-last storage" begin
+    # Independent backend implementations must return the same normalized
+    # coefficients, not merely invert their own normalization error.
+    g = Grid(10,17,12,2π,3π)
+    u = sampled(g,(x,y,z) -> exp(cos(x))*sin(2z/3)*(1+y+y^4))
+    reference = FFT(u; chebbackend=:fftw)
+    gemm = FFT(u; chebbackend=:gemm)
+    @test parent(gemm) ≈ parent(reference) atol=2e-13
+    @test parent(IFFT(gemm;chebbackend=:gemm)) ≈ parent(IFFT(reference)) atol=2e-12
+    matrix = CF.spectralmatrix(gemm)
+    @test size(matrix) == (6*12,17)
+    @test pointer(matrix) == pointer(parent(gemm))
+    matrix[2,3] = 2+3im
+    @test gemm[2,1,3] == 2+3im
 end

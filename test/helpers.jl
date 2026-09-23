@@ -35,15 +35,15 @@ end
 fzero(x, y, z) = 0.0
 
 # Sample formulas independently of points() and the Fourier mode indexing.
-# Build storage in (y,x,z) order while passing analytic functions (x,y,z).
+# Build storage in (x,z,y) order while passing analytic functions (x,y,z).
 # Periodic coordinates exclude the repeated endpoint; wall-normal coordinates
 # include both walls. Using explicit coordinate formulas avoids sharing a
 # points() indexing error with its tests.
 function sampled(g, f)
-    Ny, Nx, Nz = physicalsize(g, Padded())
+    Nx, Nz, Ny = physicalsize(g, Padded())
     Lx, _, Lz = CF.domainsize(g)
     data = Float64[f(Lx*(ix-1)/Nx, cospi((iy-1)/(Ny-1)), Lz*(iz-1)/Nz)
-                   for iy=1:Ny, ix=1:Nx, iz=1:Nz]
+                   for ix=1:Nx, iz=1:Nz, iy=1:Ny]
     return PhysicalField(data, g)
 end
 
@@ -80,8 +80,8 @@ function check_constraints(U)
     @test norm(parent(out), Inf) < 2e-9
     for field in U.components
         data = parent(field)
-        signs = reshape((-1.0) .^ (0:size(data,1)-1), :, 1, 1)
-        @test maximum(abs, sum(data; dims=1)) < 2e-10
-        @test maximum(abs, sum(data .* signs; dims=1)) < 2e-10
+        signs = reshape((-1.0) .^ (0:size(data,3)-1), 1, 1, :)
+        @test maximum(abs, sum(data; dims=3)) < 2e-10
+        @test maximum(abs, sum(data .* signs; dims=3)) < 2e-10
     end
 end

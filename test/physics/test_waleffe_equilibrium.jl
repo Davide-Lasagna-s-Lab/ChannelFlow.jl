@@ -43,13 +43,13 @@ function waleffe_equilibrium(branch, Ny, N)
         @test maximum(abs,spectrum[:,17,:]) < 1e-12
         @test maximum(abs,spectrum[:,:,17]) < 1e-12
         for kz=-15:15, kx=0:15
-            parent(velocity(state)[i])[1:34,kx+1,mod(kz,N)+1] .=
+            parent(velocity(state)[i])[kx+1,mod(kz,N)+1,1:34] .=
                 spectrum[:,kx+1,mod(kz,32)+1]
         end
     end
     # The file contains total Couette velocity. Subtract y=T_1 only from
     # the streamwise mean Fourier mode; neither transverse field is shifted.
-    parent(velocity(state)[1])[2,1,1] -= 1
+    parent(velocity(state)[1])[1, 1, 2] -= 1
     return state
 end
 
@@ -60,11 +60,11 @@ end
 """Volume energy, total viscous dissipation and moving-wall power input."""
 function equilibrium_diagnostics(U)
     g = CF.grid(U[1])
-    Ny,Nx,Nz = physicalsize(g,Padded())
+    Nx,Nz,Ny = physicalsize(g,Padded())
     # Unweighted Chebyshev quadrature, normalized by volume 2*Lx*Lz.
     C = [cospi(i*j/(Ny-1)) for i=0:Ny-1, j=0:Ny-1]
     weights = transpose(C) \ [iseven(j) ? 2/(1-j^2) : 0.0 for j=0:Ny-1]
-    average(a) = sum(weights .* vec(sum(a; dims=(2,3))))/(2Nx*Nz)
+    average(a) = sum(weights .* vec(sum(a; dims=(1,2))))/(2Nx*Nz)
     energy = sum(average(abs2.(physical_values(u))) for u in U.components)/2
     dissipation, input = 0.0, 0.0
     work = similar(U[1])
@@ -75,7 +75,7 @@ function equilibrium_diagnostics(U)
         # derivative of the base Couette profile only to du/dy.
         if i == 1 && j == 2
             d .+= 1
-            input = (sum(d[1,:,:])+sum(d[end,:,:]))/(800Nx*Nz)
+            input = (sum(d[:, :, 1])+sum(d[:, :, end]))/(800Nx*Nz)
         end
         dissipation += average(abs2.(d))/400
     end

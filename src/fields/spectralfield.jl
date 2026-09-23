@@ -7,7 +7,7 @@ export SpectralField
 """
     SpectralField(data, grid)
 
-Wrap Fourier--Chebyshev coefficients in storage order `(n, kx, kz)`.
+Wrap Fourier--Chebyshev coefficients in storage order `(kx, kz, n)`.
 Index `n+1` stores the ordinary coefficient multiplying `T_n` in the mapped
 wall-normal coordinate; the first dimension contains coefficients, not nodal
 values. The `x` spectrum is real-transform half-storage and `z` is full-storage.
@@ -56,7 +56,7 @@ Base.@propagate_inbounds function Base.setindex!(U::SpectralField, val, I::Integ
     return val
 end
 
-"""Return coefficient-array dimensions `(Ny, Nxh, Nz)`."""
+"""Return coefficient-array dimensions `(Nxh, Nz, Ny)`."""
 Base.size(U::SpectralField) = size(parent(U))
 
 """Return the underlying coefficient array, without copying."""

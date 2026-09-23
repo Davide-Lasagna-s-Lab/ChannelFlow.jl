@@ -63,8 +63,8 @@
                                  bulkvelocity=(0.2, -0.1),
                                  fftwflags=FFTW.ESTIMATE)
     U = project!(velocity(zero_state(g)), problem)
-    @test real(bulkmean(view(parent(U[1]), :, 1, 1))) ≈ 0.2 atol=2e-12
-    @test real(bulkmean(view(parent(U[3]), :, 1, 1))) ≈ -0.1 atol=2e-12
+    @test real(bulkmean(view(parent(U[1]), 1, 1, :))) ≈ 0.2 atol=2e-12
+    @test real(bulkmean(view(parent(U[3]), 1, 1, :))) ≈ -0.1 atol=2e-12
     check_constraints(U)
     # Nonfinite bulk targets must be rejected at problem construction.
     # Projection assumes resolved fields on the problem's grid; it no longer

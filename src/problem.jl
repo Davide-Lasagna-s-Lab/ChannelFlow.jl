@@ -45,7 +45,7 @@ channel = ChannelFlowProblem(grid, y -> 1-y^2, nu, dt;
                       pressuregradient=(-2nu, 0))
 state = zero_state(channel.grid)
 # Modified pressure of the laminar profile: |Ub|²/2 (up to a constant).
-stagepressure(state)[:, 1, 1] .= parent(chebcoeffs(
+stagepressure(state)[1, 1, :] .= parent(chebcoeffs(
     (1 .- channel.grid.y.^2).^2 ./ 2))
 I = Flows.flow(channel)
 I(state, (0.0, 1.0))

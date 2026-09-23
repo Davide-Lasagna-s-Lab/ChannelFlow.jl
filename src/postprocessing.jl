@@ -19,12 +19,12 @@ exact through degree Ny-1; the spectral method integrates the represented
 polynomial products exactly. These routines allocate their work arrays.
 """
 function LinearAlgebra.dot(u::PhysicalField, v::PhysicalField)
-    Ny, Nx, Nz = size(u)
+    Nx, Nz, Ny = size(u)
     # Match the exact unweighted integrals of T_n on [-1, 1]. Divide by
     # the wall-normal length and periodic point count for a volume average.
     C = [cospi(i*j/(Ny-1)) for i = 0:Ny-1, j = 0:Ny-1]
     moments = [iseven(j) ? 2/(1-j^2) : 0.0 for j = 0:Ny-1]
-    weights = reshape(transpose(C) \ moments, Ny, 1, 1)
+    weights = reshape(transpose(C) \ moments, 1, 1, Ny)
     return sum(weights .* parent(u) .* parent(v))/(2Nx*Nz)
 end
 
@@ -32,8 +32,8 @@ function LinearAlgebra.dot(U::SpectralField{T}, V::SpectralField{T}) where {T}
     grid(U) == grid(V) || throw(ArgumentError("fields must share a grid"))
     size(U) == size(V) == spectralsize(grid(U), NotPadded()) ||
         throw(DimensionMismatch("expected resolved spectral fields"))
-    Ny, Nxh, Nz = size(U)
-    _, Nx, _ = physicalsize(grid(U), NotPadded())
+    Nxh, Nz, Ny = size(U)
+    Nx, _, _ = physicalsize(grid(U), NotPadded())
 
     # M[m+1,n+1] = integral(T_m*T_n, -1, 1)/2. Ordinary Chebyshev
     # coefficients are not orthogonal for the unweighted physical integral.
@@ -46,8 +46,8 @@ function LinearAlgebra.dot(U::SpectralField{T}, V::SpectralField{T}) where {T}
         # represents both members of a conjugate pair; kx=0 appears once.
         ((iseven(Nx) && ix == Nxh) ||
          (iseven(Nz) && iz == (Nz >> 1)+1)) && continue
-        u = view(parent(U), :, ix, iz)
-        v = view(parent(V), :, ix, iz)
+        u = view(parent(U), ix, iz, :)
+        v = view(parent(V), ix, iz, :)
         LinearAlgebra.mul!(work, M, v)
         result += (ix == 1 ? 1 : 2) * real(LinearAlgebra.dot(u, work))
     end
@@ -114,7 +114,7 @@ function power_input(U::VectorField{<:SpectralField}, nu::Real;
                      pressuregradient::NTuple{2, Real}=(0, 0))
     input = 0.0
     for (i, gradient) in zip((1, 3), pressuregradient)
-        mean = view(parent(U[i]), :, 1, 1)
+        mean = view(parent(U[i]), 1, 1, :)
 
         # Uniform wall velocities multiply plane-averaged shear. The minus
         # sign at the lower wall is its outward-normal orientation.
@@ -135,7 +135,7 @@ end
 # exact spectral integrals are used for laminar and instantaneous fields.
 function _laminar_velocity(problem::ChannelFlowProblem)
     U = VectorField(SpectralField(problem.grid))
-    U[1][:, 1, 1] .= parent(problem.scheme.baseflow)
+    U[1][1, 1, :] .= parent(problem.scheme.baseflow)
     return U
 end
 

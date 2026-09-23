@@ -122,7 +122,7 @@ function (Eq::NonLinearTerm{T, ConvectiveForm})(   t::Real,
     # before either gradient evaluation or inverse transformation. Adding it
     # only to the physical advecting velocity would omit the v*Ub' shear term.
     TMP .= U
-    @views TMP[1][:, 1, 1] .+= Eq.baseflow
+    @views TMP[1][1, 1, :] .+= Eq.baseflow
 
     grad!(GRAD, TMP)
 
@@ -152,7 +152,7 @@ function (Eq::NonLinearTerm{T, DivergenceForm})(   t::Real,
 
     # Form the total velocity, including the base profile in the zero mode.
     N .= U
-    @views N[1][:, 1, 1] .+= Eq.baseflow
+    @views N[1][1, 1, :] .+= Eq.baseflow
 
     Eq.ifft(u, N)
 
@@ -178,7 +178,7 @@ function (Eq::NonLinearTerm{T, RotatingForm})(   t::Real,
     u, n, ω, TMP, Ω = Eq.cache
 
     TMP .= U
-    @views TMP[1][:, 1, 1] .+= Eq.baseflow
+    @views TMP[1][1, 1, :] .+= Eq.baseflow
 
     curl!(Ω, TMP)
 

@@ -40,3 +40,19 @@
         @test CF.grid(velocity(restored)[1]) !== g
     end
 end
+
+@testset "Legacy coefficient-first field files" begin
+    # The old format had no envelope. Its spectral arrays can be deserialized
+    # with the existing struct, then explicitly converted once at load time.
+    g = Grid(6,9,8,5.0,3.0)
+    data = randn(ComplexF64,9,4,8)
+    legacy = SpectralField(data,g)
+    mktempdir() do dir
+        path = joinpath(dir,"old.bin")
+        CF.Serialization.serialize(path,State(VectorField(legacy,copy(legacy),copy(legacy)),copy(legacy)))
+        state = loadfield(path)
+        @test parent(velocity(state)[1]) == permutedims(data,(2,3,1))
+        @test size(stagepressure(state)) == spectralsize(g,NotPadded())
+        @test CF.grid(stagepressure(state)) === CF.grid(velocity(state)[1])
+    end
+end

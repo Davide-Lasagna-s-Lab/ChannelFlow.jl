@@ -4,10 +4,10 @@
     # coefficients. Padding rounds 3N/2 upward without forcing odd sizes;
     # the wall-normal interval always has length 2.
     g = Grid(6, 9, 8, 5.0, 7.0)
-    @test physicalsize(g, NotPadded()) == (9, 6, 8)
-    @test physicalsize(g, Padded()) == (9, 9, 12)
-    @test spectralsize(g, NotPadded()) == (9, 4, 8)
-    @test spectralsize(g, Padded()) == (9, 5, 12)
+    @test physicalsize(g, NotPadded()) == (6, 8, 9)
+    @test physicalsize(g, Padded()) == (9, 12, 9)
+    @test spectralsize(g, NotPadded()) == (4, 8, 9)
+    @test spectralsize(g, Padded()) == (5, 12, 9)
     @test CF.domainsize(g) == (5.0, 2.0, 7.0)
     # Check node placement independently: Chebyshev-Lobatto points descend
     # from +1 to -1, while periodic nodes start at zero and omit the
@@ -46,9 +46,9 @@
         # as for ordinary coefficient vectors.
         work .= 2 .* field .+ 1
         @test parent(work) ≈ 2 .* parent(field) .+ 1
-        work[1, 2, 3] = 4
-        @test work[1, 2, 3] == 4
-        @test_throws BoundsError work[0, 1, 1]
+        work[2, 3, 1] = 4
+        @test work[2, 3, 1] == 4
+        @test_throws BoundsError work[1, 1, 0]
     end
 
     # A zero state owns three distinct velocity arrays and a separate pressure

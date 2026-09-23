@@ -15,9 +15,9 @@ function ddx1!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     Lx, _, _ = domainsize(grid(OUT))
     α = 2π/Lx
     if add
-        @loop_jk_i size(OUT) OUT[_i, _j, _k] += im * j * α * U[_i, _j, _k]
+        @loop_jk_i size(OUT) OUT[_j, _k, _i] += im * j * α * U[_j, _k, _i]
     else
-        @loop_jk_i size(OUT) OUT[_i, _j, _k]  = im * j * α * U[_i, _j, _k]
+        @loop_jk_i size(OUT) OUT[_j, _k, _i]  = im * j * α * U[_j, _k, _i]
     end
     return OUT
 end
@@ -36,7 +36,7 @@ wall interval. Add the derivative when `add=true`; otherwise overwrite `OUT`.
 `OUT` and `U` may be the same field.
 """
 function ddx2!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
-    Ny, Nxh, Nz = size(U)
+    Nxh, Nz, Ny = size(U)
     y = grid(U).y
     scale = 4/(first(y)-last(y))
 
@@ -45,10 +45,10 @@ function ddx2!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
         for n = Ny-1:-1:0
             # Save a_n before writing OUT, so the recurrence also works in
             # place. d_next2 holds d_{n+2}, independently of the output.
-            a = U[n+1, ix, iz]
+            a = U[ix, iz, n+1]
             d = d_next2 + scale*(n+1)*a_next
             value = n == 0 ? d/2 : d
-            add ? (OUT[n+1, ix, iz] += value) : (OUT[n+1, ix, iz] = value)
+            add ? (OUT[ix, iz, n+1] += value) : (OUT[ix, iz, n+1] = value)
             a_next = a
             d_next2, d_next = d_next, d
         end
@@ -71,9 +71,9 @@ function ddx3!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     _, _, Lz = domainsize(grid(OUT))
     β = 2π/Lz
     if add
-        @loop_jk_i size(U) OUT[_i, _j, _k] += im * k * β * U[_i, _j, _k]
+        @loop_jk_i size(U) OUT[_j, _k, _i] += im * k * β * U[_j, _k, _i]
     else
-        @loop_jk_i size(U) OUT[_i, _j, _k]  = im * k * β * U[_i, _j, _k]
+        @loop_jk_i size(U) OUT[_j, _k, _i]  = im * k * β * U[_j, _k, _i]
     end
     return OUT
 end
@@ -90,7 +90,7 @@ Fuse two Chebyshev derivative recurrences, equivalent to Channelflow's
 `diff2`, to avoid a temporary field. `OUT` and `U` may be the same field.
 """
 function laplacian!(OUT::S, U::S) where {S<:SpectralField}
-    Ny, Nxh, Nz = size(U)
+    Nxh, Nz, Ny = size(U)
     y = grid(U).y
     scale = 4/(first(y)-last(y))
     Lx, _, Lz = domainsize(grid(OUT))
@@ -103,10 +103,10 @@ function laplacian!(OUT::S, U::S) where {S<:SpectralField}
         k² = α²*kx^2 + β²*kz^2
         a_next = d_next = d_next2 = e_next = e_next2 = zero(eltype(U))
         for n = Ny-1:-1:0
-            a = U[n+1, ix, iz]
+            a = U[ix, iz, n+1]
             d = d_next2 + scale*(n+1)*a_next
             e = e_next2 + scale*(n+1)*d_next
-            OUT[n+1, ix, iz] = (n == 0 ? e/2 : e) - k²*a
+            OUT[ix, iz, n+1] = (n == 0 ? e/2 : e) - k²*a
             a_next = a
             d_next2, d_next = d_next, d
             e_next2, e_next = e_next, e
@@ -149,15 +149,15 @@ function curl!(OUT::VectorField{S},
     ddx2!(OUT[1], U[3])
     ddx2!(OUT[3], U[1])
 
-    Ny, Nxh, Nz = size(U[1])
+    Nxh, Nz, Ny = size(U[1])
     Lx, _, Lz = domainsize(grid(U[1]))
     α, β = 2π/Lx, 2π/Lz
     @inbounds for iz = 1:Nz, ix = 1:Nxh, iy = 1:Ny
         kx = ix-1
         kz = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
-        OUT[1][iy, ix, iz] -= im*kz*β*U[2][iy, ix, iz]
-        OUT[2][iy, ix, iz]  = im*(kz*β*U[1][iy, ix, iz] - kx*α*U[3][iy, ix, iz])
-        OUT[3][iy, ix, iz]  = im*kx*α*U[2][iy, ix, iz] - OUT[3][iy, ix, iz]
+        OUT[1][ix, iz, iy] -= im*kz*β*U[2][ix, iz, iy]
+        OUT[2][ix, iz, iy]  = im*(kz*β*U[1][ix, iz, iy] - kx*α*U[3][ix, iz, iy])
+        OUT[3][ix, iz, iy]  = im*kx*α*U[2][ix, iz, iy] - OUT[3][ix, iz, iy]
     end
     return OUT
 end

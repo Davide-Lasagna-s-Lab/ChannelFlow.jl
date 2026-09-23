@@ -39,16 +39,16 @@ Base.:(==)(a::Grid, b::Grid) =
 #///                  PHYSICAL AND SPECTRAL STORAGE SIZES                   ///#
 #//////////////////////////////////////////////////////////////////////////////#
 
-"""Return the resolved physical array dimensions in storage order `(y, x, z)`."""
+"""Return the resolved physical array dimensions in storage order `(x, z, y)`."""
 function physicalsize(grid::Grid, ::NotPadded)
     Nx, Ny, Nz = grid.physicalsize
-    return (Ny, Nx, Nz)
+    return (Nx, Nz, Ny)
 end
 
-"""Return the 3/2-padded physical array dimensions in storage order `(y, x, z)`."""
+"""Return the 3/2-padded physical array dimensions in storage order `(x, z, y)`."""
 function physicalsize(grid::Grid, ::Padded)
-    Ny, Nx, Nz = physicalsize(grid, NotPadded())
-    return (Ny, _paddedsize(Nx), _paddedsize(Nz))
+    Nx, Nz, Ny = physicalsize(grid, NotPadded())
+    return (_paddedsize(Nx), _paddedsize(Nz), Ny)
 end
 
 """
@@ -69,8 +69,8 @@ Return the spectral storage size for the selected physical grid. The real
 transform in `x` stores only its nonnegative half-spectrum.
 """
 function spectralsize(grid::Grid, tag::Union{Padded, NotPadded})
-    Ny, Nx, Nz = physicalsize(grid, tag)
-    return (Ny, (Nx >> 1) + 1, Nz)
+    Nx, Nz, Ny = physicalsize(grid, tag)
+    return ((Nx >> 1) + 1, Nz, Ny)
 end
 
 #//////////////////////////////////////////////////////////////////////////////#
@@ -83,14 +83,14 @@ domainsize(grid::Grid) = grid.domainsize
 """
     points(grid::Grid, tag=NotPadded())
 
-Return broadcast-compatible coordinates in storage order `(y, x, z)`. The
+Return broadcast-compatible coordinates `(y, x, z)` for `(x, z, y)` storage. The
 periodic grids cover `[0,Lx)` and `[0,Lz)` without repeated endpoints.
 """
 function points(grid::Grid, tag::Union{Padded, NotPadded}=NotPadded())
-    Ny, Nx, Nz = physicalsize(grid, tag)
+    Nx, Nz, Ny = physicalsize(grid, tag)
     Lx, _, Lz = domainsize(grid)
-    y = reshape(grid.y, Ny, 1, 1)
-    x = reshape(range(0, Lx; length=Nx + 1)[1:Nx], 1, Nx, 1)
-    z = reshape(range(0, Lz; length=Nz + 1)[1:Nz], 1, 1, Nz)
+    y = reshape(grid.y, 1, 1, Ny)
+    x = reshape(range(0, Lx; length=Nx + 1)[1:Nx], Nx, 1, 1)
+    z = reshape(range(0, Lz; length=Nz + 1)[1:Nz], 1, Nz, 1)
     return y, x, z
 end
