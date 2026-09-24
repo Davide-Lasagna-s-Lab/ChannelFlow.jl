@@ -1,0 +1,17 @@
+name: CPU validation
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        julia: ['1.11', '1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia }}
+      - uses: julia-actions/cache@v2
+      - run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - run: julia --project=. test/runtests.jl
+      - run: julia --project=. test/physics/runtests.jl
