@@ -36,6 +36,10 @@ wall interval. Add the derivative when `add=true`; otherwise overwrite `OUT`.
 `OUT` and `U` may be the same field.
 """
 function ddx2!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
+    if !add && !Base.mightalias(parent(OUT),parent(U))
+        _batchdiff!(spectralmatrix(OUT),spectralmatrix(U))
+        return OUT
+    end
     Nxh, Nz, Ny = size(U)
     y = grid(U).y
     scale = 4/(first(y)-last(y))
@@ -97,6 +101,29 @@ function laplacian!(OUT::S, U::S) where {S<:SpectralField}
     α² = (2π/Lx)^2
     β² = (2π/Lz)^2
 
+    if !Base.mightalias(parent(OUT),parent(U))
+        # Eliminate the intermediate first derivative from the two backward
+        # recurrences. Already-written Laplacian entries recover D²U by
+        # adding k²U. Coefficient planes are contiguous and vectorizable.
+        a,b = parent(U),parent(OUT)
+        @inbounds for j = Ny:-1:1, iz = 1:Nz
+            kz = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
+            @simd for ix = 1:Nxh
+                k² = α²*(ix-1)^2+β²*kz^2
+                d2 = zero(eltype(U))
+                if j+2 <= Ny
+                    d2 = 4j*(j+1)*a[ix,iz,j+2] +
+                         (2(j+1)/(j+2))*(b[ix,iz,j+2]+k²*a[ix,iz,j+2])
+                end
+                if j+4 <= Ny
+                    d2 -= (j/(j+2))*(b[ix,iz,j+4]+k²*a[ix,iz,j+4])
+                end
+                b[ix,iz,j] = (j==1 ? d2/2 : d2)-k²*a[ix,iz,j]
+            end
+        end
+        return OUT
+    end
+
     @inbounds for iz = 1:Nz, ix = 1:Nxh
         kx = ix-1
         kz = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
@@ -152,7 +179,7 @@ function curl!(OUT::VectorField{S},
     Nxh, Nz, Ny = size(U[1])
     Lx, _, Lz = domainsize(grid(U[1]))
     α, β = 2π/Lx, 2π/Lz
-    @inbounds for iz = 1:Nz, ix = 1:Nxh, iy = 1:Ny
+    @inbounds for iy = 1:Ny, iz = 1:Nz, ix = 1:Nxh
         kx = ix-1
         kz = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
         OUT[1][ix, iz, iy] -= im*kz*β*U[2][ix, iz, iy]
