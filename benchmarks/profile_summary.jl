@@ -13,6 +13,12 @@ function save_profile_summary(path)
         isempty(stack) && continue
         files = string.(getproperty.(stack,:file))
         containsfile(s) = any(f -> occursin(s,f), files)
+        # Julia may profile an idle interactive thread too. Only count stacks
+        # actually inside a DNS step; otherwise idle samples inflate runtime.
+        if !containsfile("timesteppers/cnrk2.jl")
+            empty!(stack)
+            continue
+        end
         category = if containsfile("ChebyshevHelmoltzSolvers")
             "Helmholtz solves"
         elseif containsfile("transforms/chebyshev.jl")
