@@ -3,3 +3,14 @@
 *.jl.mem
 /TODO
 /Manifest.toml
+
+/examples/mkm590/output/
+/examples/mkm590/__pycache__/
+/channel-mkm590-*.log
+
+/examples/mkm590/remote-output/
+
+/docs/build/
+/docs/Manifest.toml
+
+/docs/src/assets/benchmarks/
