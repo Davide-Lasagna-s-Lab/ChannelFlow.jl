@@ -1,0 +1,2 @@
+Test Summary:                                        | Pass  Total   Time
+ChannelFlow interfaces and analytic numerical checks | 3078   3078  49.2s

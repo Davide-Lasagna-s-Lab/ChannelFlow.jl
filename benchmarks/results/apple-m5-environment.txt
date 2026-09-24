@@ -1,0 +1,64 @@
+Thu Sep 24 07:46:21 UTC 2026
+ProductName:		macOS
+ProductVersion:		26.4.1
+BuildVersion:		25E253
+machdep.cpu.brand_string: Apple M5
+hw.memsize: 17179869184
+hw.ncpu: 10
+Project ChannelFlow v0.1.0
+Status `~/Dropbox/Codes/ChannelFlow.jl/Manifest.toml`
+  [621f4979] AbstractFFTs v1.5.0
+  [79e6a3ab] Adapt v4.7.1
+  [9051723b] ChebyshevHelmoltzSolvers v0.1.0 `https://github.com/Davide-Lasagna-s-Lab/ChebyshevHelmoltzSolvers.jl.git#`
+  [864edb3b] DataStructures v0.19.6
+  [7a1cc6ca] FFTW v1.10.0
+  [d910d432] Flows v1.0.0 `https://github.com/Davide-Lasagna-s-Lab/Flows.jl.git#`
+  [692b3bcd] JLLWrappers v1.8.0
+  [1914dd2f] MacroTools v0.5.16
+  [bac558e1] OrderedCollections v2.0.1
+  [aea7be01] PrecompileTools v1.3.4
+  [21216c6a] Preferences v1.6.0
+  [189a3867] Reexport v1.2.2
+⌃ [90137ffa] StaticArrays v1.9.20
+  [1e83bf80] StaticArraysCore v1.4.4
+  [f5851436] FFTW_jll v3.3.12+0
+  [1d5cc7b8] IntelOpenMP_jll v2025.2.0+0
+  [856f044c] MKL_jll v2025.2.0+0
+  [1317d2d5] oneTBB_jll v2022.3.0+0
+  [0dad84c5] ArgTools v1.1.2
+  [56f22d72] Artifacts v1.11.0
+  [2a0f44e3] Base64 v1.11.0
+  [ade2ca70] Dates v1.11.0
+  [f43a241f] Downloads v1.7.0
+  [7b1f6079] FileWatching v1.11.0
+  [ac6e5ff7] JuliaSyntaxHighlighting v1.12.0
+  [4af54fe1] LazyArtifacts v1.11.0
+  [b27032c2] LibCURL v0.6.4
+  [76f85450] LibGit2 v1.11.0
+  [8f399da3] Libdl v1.11.0
+  [37e2e46d] LinearAlgebra v1.12.0
+  [56ddb016] Logging v1.11.0
+  [d6f4376e] Markdown v1.11.0
+  [ca575930] NetworkOptions v1.3.0
+  [44cfe95a] Pkg v1.12.1
+  [de0858da] Printf v1.11.0
+  [9a3f8284] Random v1.11.0
+  [ea8e919c] SHA v0.7.0
+  [9e88b42a] Serialization v1.11.0
+  [f489334b] StyledStrings v1.11.0
+  [fa267f1f] TOML v1.0.3
+  [a4e569a6] Tar v1.10.0
+  [cf7118a7] UUIDs v1.11.0
+  [4ec0a83e] Unicode v1.11.0
+  [e66e0078] CompilerSupportLibraries_jll v1.3.0+1
+  [deac9b47] LibCURL_jll v8.15.0+0
+  [e37daf67] LibGit2_jll v1.9.0+0
+  [29816b5a] LibSSH2_jll v1.11.3+1
+  [14a3606d] MozillaCACerts_jll v2025.11.4
+  [4536629a] OpenBLAS_jll v0.3.29+0
+  [458c3c95] OpenSSL_jll v3.5.4+0
+  [83775a58] Zlib_jll v1.3.1+2
+  [8e850b90] libblastrampoline_jll v5.15.0+0
+  [8e850ede] nghttp2_jll v1.64.0+1
+  [3f19e933] p7zip_jll v17.7.0+0
+Info Packages marked with ⌃ have new versions available and may be upgradable.

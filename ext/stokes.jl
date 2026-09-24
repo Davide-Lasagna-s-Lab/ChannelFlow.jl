@@ -60,9 +60,9 @@ end
 # bank with k=0. Only pressure integration and the uniform-gradient response
 # remain. There is no second factorisation, packing or host field transfer.
 struct CUDAMeanMode{V}
-    response::V
-    response_mean::Float64
-    gradients::V
+    response::V              # velocity response to a unit uniform gradient
+    response_mean::Float64    # wall-normal average of that response
+    gradients::V             # two gradients returned by the mean-mode kernel
 end
 function Adapt.adapt_structure(to::Type{<:CuArray}, s::CF.StokesSolver)
     mean=CUDAMeanMode(

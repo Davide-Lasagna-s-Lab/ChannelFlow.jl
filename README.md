@@ -17,10 +17,11 @@ of Channelflow's MPI, symmetry, continuation or invariant-solution tools.
 ## Getting started
 
 Requires Julia 1.11 or later. The repository records the source URLs of its
-unregistered dependencies:
+unregistered dependencies. The implementation described here is on the
+`batched-cpu-cuda` branch:
 
 ```sh
-git clone https://github.com/Davide-Lasagna-s-Lab/ChannelFlow.jl.git
+git clone --branch batched-cpu-cuda https://github.com/Davide-Lasagna-s-Lab/ChannelFlow.jl.git
 cd ChannelFlow.jl
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
@@ -51,6 +52,7 @@ guarantees transition to turbulence.
 For an explicit number of steps, with no shortened final step:
 
 ```julia
+state = random_state(problem, 0.1)
 t = 0.0
 for _ = 1:100
     t, gradients = step!(problem.scheme, problem.nlterm,
@@ -59,7 +61,20 @@ for _ = 1:100
 end
 ```
 
-The returned `gradients` are `(dPdx, dPdz)` from the final implicit stage.
+A monitor can record perturbation energy without storing the full trajectory:
+
+```julia
+monitor = Flows.Monitor(state, (t, s) -> kinetic_energy(velocity(s)); oneevery=10)
+integrate(state, (1.0, 2.0), monitor) # continue the first example
+sample_times = Flows.times(monitor)
+energies = Flows.samples(monitor)
+```
+
+This observable uses perturbation velocity, so it is not total-flow energy.
+Diagnostics allocate and, on the GPU, may synchronize; benchmark the solver
+without a monitor when measuring integration cost alone.
+
+The returned `gradients` from `step!` are `(dPdx, dPdz)` from the final implicit stage.
 Use this loop when comparing devices or appending uniformly sampled records.
 
 ## Running on an NVIDIA GPU
@@ -117,7 +132,10 @@ or GPU threads process adjacent systems without assembling a packed RHS.
 The x half-spectrum stores nonnegative wavenumbers. The z axis follows FFT
 order: zero, positive, then negative wavenumbers. The integer pair `(kx,kz)`
 corresponds to physical wavenumbers `α = 2π*kx/Lx`, `β = 2π*kz/Lz`.
-Chebyshev degree `n` is stored at index `n+1`.
+Chebyshev degree `n` is stored at index `n+1`. Code that previously selected
+a profile with `U[:,ix,iz]` must now use `U[ix,iz,:]`; the public grid constructor
+continues to take `(Nx,Ny,Nz)`. Restart Julia after changing package versions
+because field and solver types have changed.
 
 `physicalsize(grid, Padded())` and `spectralsize(grid, NotPadded())` return
 array shapes. Physical fields constructed from a function default to padded

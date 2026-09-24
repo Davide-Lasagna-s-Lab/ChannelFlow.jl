@@ -1,0 +1,8 @@
+category,seconds_three_steps
+Broadcast kernels,0.005084991455078125
+Batched Helmholtz solves,0.0036923885345458984
+Fourier and Chebyshev FFTs,0.0026378631591796875
+Spectral derivatives,0.0023097991943359375
+Influence and tau,0.0016522407531738281
+Device copies and fills,0.001055002212524414
+Mean-mode constraints,0.0006625652313232422

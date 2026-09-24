@@ -5,8 +5,8 @@
 # DCT-I is a complex FFT of the even extension. This works for complex
 # Fourier amplitudes without splitting real and imaginary parts.
 struct CUDAChebyshevPlan{INVERSE,A,P}
-    work::A
-    plan::P
+    work::A # B × 2(Ny-1) complex even-extension workspace
+    plan::P # in-place cuFFT along the coefficient axis
 end
 
 function CF._plan_cheb(U::CuSpectral, ::Val{INV}, backend::Symbol; kwargs...) where {INV}

@@ -1,0 +1,1169 @@
+CPU FLAT PROFILE
+ Count  Overhead File                    Line Function
+ =====  ======== ====                    ==== ========
+     5         0 @ChannelFlow/…s/batchedinfluence.jl  152 _batchtau!(h::ChannelFlow.Batched…
+     5         0 @Base/subarray.jl       398 setindex!
+     5         0 @ChannelFlow/…s/batchedinfluence.jl   34 _batchdiff!(out::Matrix{ComplexF6…
+     5         0 @ChannelFlow/…c/solvers/meanmode.jl  135 (::ChannelFlow.var"#30#31"{Nothin…
+     5         0 @ChannelFlow/src/indexing.jl   26 macro expansion
+     6         0 @ChebyshevHelmoltzSolvers/…c/batched/helmoltz.jl  255 macro expansion
+     7         0 @ChannelFlow/…s/batchedinfluence.jl   41 _batchdiff!(out::Matrix{ComplexF6…
+     7         0 @Base/multidimensional.jl  443 __inc
+     7         0 @ChannelFlow/…s/batchedinfluence.jl  118 _batchinfluence!(h::ChannelFlow.B…
+     8         0 @ChannelFlow/src/ffts.jl  269 normalize_forward!(U::SpectralFie…
+     8         0 @ChannelFlow/src/solvers/stokes.jl  101 solve!(solver::StokesSolver{Grid{…
+     8         0 @ChannelFlow/…c/solvers/meanmode.jl  103 solve!
+     8         0 @ChannelFlow/…c/solvers/meanmode.jl  131 solve!(solver::MeanModeSolver{Che…
+     8         0 @Base/ntuple.jl          19 ntuple
+     9         0 @ChannelFlow/…s/batchedinfluence.jl  112 _batchinfluence!(h::ChannelFlow.B…
+     9         0 @ChebyshevHelmoltzSolvers/…c/batched/helmoltz.jl  256 macro expansion
+    10         0 @ChannelFlow/src/ffts.jl  312 zero_nyquist!(U::SpectralField{Fl…
+    10         1 @ChannelFlow/…s/batchedinfluence.jl  110 _batchinfluence!(h::ChannelFlow.B…
+    11         0 @Base/multidimensional.jl  453 __inc
+    12        12 @Base/multidimensional.jl    ? macro expansion
+    14         0 @ChannelFlow/…c/fields/operators.jl  112 macro expansion
+    15         0 @Base/multidimensional.jl  450 __inc
+    15         0 @Base/array.jl          333 _fill!
+    15         0 @ChebyshevHelmoltzSolvers/…c/batched/helmoltz.jl  252 solve!(h::ChebyshevHelmoltzSolver…
+    15         0 @Base/complex.jl        342 *
+    17         0 @Base/operators.jl      321 !=
+    17         0 @Base/operators.jl      599 afoldl
+    17         0 @ChannelFlow/…c/fields/operators.jl  119 macro expansion
+    18         0 @ChebyshevHelmoltzSolvers/…tched/quasitridiag.jl  168 macro expansion
+    19         0 @Base/simdloop.jl        84 macro expansion
+    19         0 @Base/intfuncs.jl       437 literal_pow
+    19         0 @ChebyshevHelmoltzSolvers/…tched/quasitridiag.jl  166 ldiv!(Q::ChebyshevHelmoltzSolvers…
+    20         0 @Base/complex.jl        343 *
+    21         0 @Base/complex.jl        299 *
+    21         0 @Base/broadcast.jl      672 _broadcast_getindex
+    21         0 @Base/broadcast.jl      699 _broadcast_getindex_evalf
+    22         0 @Base/multidimensional.jl 1186 fill!
+    22        22 @Base/int.jl             88 *
+    23         0 @Base/complex.jl        298 -
+    24         0 @Base/simdloop.jl        78 macro expansion
+    29         0 @ChannelFlow/src/solvers/stokes.jl  105 solve!(solver::StokesSolver{Grid{…
+    29         0 @Base/promotion.jl      434 *
+    29         0 @Base/promotion.jl      404 promote
+    29         0 @Base/promotion.jl      379 _promote
+    29         0 @Base/number.jl           7 convert
+    29        29 @Base/float.jl          245 Float64
+    30        30 @Base/float.jl          497 *
+    33         0 @ChannelFlow/…s/batchedinfluence.jl  108 _batchinfluence!(h::ChannelFlow.B…
+    34         0 @Base/abstractarray.jl 1105 copyto_unaliased!(deststyle::Inde…
+    35         0 @Base/operators.jl      642 *
+    40        23 @Base/multidimensional.jl  449 __inc
+    47         0 @ChannelFlow/…c/fields/operators.jl  185 curl!(OUT::VectorField{SpectralFi…
+    48        43 @ChannelFlow/…s/batchedinfluence.jl  111 _batchinfluence!(h::ChannelFlow.B…
+    48         0 @ChannelFlow/src/ffts.jl  165 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+    48        48 @Base/float.jl          496 -
+    48        48 @Base/simdloop.jl        75 macro expansion
+    53         0 @Base/complex.jl        297 +
+    53        53 @Base/float.jl          495 +
+    57         0 @Base/subarray.jl       392 setindex!
+    57        57 @ChannelFlow/src/ffts.jl    ? macro expansion
+    59         0 @Base/multidimensional.jl 1185 fill!
+    59         0 @ChannelFlow/…s/batchedinfluence.jl  139 solve!(h::ChannelFlow.BatchedInfl…
+    62         0 @Base/multidimensional.jl  425 iterate
+    64         0 @ChannelFlow/…s/batchedinfluence.jl  135 solve!(h::ChannelFlow.BatchedInfl…
+    66         0 @ChannelFlow/src/ffts.jl  311 zero_nyquist!(U::SpectralField{Fl…
+    66         0 @ChannelFlow/…s/batchedinfluence.jl  136 solve!(h::ChannelFlow.BatchedInfl…
+    69        69 @Base/simdloop.jl         ? macro expansion
+    71         0 @Base/abstractarray.jl 3065 _sub2ind
+    71         0 @Base/abstractarray.jl 3081 _sub2ind_recurse
+    73         0 @ChannelFlow/…c/fields/operators.jl   75 ddx3!
+    73         0 @ChannelFlow/…c/fields/operators.jl   80 ddx3!(OUT::SpectralField{Float64,…
+    76         0 @ChannelFlow/…c/fields/operators.jl  177 curl!(OUT::VectorField{SpectralFi…
+    77         0 @Base/array.jl          986 setindex!
+    77        77 @Base/array.jl          991 _setindex!
+    77         0 @ChannelFlow/…c/fields/operators.jl  176 curl!(OUT::VectorField{SpectralFi…
+    79         0 @ChannelFlow/…c/fields/operators.jl   15 ddx1!
+    79         0 @ChannelFlow/…c/fields/operators.jl   20 ddx1!(OUT::SpectralField{Float64,…
+    81         0 @Base/broadcast.jl      955 copyto!
+    85         0 @ChannelFlow/…s/batchedinfluence.jl  132 solve!(h::ChannelFlow.BatchedInfl…
+   101         0 @ChannelFlow/…s/batchedinfluence.jl  143 solve!(h::ChannelFlow.BatchedInfl…
+   103         0 @ChannelFlow/…s/batchedinfluence.jl  141 solve!(h::ChannelFlow.BatchedInfl…
+   107         0 @ChannelFlow/…s/batchedinfluence.jl  115 _batchinfluence!(h::ChannelFlow.B…
+   113        44 @ChannelFlow/…s/batchedinfluence.jl  155 _batchtau!(h::ChannelFlow.Batched…
+   116       116 @Base/int.jl             87 +
+   118         0 @ChannelFlow/src/ffts.jl  283 copy_from_padded!(dest::SpectralF…
+   122        67 @ChannelFlow/src/ffts.jl  266 macro expansion
+   127         0 @ChannelFlow/…c/fields/operators.jl  186 curl!(OUT::VectorField{SpectralFi…
+   137         0 @ChannelFlow/src/ffts.jl  284 copy_from_padded!(dest::SpectralF…
+   147         0 @ChannelFlow/src/indexing.jl   24 macro expansion
+   149         0 @ChebyshevHelmoltzSolvers/…c/batched/helmoltz.jl  261 macro expansion
+   162         0 @ChannelFlow/…elds/spectralfield.jl   55 setindex!
+   163         0 @ChannelFlow/…c/fields/operators.jl  187 curl!(OUT::VectorField{SpectralFi…
+   169         0 @ChannelFlow/…s/batchedinfluence.jl  133 solve!(h::ChannelFlow.BatchedInfl…
+   180         0 @ChannelFlow/src/ffts.jl  265 normalize_forward!(U::SpectralFie…
+   187         0 @ChebyshevHelmoltzSolvers/…tched/quasitridiag.jl  173 macro expansion
+   189         0 @ChannelFlow/src/ffts.jl   81 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
+   207         0 @ChebyshevHelmoltzSolvers/…c/batched/helmoltz.jl  260 macro expansion
+   215         0 @ChannelFlow/…timesteppers/cnrk2.jl  186 step!(scheme::CNRK2{StokesSolver{…
+   215         0 @ChannelFlow/…fields/vectorfield.jl   65 materialize!
+   215         0 @ChannelFlow/…fields/vectorfield.jl   74 copyto!
+   221         0 @Base/abstractarray.jl 1104 copyto_unaliased!(deststyle::Inde…
+   223         0 @ChannelFlow/src/nonlinear.jl  206 _store_rhs!
+   224         1 @ChannelFlow/src/nonlinear.jl  193 (::NonLinearTerm{Float64, Rotatin…
+   227         0 @ChannelFlow/…s/batchedinfluence.jl  156 _batchtau!(h::ChannelFlow.Batched…
+   241         0 @ChannelFlow/…timesteppers/cnrk2.jl  195 step!(scheme::CNRK2{StokesSolver{…
+   242         0 @ChannelFlow/…c/fields/operators.jl   39 ddx2!
+   242         0 @ChannelFlow/…c/fields/operators.jl   40 ddx2!(OUT::SpectralField{Float64,…
+   249         0 @ChebyshevHelmoltzSolvers/…tched/quasitridiag.jl  186 macro expansion
+   251         0 @ChannelFlow/src/ffts.jl  250 copy_to_padded!(dest::SpectralFie…
+   255         0 @ChannelFlow/src/ffts.jl   76 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
+   255         0 @Base/abstractarray.jl 1070 copyto!
+   256         0 @ChannelFlow/src/nonlinear.jl  189 (::NonLinearTerm{Float64, Rotatin…
+   256         0 @ChannelFlow/src/ffts.jl  251 copy_to_padded!(dest::SpectralFie…
+   256         0 @Base/broadcast.jl      988 copyto!
+   266         0 @ChebyshevHelmoltzSolvers/…tched/quasitridiag.jl  185 ldiv!(Q::ChebyshevHelmoltzSolvers…
+   280         0 @ChannelFlow/…elds/spectralfield.jl   49 getindex
+   283         0 @ChannelFlow/src/nonlinear.jl  190 (::NonLinearTerm{Float64, Rotatin…
+   291        38 @ChannelFlow/…c/fields/operators.jl  121 macro expansion
+   293         0 @Base/abstractarray.jl 1388 _getindex
+   295         0 @Base/abstractarray.jl 1342 getindex
+   305         0 @ChannelFlow/…s/batchedinfluence.jl  116 _batchinfluence!(h::ChannelFlow.B…
+   322         0 @ChannelFlow/…s/batchedinfluence.jl  142 solve!(h::ChannelFlow.BatchedInfl…
+   322         0 @ChannelFlow/…s/batchedinfluence.jl  134 solve!(h::ChannelFlow.BatchedInfl…
+   328         0 @ChannelFlow/…s/batchedinfluence.jl  144 solve!(h::ChannelFlow.BatchedInfl…
+   328         0 @ChannelFlow/…c/fields/operators.jl  115 macro expansion
+   337         0 @ChannelFlow/src/nonlinear.jl  188 (::NonLinearTerm{Float64, Rotatin…
+   344         0 @ChannelFlow/…s/batchedinfluence.jl  137 solve!(h::ChannelFlow.BatchedInfl…
+   346         0 @ChannelFlow/…s/batchedinfluence.jl  140 solve!(h::ChannelFlow.BatchedInfl…
+   357         0 @ChebyshevHelmoltzSolvers/…c/batched/helmoltz.jl  259 solve!(h::ChebyshevHelmoltzSolver…
+   391         1 @Base/array.jl          334 _fill!
+   406         0 @ChannelFlow/src/ffts.jl  163 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+   406         0 @ChannelFlow/…elds/abstractfield.jl   21 fill!
+   406         0 @Base/array.jl          329 fill!
+   410         0 @Base/abstractarray.jl 1443 setindex!
+   410         0 @Base/abstractarray.jl 1473 _setindex!
+   416         0 @ChannelFlow/…s/batchedinfluence.jl   38 macro expansion
+   428       428 @Base/promotion.jl      637 ==
+   431         0 @Base/subarray.jl       316 getindex
+   431         0 @ChannelFlow/…s/batchedinfluence.jl   37 _batchdiff!(out::Matrix{ComplexF6…
+   440        29 @Base/range.jl          921 iterate
+   444         0 @ChebyshevHelmoltzSolvers/…c/batched/helmoltz.jl  267 solve!(h::ChebyshevHelmoltzSolver…
+   457         0 @ChebyshevHelmoltzSolvers/…tched/quasitridiag.jl  174 macro expansion
+   490         0 @ChannelFlow/src/nonlinear.jl  183 (::NonLinearTerm{Float64, Rotatin…
+   495         0 @ChebyshevHelmoltzSolvers/…c/batched/helmoltz.jl  266 solve!(h::ChebyshevHelmoltzSolver…
+   507         0 @ChannelFlow/src/ffts.jl  164 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+   521         0 @ChannelFlow/…s/batchedinfluence.jl  138 solve!(h::ChannelFlow.BatchedInfl…
+   629         0 @Base/multidimensional.jl  743 getindex
+   640         0 @ChannelFlow/…timesteppers/cnrk2.jl  196 step!(scheme::CNRK2{StokesSolver{…
+   644         0 @ChebyshevHelmoltzSolvers/…tched/quasitridiag.jl  172 ldiv!(Q::ChebyshevHelmoltzSolvers…
+   650         0 @ChannelFlow/…c/fields/operators.jl  111 laplacian!(OUT::SpectralField{Flo…
+   657         0 @ChannelFlow/…timesteppers/cnrk2.jl  194 step!(scheme::CNRK2{StokesSolver{…
+   895         0 @Base/broadcast.jl      696 _getindex
+  1064         0 @Base/subarray.jl       386 setindex!
+  1087         0 @Base/broadcast.jl      665 _broadcast_getindex
+  1103         0 @Base/broadcast.jl      671 _broadcast_getindex
+  1103         0 @Base/broadcast.jl      695 _getindex
+  1108         0 @Base/broadcast.jl      616 getindex
+  1108         0 @Base/broadcast.jl      620 _getindex
+  1228         0 @FFTW/src/fft.jl        924 mul!
+  1228      1228 @FFTW/src/fft.jl        530 unsafe_execute!
+  1229         0 @ChannelFlow/src/ffts.jl   73 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
+  1266         0 @ChannelFlow/src/ffts.jl   77 (::ForwardFFT!{FFTW.rFFTWPlan{Flo…
+  1266         0 @ChannelFlow/…ansforms/chebyshev.jl   89 mul!
+  1451         0 @Base/multidimensional.jl  745 setindex!
+  1611      1611 @Base/essentials.jl     920 getindex
+  1687         0 @Base/abstractarray.jl   98 axes
+  1687      1687 @Base/array.jl          194 size
+  1755         0 @Base/abstractarray.jl 1377 _to_linear_index
+  1755         0 @Base/abstractarray.jl 3049 _sub2ind
+  1953         0 @ChannelFlow/…elds/abstractfield.jl   18 materialize!(dest::SpectralField{…
+  2039         0 @FFTW/src/fft.jl        929 mul!
+  2039      2039 @FFTW/src/fft.jl        540 unsafe_execute!
+  2042         0 @ChannelFlow/src/ffts.jl  166 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+  2502         0 @ChannelFlow/…ansforms/chebyshev.jl   89 mul!(dest::SpectralField{Float64,…
+  2507         0 @ChannelFlow/src/ffts.jl  160 (::InverseFFT!{FFTW.rFFTWPlan{Com…
+  2743         0 @ChannelFlow/src/nonlinear.jl  186 (::NonLinearTerm{Float64, Rotatin…
+  2769         0 @ChannelFlow/src/nonlinear.jl  185 (::NonLinearTerm{Float64, Rotatin…
+  2772         0 @Base/broadcast.jl      995 macro expansion
+  2830         0 @ChannelFlow/src/solvers/stokes.jl  100 solve!(solver::StokesSolver{Grid{…
+  2867         0 @ChannelFlow/…timesteppers/cnrk2.jl  202 step!(scheme::CNRK2{StokesSolver{…
+  2867         0 @ChannelFlow/src/solvers/stokes.jl   81 solve!
+  2912         0 @Base/broadcast.jl      994 copyto!
+  2940         0 @ChannelFlow/src/ffts.jl   88 ForwardFFT!
+  2941         0 @ChannelFlow/src/nonlinear.jl  192 (::NonLinearTerm{Float64, Rotatin…
+  2956         0 @Base/array.jl          929 getindex
+  3170         0 @Base/broadcast.jl      947 copyto!
+  3245         0 @Base/array.jl          997 setindex!
+  3245      3069 @Base/array.jl         1003 _setindex!
+  3252         0 @Base/broadcast.jl      902 materialize!
+  3252         0 @Base/broadcast.jl      905 materialize!
+  3768      3768 @FFTW/src/fft.jl        550 unsafe_execute!
+  5304         0 @Base/simdloop.jl        77 macro expansion
+  5512         2 @ChannelFlow/src/ffts.jl  173 InverseFFT!
+ 10043         0 @ChannelFlow/…timesteppers/cnrk2.jl  176 step!(scheme::CNRK2{StokesSolver{…
+ 10043         0 @ChannelFlow/src/nonlinear.jl  178 NonLinearTerm
+ 14664         0 @ChannelFlow/benchmarks/profile.jl   40 main()
+ 14664         0 @ChannelFlow/benchmarks/profile.jl   15 profile_cpu(p::ChannelFlowProblem…
+ 14664         0 @Profile/src/Profile.jl   60 macro expansion
+ 14664         0 @ChannelFlow/benchmarks/profile.jl   16 macro expansion
+ 14664         0 @ChannelFlow/benchmarks/profile.jl   10 advance
+ 14664         0 @ChannelFlow/…timesteppers/cnrk2.jl  150 step!
+ 14819         0 @Base/client.jl         550 _start()
+ 14819         0 @Base/client.jl         317 exec_options(opts::Base.JLOptions)
+ 14819         0 @Base/Base.jl           306 include(mod::Module, _path::Strin…
+ 14819         0 @Base/loading.jl       2934 _include(mapexpr::Function, mod::…
+ 14819         0 @Base/loading.jl       2874 include_string(mapexpr::typeof(id…
+ 14819       155 @Base/boot.jl           489 eval(m::Module, e::Any)
+Total snapshots: 35824. Utilization: 50% across all threads and tasks. Use the `groupby` kwarg to break down by thread and/or task.
+CPU CALL TREE
+Overhead ╎ [+additional indent] Count File:Line  Function
+=========================================================
+     ╎14819 @Base/client.jl:550  _start()
+     ╎ 14819 @Base/client.jl:317  exec_options(opts::Base.JLOptions)
+     ╎  14819 @Base/Base.jl:306  include(mod::Module, _path::String)
+     ╎   14819 @Base/loading.jl:2934  _include(mapexpr::Function, mod::Module, …
+     ╎    14819 @Base/loading.jl:2874  include_string(mapexpr::typeof(identity)…
+  155╎     14819 @Base/boot.jl:489  eval(m::Module, e::Any)
+     ╎    ╎ 14664 @ChannelFlow/…ile.jl:40  main()
+     ╎    ╎  14664 @ChannelFlow/…le.jl:15  profile_cpu(p::ChannelFlowProblem{Gr…
+     ╎    ╎   14664 @Profile/…rofile.jl:60  macro expansion
+     ╎    ╎    14664 @ChannelFlow/…e.jl:16  macro expansion
+     ╎    ╎     14664 @ChannelFlow/…e.jl:10  advance
+     ╎    ╎    ╎ 14664 @ChannelFlow/….jl:150  step!
+     ╎    ╎    ╎  10043 @ChannelFlow/….jl:176  step!(scheme::CNRK2{StokesSolver…
+     ╎    ╎    ╎   10043 @ChannelFlow/…jl:178  NonLinearTerm
+     ╎    ╎    ╎    490   @ChannelFlow/…jl:183  (::NonLinearTerm{Float64, Rotat…
+     ╎    ╎    ╎     77    @ChannelFlow/…jl:176  curl!(OUT::VectorField{Spectra…
+     ╎    ╎    ╎    ╎ 77    @ChannelFlow/…jl:39  ddx2!
+     ╎    ╎    ╎    ╎  77    @ChannelFlow/…l:40  ddx2!(OUT::SpectralField{Float…
+     ╎    ╎    ╎    ╎   73    @ChannelFlow/…l:37  _batchdiff!(out::Matrix{Compl…
+     ╎    ╎    ╎    ╎    72    @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎     72    @ChannelFlow/…:38  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 66    @Base/…ray.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎  55    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎   55    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    55    @Base/…ay.jl:98  axes
+   55╎    ╎    ╎    ╎    ╎     55    @Base/…ay.jl:194  size
+   11╎    ╎    ╎    ╎    ╎  11    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎     76    @ChannelFlow/…jl:177  curl!(OUT::VectorField{Spectra…
+     ╎    ╎    ╎    ╎ 76    @ChannelFlow/…jl:39  ddx2!
+     ╎    ╎    ╎    ╎  76    @ChannelFlow/…l:40  ddx2!(OUT::SpectralField{Float…
+     ╎    ╎    ╎    ╎   74    @ChannelFlow/…l:37  _batchdiff!(out::Matrix{Compl…
+     ╎    ╎    ╎    ╎    73    @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎     73    @ChannelFlow/…:38  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 66    @Base/…ray.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎  54    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎   54    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    54    @Base/…ay.jl:98  axes
+   54╎    ╎    ╎    ╎    ╎     54    @Base/…ay.jl:194  size
+   12╎    ╎    ╎    ╎    ╎  12    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎     47    @ChannelFlow/…jl:185  curl!(OUT::VectorField{Spectra…
+     ╎    ╎    ╎    ╎ 39    @ChannelFlow/…l:49  getindex
+     ╎    ╎    ╎    ╎  39    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎   14    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    14    @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎     14    @Base/…rray.jl:98  axes
+   14╎    ╎    ╎    ╎    ╎ 14    @Base/…ray.jl:194  size
+   25╎    ╎    ╎    ╎   25    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎     127   @ChannelFlow/…jl:186  curl!(OUT::VectorField{Spectra…
+     ╎    ╎    ╎    ╎ 18    @Base/…ators.jl:642  *
+     ╎    ╎    ╎    ╎  18    @Base/…otion.jl:434  *
+     ╎    ╎    ╎    ╎   18    @Base/…tion.jl:404  promote
+     ╎    ╎    ╎    ╎    18    @Base/…tion.jl:379  _promote
+     ╎    ╎    ╎    ╎     18    @Base/…mber.jl:7  convert
+   18╎    ╎    ╎    ╎    ╎ 18    @Base/…oat.jl:245  Float64
+     ╎    ╎    ╎    ╎ 88    @ChannelFlow/…l:49  getindex
+     ╎    ╎    ╎    ╎  88    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎   53    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    53    @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎     53    @Base/…rray.jl:98  axes
+   53╎    ╎    ╎    ╎    ╎ 53    @Base/…ray.jl:194  size
+   35╎    ╎    ╎    ╎   35    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎ 17    @ChannelFlow/…l:55  setindex!
+     ╎    ╎    ╎    ╎  17    @Base/array.jl:997  setindex!
+    2╎    ╎    ╎    ╎   17    @Base/array.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    15    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎     15    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎ 15    @Base/…rray.jl:98  axes
+   15╎    ╎    ╎    ╎    ╎  15    @Base/…ray.jl:194  size
+     ╎    ╎    ╎     163   @ChannelFlow/…jl:187  curl!(OUT::VectorField{Spectra…
+     ╎    ╎    ╎    ╎ 86    @ChannelFlow/…l:49  getindex
+     ╎    ╎    ╎    ╎  86    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎   36    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    36    @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎     36    @Base/…rray.jl:98  axes
+   36╎    ╎    ╎    ╎    ╎ 36    @Base/…ray.jl:194  size
+   50╎    ╎    ╎    ╎   50    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎ 75    @ChannelFlow/…l:55  setindex!
+     ╎    ╎    ╎    ╎  75    @Base/array.jl:997  setindex!
+   75╎    ╎    ╎    ╎   75    @Base/array.jl:1003  _setindex!
+     ╎    ╎    ╎    2769  @ChannelFlow/…jl:185  (::NonLinearTerm{Float64, Rotat…
+    2╎    ╎    ╎     2769  @ChannelFlow/…jl:173  InverseFFT!
+     ╎    ╎    ╎    ╎ 1272  @ChannelFlow/…l:160  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  1269  @ChannelFlow/…l:89  mul!(dest::SpectralField{Float…
+ 1269╎    ╎    ╎    ╎   1269  @FFTW/…/fft.jl:550  unsafe_execute!
+     ╎    ╎    ╎    ╎ 200   @ChannelFlow/…l:163  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  200   @ChannelFlow/…l:21  fill!
+     ╎    ╎    ╎    ╎   200   @Base/array.jl:329  fill!
+    1╎    ╎    ╎    ╎    192   @Base/array.jl:334  _fill!
+     ╎    ╎    ╎    ╎     191   @Base/range.jl:921  iterate
+  191╎    ╎    ╎    ╎    ╎ 191   @Base/…ion.jl:637  ==
+     ╎    ╎    ╎    ╎ 261   @ChannelFlow/…l:164  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  130   @ChannelFlow/…l:250  copy_to_padded!(dest::Spectra…
+     ╎    ╎    ╎    ╎   130   @Base/…cast.jl:902  materialize!
+     ╎    ╎    ╎    ╎    130   @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎     130   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    ╎ 130   @Base/…ast.jl:994  copyto!
+     ╎    ╎    ╎    ╎    ╎  128   @Base/…oop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎   128   @Base/…st.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎    85    @Base/…ay.jl:1443  setindex!
+     ╎    ╎    ╎    ╎    ╎     85    @Base/…ay.jl:1473  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎ 85    @Base/…ay.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎  85    @Base/…ay.jl:997  setindex!
+   84╎    ╎    ╎    ╎    ╎    ╎   85    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎    43    @Base/…st.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎     43    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 43    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  43    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   43    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    43    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     43    @Base/…ay.jl:1342  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 43    @Base/…ay.jl:1388  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  43    @Base/…ay.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   43    @Base/…ay.jl:929  getindex
+   34╎    ╎    ╎    ╎    ╎    ╎    ╎    34    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎  131   @ChannelFlow/…l:251  copy_to_padded!(dest::Spectra…
+     ╎    ╎    ╎    ╎   131   @Base/…cast.jl:902  materialize!
+     ╎    ╎    ╎    ╎    131   @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎     131   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    ╎ 131   @Base/…ast.jl:994  copyto!
+     ╎    ╎    ╎    ╎    ╎  122   @Base/…oop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎   122   @Base/…st.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎    19    @Base/…ay.jl:1443  setindex!
+     ╎    ╎    ╎    ╎    ╎     19    @Base/…ay.jl:1473  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎ 19    @Base/…ay.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎  19    @Base/…ay.jl:997  setindex!
+   10╎    ╎    ╎    ╎    ╎    ╎   19    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎    103   @Base/…st.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎     103   @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 103   @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  103   @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   103   @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    103   @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     103   @Base/…ay.jl:1342  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 103   @Base/…ay.jl:1388  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  103   @Base/…ay.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   103   @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    101   @Base/…ay.jl:1377  _to_linear_ind…
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎     101   @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎ 101   @Base/…ay.jl:98  axes
+  101╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎  101   @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎ 27    @ChannelFlow/…l:165  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  24    @ChannelFlow/…l:311  zero_nyquist!(U::SpectralFiel…
+     ╎    ╎    ╎    ╎   24    @Base/…cast.jl:902  materialize!
+     ╎    ╎    ╎    ╎    24    @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎     24    @Base/…cast.jl:955  copyto!
+     ╎    ╎    ╎    ╎    ╎ 21    @Base/…nal.jl:1185  fill!
+     ╎    ╎    ╎    ╎    ╎  21    @Base/…ray.jl:392  setindex!
+     ╎    ╎    ╎    ╎    ╎   21    @Base/…ay.jl:986  setindex!
+   21╎    ╎    ╎    ╎    ╎    21    @Base/…ay.jl:991  _setindex!
+     ╎    ╎    ╎    ╎ 1007  @ChannelFlow/…l:166  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  1005  @FFTW/…c/fft.jl:929  mul!
+ 1005╎    ╎    ╎    ╎   1005  @FFTW/…/fft.jl:540  unsafe_execute!
+     ╎    ╎    ╎    2743  @ChannelFlow/…jl:186  (::NonLinearTerm{Float64, Rotat…
+     ╎    ╎    ╎     2743  @ChannelFlow/…jl:173  InverseFFT!
+     ╎    ╎    ╎    ╎ 1235  @ChannelFlow/…l:160  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  1233  @ChannelFlow/…l:89  mul!(dest::SpectralField{Float…
+ 1233╎    ╎    ╎    ╎   1233  @FFTW/…/fft.jl:550  unsafe_execute!
+     ╎    ╎    ╎    ╎ 206   @ChannelFlow/…l:163  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  206   @ChannelFlow/…l:21  fill!
+     ╎    ╎    ╎    ╎   206   @Base/array.jl:329  fill!
+     ╎    ╎    ╎    ╎    199   @Base/array.jl:334  _fill!
+     ╎    ╎    ╎    ╎     199   @Base/range.jl:921  iterate
+  199╎    ╎    ╎    ╎    ╎ 199   @Base/…ion.jl:637  ==
+     ╎    ╎    ╎    ╎ 246   @ChannelFlow/…l:164  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  121   @ChannelFlow/…l:250  copy_to_padded!(dest::Spectra…
+     ╎    ╎    ╎    ╎   121   @Base/…cast.jl:902  materialize!
+     ╎    ╎    ╎    ╎    121   @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎     121   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    ╎ 121   @Base/…ast.jl:994  copyto!
+     ╎    ╎    ╎    ╎    ╎  118   @Base/…oop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎   118   @Base/…st.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎    87    @Base/…ay.jl:1443  setindex!
+     ╎    ╎    ╎    ╎    ╎     87    @Base/…ay.jl:1473  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎ 87    @Base/…ay.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎  87    @Base/…ay.jl:997  setindex!
+   85╎    ╎    ╎    ╎    ╎    ╎   87    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎    31    @Base/…st.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎     31    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 31    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  31    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   31    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    31    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     31    @Base/…ay.jl:1342  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 31    @Base/…ay.jl:1388  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  31    @Base/…ay.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   31    @Base/…ay.jl:929  getindex
+   24╎    ╎    ╎    ╎    ╎    ╎    ╎    24    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎  125   @ChannelFlow/…l:251  copy_to_padded!(dest::Spectra…
+     ╎    ╎    ╎    ╎   125   @Base/…cast.jl:902  materialize!
+     ╎    ╎    ╎    ╎    125   @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎     125   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    ╎ 125   @Base/…ast.jl:994  copyto!
+     ╎    ╎    ╎    ╎    ╎  113   @Base/…oop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎   113   @Base/…st.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎    20    @Base/…ay.jl:1443  setindex!
+     ╎    ╎    ╎    ╎    ╎     20    @Base/…ay.jl:1473  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎ 20    @Base/…ay.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎  20    @Base/…ay.jl:997  setindex!
+   10╎    ╎    ╎    ╎    ╎    ╎   20    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎    10    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎     10    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 10    @Base/…ay.jl:98  axes
+   10╎    ╎    ╎    ╎    ╎    ╎    ╎  10    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎    ╎    93    @Base/…st.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎     93    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 93    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  93    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   93    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    93    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     93    @Base/…ay.jl:1342  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 93    @Base/…ay.jl:1388  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  93    @Base/…ay.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   93    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    92    @Base/…ay.jl:1377  _to_linear_ind…
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎     92    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎ 91    @Base/…ay.jl:98  axes
+   91╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎  91    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎ 21    @ChannelFlow/…l:165  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  16    @ChannelFlow/…l:311  zero_nyquist!(U::SpectralFiel…
+     ╎    ╎    ╎    ╎   16    @Base/…cast.jl:902  materialize!
+     ╎    ╎    ╎    ╎    16    @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎     16    @Base/…cast.jl:955  copyto!
+     ╎    ╎    ╎    ╎    ╎ 14    @Base/…nal.jl:1185  fill!
+     ╎    ╎    ╎    ╎    ╎  14    @Base/…ray.jl:392  setindex!
+     ╎    ╎    ╎    ╎    ╎   14    @Base/…ay.jl:986  setindex!
+   14╎    ╎    ╎    ╎    ╎    14    @Base/…ay.jl:991  _setindex!
+     ╎    ╎    ╎    ╎ 1035  @ChannelFlow/…l:166  (::InverseFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  1034  @FFTW/…c/fft.jl:929  mul!
+ 1034╎    ╎    ╎    ╎   1034  @FFTW/…/fft.jl:540  unsafe_execute!
+     ╎    ╎    ╎    337   @ChannelFlow/…jl:188  (::NonLinearTerm{Float64, Rotat…
+     ╎    ╎    ╎     337   @ChannelFlow/…jl:18  materialize!(dest::PhysicalFiel…
+     ╎    ╎    ╎    ╎ 337   @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  337   @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   337   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    337   @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎     324   @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 324   @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎  66    @Base/…ast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎   66    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    63    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     63    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 28    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  28    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   26    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    26    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     26    @Base/…ay.jl:929  getindex
+   26╎    ╎    ╎    ╎    ╎    ╎    ╎ 26    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 35    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  32    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   32    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    27    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     27    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 27    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  27    @Base/…ay.jl:929  getindex
+   22╎    ╎    ╎    ╎    ╎    ╎    ╎   22    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎  258   @Base/…nal.jl:745  setindex!
+     ╎    ╎    ╎    ╎    ╎   258   @Base/…ay.jl:997  setindex!
+  258╎    ╎    ╎    ╎    ╎    258   @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    256   @ChannelFlow/…jl:189  (::NonLinearTerm{Float64, Rotat…
+     ╎    ╎    ╎     255   @ChannelFlow/…jl:18  materialize!(dest::PhysicalFiel…
+     ╎    ╎    ╎    ╎ 255   @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  255   @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   255   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    255   @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎     243   @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 243   @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎  28    @Base/…ast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎   28    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    27    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     27    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 15    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  15    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   13    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    13    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     13    @Base/…ay.jl:929  getindex
+   13╎    ╎    ╎    ╎    ╎    ╎    ╎ 13    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 12    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  11    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   11    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎  215   @Base/…nal.jl:745  setindex!
+     ╎    ╎    ╎    ╎    ╎   215   @Base/…ay.jl:997  setindex!
+  215╎    ╎    ╎    ╎    ╎    215   @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    283   @ChannelFlow/…jl:190  (::NonLinearTerm{Float64, Rotat…
+     ╎    ╎    ╎     283   @ChannelFlow/…jl:18  materialize!(dest::PhysicalFiel…
+     ╎    ╎    ╎    ╎ 283   @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  283   @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   283   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    282   @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎     272   @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 272   @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎  32    @Base/…ast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎   32    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    32    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     32    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 18    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  18    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   14    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    14    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     14    @Base/…ay.jl:929  getindex
+   14╎    ╎    ╎    ╎    ╎    ╎    ╎ 14    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 14    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  13    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   13    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    12    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     12    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 12    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  12    @Base/…ay.jl:929  getindex
+   12╎    ╎    ╎    ╎    ╎    ╎    ╎   12    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎  240   @Base/…nal.jl:745  setindex!
+     ╎    ╎    ╎    ╎    ╎   240   @Base/…ay.jl:997  setindex!
+  240╎    ╎    ╎    ╎    ╎    240   @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    2941  @ChannelFlow/…jl:192  (::NonLinearTerm{Float64, Rotat…
+     ╎    ╎    ╎     2940  @ChannelFlow/…jl:88  ForwardFFT!
+     ╎    ╎    ╎    ╎ 1229  @ChannelFlow/…jl:73  (::ForwardFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  1228  @FFTW/…c/fft.jl:924  mul!
+ 1228╎    ╎    ╎    ╎   1228  @FFTW/…/fft.jl:530  unsafe_execute!
+     ╎    ╎    ╎    ╎ 255   @ChannelFlow/…jl:76  (::ForwardFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  118   @ChannelFlow/…l:283  copy_from_padded!(dest::Spect…
+     ╎    ╎    ╎    ╎   118   @Base/…cast.jl:902  materialize!
+     ╎    ╎    ╎    ╎    118   @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎     118   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    ╎ 118   @Base/…ast.jl:988  copyto!
+     ╎    ╎    ╎    ╎    ╎  118   @Base/…ay.jl:1070  copyto!
+     ╎    ╎    ╎    ╎    ╎   101   @Base/…ay.jl:1104  copyto_unaliased!(deststy…
+     ╎    ╎    ╎    ╎    ╎    12    @Base/…ay.jl:1342  getindex
+     ╎    ╎    ╎    ╎    ╎     12    @Base/…ay.jl:1388  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 12    @Base/…ay.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  12    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   10    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎    10    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎     10    @Base/…ay.jl:98  axes
+   10╎    ╎    ╎    ╎    ╎    ╎    ╎ 10    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎    ╎    89    @Base/…ay.jl:1443  setindex!
+     ╎    ╎    ╎    ╎    ╎     89    @Base/…ay.jl:1473  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎ 89    @Base/…ay.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎  89    @Base/…ay.jl:997  setindex!
+   77╎    ╎    ╎    ╎    ╎    ╎   89    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎    12    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎     12    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 12    @Base/…ay.jl:98  axes
+   12╎    ╎    ╎    ╎    ╎    ╎    ╎  12    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎    ╎   17    @Base/…ay.jl:1105  copyto_unaliased!(deststy…
+     ╎    ╎    ╎    ╎    ╎    17    @Base/…al.jl:425  iterate
+    7╎    ╎    ╎    ╎    ╎     11    @Base/…al.jl:449  __inc
+     ╎    ╎    ╎    ╎  137   @ChannelFlow/…l:284  copy_from_padded!(dest::Spect…
+     ╎    ╎    ╎    ╎   137   @Base/…cast.jl:902  materialize!
+     ╎    ╎    ╎    ╎    137   @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎     137   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    ╎ 137   @Base/…ast.jl:988  copyto!
+     ╎    ╎    ╎    ╎    ╎  137   @Base/…ay.jl:1070  copyto!
+     ╎    ╎    ╎    ╎    ╎   120   @Base/…ay.jl:1104  copyto_unaliased!(deststy…
+     ╎    ╎    ╎    ╎    ╎    11    @Base/…ay.jl:1342  getindex
+     ╎    ╎    ╎    ╎    ╎     11    @Base/…ay.jl:1388  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 11    @Base/…ay.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  11    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    109   @Base/…ay.jl:1443  setindex!
+     ╎    ╎    ╎    ╎    ╎     109   @Base/…ay.jl:1473  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎ 109   @Base/…ay.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎  109   @Base/…ay.jl:997  setindex!
+   98╎    ╎    ╎    ╎    ╎    ╎   109   @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎    11    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎     11    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 11    @Base/…ay.jl:98  axes
+   11╎    ╎    ╎    ╎    ╎    ╎    ╎  11    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎    ╎   17    @Base/…ay.jl:1105  copyto_unaliased!(deststy…
+     ╎    ╎    ╎    ╎    ╎    17    @Base/…al.jl:425  iterate
+   10╎    ╎    ╎    ╎    ╎     14    @Base/…al.jl:449  __inc
+     ╎    ╎    ╎    ╎ 1266  @ChannelFlow/…jl:77  (::ForwardFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  1266  @ChannelFlow/…l:89  mul!
+ 1266╎    ╎    ╎    ╎   1266  @FFTW/…/fft.jl:550  unsafe_execute!
+     ╎    ╎    ╎    ╎ 189   @ChannelFlow/…jl:81  (::ForwardFFT!{FFTW.rFFTWPlan{…
+     ╎    ╎    ╎    ╎  180   @ChannelFlow/…l:265  normalize_forward!(U::Spectra…
+     ╎    ╎    ╎    ╎   179   @Base/…dloop.jl:77  macro expansion
+   57╎    ╎    ╎    ╎    57    @ChannelFlow/…:0  macro expansion
+   67╎    ╎    ╎    ╎    122   @ChannelFlow/…:266  macro expansion
+     ╎    ╎    ╎    ╎     54    @Base/array.jl:997  setindex!
+   54╎    ╎    ╎    ╎    ╎ 54    @Base/…ray.jl:1003  _setindex!
+    1╎    ╎    ╎    224   @ChannelFlow/…jl:193  (::NonLinearTerm{Float64, Rotat…
+     ╎    ╎    ╎     223   @ChannelFlow/…jl:206  _store_rhs!
+     ╎    ╎    ╎    ╎ 223   @ChannelFlow/…jl:18  materialize!(dest::SpectralFie…
+     ╎    ╎    ╎    ╎  223   @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎   223   @Base/…cast.jl:905  materialize!
+     ╎    ╎    ╎    ╎    223   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎     223   @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎    ╎ 220   @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎  220   @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎   14    @Base/…st.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎    14    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎     14    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 14    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  14    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   14    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    14    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     14    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎   206   @Base/…al.jl:745  setindex!
+     ╎    ╎    ╎    ╎    ╎    206   @Base/…ay.jl:997  setindex!
+  184╎    ╎    ╎    ╎    ╎     206   @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎    ╎ 22    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎  22    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎   22    @Base/…ay.jl:98  axes
+   22╎    ╎    ╎    ╎    ╎    ╎    22    @Base/…ay.jl:194  size
+     ╎    ╎    ╎  215   @ChannelFlow/….jl:186  step!(scheme::CNRK2{StokesSolver…
+     ╎    ╎    ╎   215   @ChannelFlow/….jl:65  materialize!
+     ╎    ╎    ╎    215   @ChannelFlow/…jl:74  copyto!
+     ╎    ╎    ╎     215   @ChannelFlow/…jl:18  materialize!(dest::SpectralFiel…
+     ╎    ╎    ╎    ╎ 215   @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  215   @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   215   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    215   @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎     212   @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 212   @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎  47    @Base/…ast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎   47    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    47    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     47    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 47    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  20    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   20    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    20    @Base/…ay.jl:929  getindex
+   15╎    ╎    ╎    ╎    ╎    ╎     15    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  27    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   27    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    27    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     27    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 11    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  11    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   11    @Base/…ay.jl:98  axes
+   11╎    ╎    ╎    ╎    ╎    ╎    ╎    11    @Base/…ay.jl:194  size
+   16╎    ╎    ╎    ╎    ╎    ╎    ╎ 16    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎  165   @Base/…nal.jl:745  setindex!
+     ╎    ╎    ╎    ╎    ╎   165   @Base/…ay.jl:997  setindex!
+  153╎    ╎    ╎    ╎    ╎    165   @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎     12    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎ 12    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎  12    @Base/…ay.jl:98  axes
+   12╎    ╎    ╎    ╎    ╎    ╎   12    @Base/…ay.jl:194  size
+     ╎    ╎    ╎  657   @ChannelFlow/….jl:194  step!(scheme::CNRK2{StokesSolver…
+     ╎    ╎    ╎   650   @ChannelFlow/…jl:111  laplacian!(OUT::SpectralField{Fl…
+     ╎    ╎    ╎    650   @Base/…mdloop.jl:77  macro expansion
+     ╎    ╎    ╎     14    @ChannelFlow/…jl:112  macro expansion
+     ╎    ╎    ╎    ╎ 13    @Base/…funcs.jl:437  literal_pow
+   13╎    ╎    ╎    ╎  13    @Base/int.jl:88  *
+     ╎    ╎    ╎     328   @ChannelFlow/…jl:115  macro expansion
+     ╎    ╎    ╎    ╎ 312   @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎  12    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎   12    @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    12    @Base/…rray.jl:98  axes
+   12╎    ╎    ╎    ╎     12    @Base/array.jl:194  size
+  300╎    ╎    ╎    ╎  300   @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎ 16    @Base/…mplex.jl:297  +
+   16╎    ╎    ╎    ╎  16    @Base/float.jl:495  +
+     ╎    ╎    ╎     17    @ChannelFlow/…jl:119  macro expansion
+     ╎    ╎    ╎    ╎ 17    @Base/array.jl:929  getindex
+   17╎    ╎    ╎    ╎  17    @Base/…tials.jl:920  getindex
+   38╎    ╎    ╎     291   @ChannelFlow/…jl:121  macro expansion
+     ╎    ╎    ╎    ╎ 66    @Base/array.jl:929  getindex
+   66╎    ╎    ╎    ╎  66    @Base/…tials.jl:920  getindex
+     ╎    ╎    ╎    ╎ 187   @Base/array.jl:997  setindex!
+  187╎    ╎    ╎    ╎  187   @Base/array.jl:1003  _setindex!
+     ╎    ╎    ╎  241   @ChannelFlow/….jl:195  step!(scheme::CNRK2{StokesSolver…
+     ╎    ╎    ╎   79    @ChannelFlow/….jl:15  ddx1!
+     ╎    ╎    ╎    79    @ChannelFlow/…jl:20  ddx1!(OUT::SpectralField{Float64…
+     ╎    ╎    ╎     75    @ChannelFlow/…jl:24  macro expansion
+     ╎    ╎    ╎    ╎ 11    @Base/…ators.jl:642  *
+     ╎    ╎    ╎    ╎  11    @Base/…ators.jl:599  afoldl
+     ╎    ╎    ╎    ╎   11    @Base/…plex.jl:299  *
+   11╎    ╎    ╎    ╎    11    @Base/float.jl:496  -
+     ╎    ╎    ╎    ╎ 62    @ChannelFlow/…l:49  getindex
+     ╎    ╎    ╎    ╎  62    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎   61    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    61    @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎     61    @Base/…rray.jl:98  axes
+   61╎    ╎    ╎    ╎    ╎ 61    @Base/…ray.jl:194  size
+     ╎    ╎    ╎   89    @ChannelFlow/….jl:39  ddx2!
+     ╎    ╎    ╎    89    @ChannelFlow/…jl:40  ddx2!(OUT::SpectralField{Float64…
+     ╎    ╎    ╎     88    @ChannelFlow/…jl:37  _batchdiff!(out::Matrix{Complex…
+     ╎    ╎    ╎    ╎ 85    @Base/…mdloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎  85    @ChannelFlow/…l:38  macro expansion
+     ╎    ╎    ╎    ╎   71    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎    65    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎     65    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎ 65    @Base/…rray.jl:98  axes
+   65╎    ╎    ╎    ╎    ╎  65    @Base/…ray.jl:194  size
+     ╎    ╎    ╎    ╎   13    @Base/array.jl:997  setindex!
+   13╎    ╎    ╎    ╎    13    @Base/array.jl:1003  _setindex!
+     ╎    ╎    ╎   73    @ChannelFlow/….jl:75  ddx3!
+     ╎    ╎    ╎    73    @ChannelFlow/…jl:80  ddx3!(OUT::SpectralField{Float64…
+     ╎    ╎    ╎     72    @ChannelFlow/…jl:24  macro expansion
+     ╎    ╎    ╎    ╎ 63    @ChannelFlow/…l:55  setindex!
+     ╎    ╎    ╎    ╎  63    @Base/array.jl:997  setindex!
+   63╎    ╎    ╎    ╎   63    @Base/array.jl:1003  _setindex!
+     ╎    ╎    ╎  640   @ChannelFlow/….jl:196  step!(scheme::CNRK2{StokesSolver…
+     ╎    ╎    ╎   640   @ChannelFlow/….jl:18  materialize!(dest::SpectralField…
+     ╎    ╎    ╎    640   @Base/…adcast.jl:902  materialize!
+     ╎    ╎    ╎     640   @Base/…adcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎ 640   @Base/…dcast.jl:947  copyto!
+     ╎    ╎    ╎    ╎  639   @Base/…dcast.jl:994  copyto!
+   59╎    ╎    ╎    ╎   59    @Base/…dloop.jl:0  macro expansion
+     ╎    ╎    ╎    ╎   578   @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    578   @Base/…cast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎     242   @Base/…cast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎ 242   @Base/…ast.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎  242   @Base/…ast.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎   242   @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    147   @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     147   @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 60    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  60    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   32    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    32    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     32    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 32    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  32    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   32    @Base/…ay.jl:929  getindex
+   24╎    ╎    ╎    ╎    ╎    ╎    ╎    24    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   28    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    28    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     28    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 28    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  28    @Base/…st.jl:665  _broadcast_getind…
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   28    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    28    @Base/…ay.jl:929  getindex
+   24╎    ╎    ╎    ╎    ╎    ╎    ╎     24    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 87    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  87    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   87    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    87    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     53    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 53    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  33    @Base/…ay.jl:3065  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   33    @Base/…ay.jl:3081  _sub2ind_recurse
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    33    @Base/…ay.jl:3081  _sub2ind_recur…
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎     33    @Base/…ay.jl:3081  _sub2ind_recu…
+   33╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎ 33    @Base/int.jl:87  +
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  20    @Base/…ay.jl:98  axes
+   20╎    ╎    ╎    ╎    ╎    ╎    ╎   20    @Base/…ay.jl:194  size
+   34╎    ╎    ╎    ╎    ╎    ╎     34    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    95    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎     95    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 95    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  95    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   95    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    95    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     95    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 54    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  54    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   13    @Base/…ay.jl:3065  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    13    @Base/…ay.jl:3081  _sub2ind_recur…
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎     13    @Base/…ay.jl:3081  _sub2ind_recu…
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎ 13    @Base/…ay.jl:3081  _sub2ind_rec…
+   13╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎  13    @Base/int.jl:87  +
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   41    @Base/…ay.jl:98  axes
+   41╎    ╎    ╎    ╎    ╎    ╎    ╎    41    @Base/…ay.jl:194  size
+   41╎    ╎    ╎    ╎    ╎    ╎    ╎ 41    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎     336   @Base/…onal.jl:745  setindex!
+     ╎    ╎    ╎    ╎    ╎ 336   @Base/…ray.jl:997  setindex!
+  260╎    ╎    ╎    ╎    ╎  336   @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    ╎   76    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    76    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎     76    @Base/…ay.jl:98  axes
+   76╎    ╎    ╎    ╎    ╎    ╎ 76    @Base/…ay.jl:194  size
+     ╎    ╎    ╎  2867  @ChannelFlow/….jl:202  step!(scheme::CNRK2{StokesSolver…
+     ╎    ╎    ╎   2867  @ChannelFlow/….jl:81  solve!
+     ╎    ╎    ╎    2830  @ChannelFlow/…jl:100  solve!(solver::StokesSolver{Gri…
+     ╎    ╎    ╎     85    @ChannelFlow/…jl:132  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 82    @ChannelFlow/…jl:37  _batchdiff!(out::Matrix{Comple…
+     ╎    ╎    ╎    ╎  79    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎   79    @ChannelFlow/…l:38  macro expansion
+     ╎    ╎    ╎    ╎    74    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎     68    @Base/…ray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎ 68    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎  68    @Base/…ray.jl:98  axes
+   68╎    ╎    ╎    ╎    ╎   68    @Base/…ay.jl:194  size
+     ╎    ╎    ╎     169   @ChannelFlow/…jl:133  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 169   @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  169   @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   169   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    169   @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎     169   @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 169   @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎  169   @Base/…ast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎   169   @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    169   @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     169   @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 75    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  75    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   75    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    74    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎     74    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 74    @Base/…ay.jl:98  axes
+   74╎    ╎    ╎    ╎    ╎    ╎    ╎  74    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎    ╎    ╎ 94    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  83    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   83    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    28    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     28    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 23    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  23    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   23    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    23    @Base/…st.jl:665  _broadcast_geti…
+   23╎    ╎    ╎    ╎    ╎    ╎    ╎     23    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    55    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     55    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 55    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  36    @Base/…st.jl:671  _broadcast_getind…
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   36    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    36    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎     36    @Base/…st.jl:665  _broadcast_get…
+   36╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎ 36    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎  19    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎   19    @Base/…st.jl:665  _broadcast_getin…
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎    19    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎     19    @Base/…ay.jl:929  getindex
+   19╎    ╎    ╎    ╎    ╎    ╎    ╎    ╎ 19    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  11    @Base/…st.jl:672  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   11    @Base/…st.jl:699  _broadcast_getindex_e…
+     ╎    ╎    ╎    ╎    ╎    ╎    11    @Base/…ex.jl:297  +
+   11╎    ╎    ╎    ╎    ╎    ╎     11    @Base/…at.jl:495  +
+     ╎    ╎    ╎     322   @ChannelFlow/…jl:134  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 88    @ChebyshevHelmoltzSolvers/…:259  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  88    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎   57    @ChebyshevHelmoltzSolvers/…:260  macro expansion
+     ╎    ╎    ╎    ╎    57    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎     57    @Base/…ray.jl:1377  _to_linear_index
+Precompiling packages...
+   2037.3 ms  ✓ ChannelFlow
+  1 dependency successfully precompiled in 3 seconds. 47 already precompiled.
+     ╎    ╎    ╎    ╎    ╎ 57    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎  57    @Base/…ray.jl:98  axes
+   57╎    ╎    ╎    ╎    ╎   57    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎   31    @ChebyshevHelmoltzSolvers/…:261  macro expansion
+     ╎    ╎    ╎    ╎    18    @Base/array.jl:929  getindex
+   18╎    ╎    ╎    ╎     18    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎ 116   @ChebyshevHelmoltzSolvers/…:266  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  73    @ChebyshevHelmoltzSolvers/…:172  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   73    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    27    @ChebyshevHelmoltzSolvers/…:173  macro expansion
+     ╎    ╎    ╎    ╎     14    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 14    @Base/…ray.jl:997  setindex!
+   14╎    ╎    ╎    ╎    ╎  14    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    46    @ChebyshevHelmoltzSolvers/…:174  macro expansion
+     ╎    ╎    ╎    ╎     31    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 31    @Base/…ray.jl:997  setindex!
+   31╎    ╎    ╎    ╎    ╎  31    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎  35    @ChebyshevHelmoltzSolvers/…:185  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   33    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    33    @ChebyshevHelmoltzSolvers/…:186  macro expansion
+     ╎    ╎    ╎    ╎     30    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 30    @Base/…ray.jl:997  setindex!
+   30╎    ╎    ╎    ╎    ╎  30    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎ 114   @ChebyshevHelmoltzSolvers/…:267  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  69    @ChebyshevHelmoltzSolvers/…:172  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   69    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    21    @ChebyshevHelmoltzSolvers/…:173  macro expansion
+     ╎    ╎    ╎    ╎     14    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 14    @Base/…ray.jl:997  setindex!
+   14╎    ╎    ╎    ╎    ╎  14    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    48    @ChebyshevHelmoltzSolvers/…:174  macro expansion
+     ╎    ╎    ╎    ╎     36    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 36    @Base/…ray.jl:997  setindex!
+   36╎    ╎    ╎    ╎    ╎  36    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎  38    @ChebyshevHelmoltzSolvers/…:185  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   37    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    37    @ChebyshevHelmoltzSolvers/…:186  macro expansion
+     ╎    ╎    ╎    ╎     36    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 36    @Base/…ray.jl:997  setindex!
+   36╎    ╎    ╎    ╎    ╎  36    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎     64    @ChannelFlow/…jl:135  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 59    @ChannelFlow/…jl:37  _batchdiff!(out::Matrix{Comple…
+     ╎    ╎    ╎    ╎  56    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎   56    @ChannelFlow/…l:38  macro expansion
+     ╎    ╎    ╎    ╎    54    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎     48    @Base/…ray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎ 48    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎  48    @Base/…ray.jl:98  axes
+   48╎    ╎    ╎    ╎    ╎   48    @Base/…ay.jl:194  size
+     ╎    ╎    ╎     66    @ChannelFlow/…jl:136  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 66    @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  66    @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   65    @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    65    @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎     65    @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 65    @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎  63    @Base/…ast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎   63    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    62    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     62    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 58    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  58    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   58    @Base/…ay.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    56    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎    ╎     56    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 56    @Base/…ay.jl:98  axes
+   56╎    ╎    ╎    ╎    ╎    ╎    ╎  56    @Base/…ay.jl:194  size
+     ╎    ╎    ╎     344   @ChannelFlow/…jl:137  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 95    @ChebyshevHelmoltzSolvers/…:259  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  94    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎   59    @ChebyshevHelmoltzSolvers/…:260  macro expansion
+     ╎    ╎    ╎    ╎    59    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎     59    @Base/…ray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎ 59    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎  59    @Base/…ray.jl:98  axes
+   59╎    ╎    ╎    ╎    ╎   59    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎   35    @ChebyshevHelmoltzSolvers/…:261  macro expansion
+     ╎    ╎    ╎    ╎    26    @Base/array.jl:929  getindex
+   26╎    ╎    ╎    ╎     26    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎ 132   @ChebyshevHelmoltzSolvers/…:266  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  95    @ChebyshevHelmoltzSolvers/…:172  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   95    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    24    @ChebyshevHelmoltzSolvers/…:173  macro expansion
+     ╎    ╎    ╎    ╎     11    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 11    @Base/…ray.jl:997  setindex!
+   11╎    ╎    ╎    ╎    ╎  11    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    71    @ChebyshevHelmoltzSolvers/…:174  macro expansion
+     ╎    ╎    ╎    ╎     10    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎     14    @Base/…rray.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎ 14    @Base/…ray.jl:929  getindex
+     ╎    ╎    ╎    ╎     47    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 47    @Base/…ray.jl:997  setindex!
+   47╎    ╎    ╎    ╎    ╎  47    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎  32    @ChebyshevHelmoltzSolvers/…:185  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   30    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    30    @ChebyshevHelmoltzSolvers/…:186  macro expansion
+     ╎    ╎    ╎    ╎     27    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 27    @Base/…ray.jl:997  setindex!
+   27╎    ╎    ╎    ╎    ╎  27    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎ 109   @ChebyshevHelmoltzSolvers/…:267  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  69    @ChebyshevHelmoltzSolvers/…:172  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   69    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    24    @ChebyshevHelmoltzSolvers/…:173  macro expansion
+     ╎    ╎    ╎    ╎     16    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 16    @Base/…ray.jl:997  setindex!
+   16╎    ╎    ╎    ╎    ╎  16    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    45    @ChebyshevHelmoltzSolvers/…:174  macro expansion
+     ╎    ╎    ╎    ╎     29    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 29    @Base/…ray.jl:997  setindex!
+   29╎    ╎    ╎    ╎    ╎  29    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎  36    @ChebyshevHelmoltzSolvers/…:185  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   32    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    32    @ChebyshevHelmoltzSolvers/…:186  macro expansion
+     ╎    ╎    ╎    ╎     29    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 29    @Base/…ray.jl:997  setindex!
+   29╎    ╎    ╎    ╎    ╎  29    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎     521   @ChannelFlow/…jl:138  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 33    @ChannelFlow/…l:108  _batchinfluence!(h::ChannelFlo…
+     ╎    ╎    ╎    ╎  21    @Base/array.jl:929  getindex
+   21╎    ╎    ╎    ╎   21    @Base/…ials.jl:920  getindex
+    1╎    ╎    ╎    ╎ 10    @ChannelFlow/…l:110  _batchinfluence!(h::ChannelFlo…
+   43╎    ╎    ╎    ╎ 48    @ChannelFlow/…l:111  _batchinfluence!(h::ChannelFlo…
+     ╎    ╎    ╎    ╎ 107   @ChannelFlow/…l:115  _batchinfluence!(h::ChannelFlo…
+     ╎    ╎    ╎    ╎  67    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎   25    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    25    @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎     25    @Base/…rray.jl:98  axes
+   25╎    ╎    ╎    ╎    ╎ 25    @Base/…ray.jl:194  size
+   42╎    ╎    ╎    ╎   42    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎  22    @Base/array.jl:997  setindex!
+   22╎    ╎    ╎    ╎   22    @Base/array.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎ 305   @ChannelFlow/…l:116  _batchinfluence!(h::ChannelFlo…
+     ╎    ╎    ╎    ╎  179   @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎   100   @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    100   @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎     93    @Base/…ray.jl:98  axes
+   93╎    ╎    ╎    ╎    ╎ 93    @Base/…ray.jl:194  size
+   79╎    ╎    ╎    ╎   79    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎  126   @Base/array.jl:997  setindex!
+  126╎    ╎    ╎    ╎   126   @Base/array.jl:1003  _setindex!
+     ╎    ╎    ╎     59    @ChannelFlow/…jl:139  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 55    @ChannelFlow/…jl:37  _batchdiff!(out::Matrix{Comple…
+     ╎    ╎    ╎    ╎  51    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎   51    @ChannelFlow/…l:38  macro expansion
+     ╎    ╎    ╎    ╎    44    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎     39    @Base/…ray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎ 39    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎  39    @Base/…ray.jl:98  axes
+   39╎    ╎    ╎    ╎    ╎   39    @Base/…ay.jl:194  size
+     ╎    ╎    ╎     346   @ChannelFlow/…jl:140  solve!(h::ChannelFlow.BatchedI…
+   44╎    ╎    ╎    ╎ 113   @ChannelFlow/…l:155  _batchtau!(h::ChannelFlow.Batc…
+     ╎    ╎    ╎    ╎  44    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎   29    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    29    @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎     22    @Base/…ray.jl:98  axes
+   22╎    ╎    ╎    ╎    ╎ 22    @Base/…ray.jl:194  size
+   15╎    ╎    ╎    ╎   15    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎  16    @Base/…mplex.jl:297  +
+   16╎    ╎    ╎    ╎   16    @Base/float.jl:495  +
+     ╎    ╎    ╎    ╎ 227   @ChannelFlow/…l:156  _batchtau!(h::ChannelFlow.Batc…
+     ╎    ╎    ╎    ╎  125   @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎   57    @Base/…rray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    57    @Base/…rray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎     57    @Base/…rray.jl:98  axes
+   57╎    ╎    ╎    ╎    ╎ 57    @Base/…ray.jl:194  size
+   68╎    ╎    ╎    ╎   68    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎  102   @Base/array.jl:997  setindex!
+  102╎    ╎    ╎    ╎   102   @Base/array.jl:1003  _setindex!
+     ╎    ╎    ╎     103   @ChannelFlow/…jl:141  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 103   @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  103   @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   103   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    103   @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎     103   @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 103   @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎  103   @Base/…ast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎   103   @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    103   @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     103   @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 68    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  68    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   66    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    66    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     66    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 66    @Base/…st.jl:665  _broadcast_getindex
+   66╎    ╎    ╎    ╎    ╎    ╎    ╎  66    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 35    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  35    @Base/…st.jl:665  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   35    @Base/…al.jl:743  getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    35    @Base/…ay.jl:929  getindex
+   31╎    ╎    ╎    ╎    ╎    ╎     31    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎     322   @ChannelFlow/…jl:142  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 89    @ChebyshevHelmoltzSolvers/…:259  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  89    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎   52    @ChebyshevHelmoltzSolvers/…:260  macro expansion
+     ╎    ╎    ╎    ╎    52    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎     51    @Base/…ray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎ 51    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎  51    @Base/…ray.jl:98  axes
+   51╎    ╎    ╎    ╎    ╎   51    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎   37    @ChebyshevHelmoltzSolvers/…:261  macro expansion
+     ╎    ╎    ╎    ╎    22    @Base/array.jl:929  getindex
+   22╎    ╎    ╎    ╎     22    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎ 115   @ChebyshevHelmoltzSolvers/…:266  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  83    @ChebyshevHelmoltzSolvers/…:172  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   83    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    23    @ChebyshevHelmoltzSolvers/…:173  macro expansion
+     ╎    ╎    ╎    ╎     12    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 12    @Base/…ray.jl:997  setindex!
+   12╎    ╎    ╎    ╎    ╎  12    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    60    @ChebyshevHelmoltzSolvers/…:174  macro expansion
+     ╎    ╎    ╎    ╎     17    @Base/…rray.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎ 17    @Base/…ray.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎  10    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎   10    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    10    @Base/…ay.jl:98  axes
+   10╎    ╎    ╎    ╎    ╎     10    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎     37    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 37    @Base/…ray.jl:997  setindex!
+   37╎    ╎    ╎    ╎    ╎  37    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎  32    @ChebyshevHelmoltzSolvers/…:185  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   28    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    28    @ChebyshevHelmoltzSolvers/…:186  macro expansion
+     ╎    ╎    ╎    ╎     27    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 27    @Base/…ray.jl:997  setindex!
+   27╎    ╎    ╎    ╎    ╎  27    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎ 114   @ChebyshevHelmoltzSolvers/…:267  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  82    @ChebyshevHelmoltzSolvers/…:172  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   82    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    20    @ChebyshevHelmoltzSolvers/…:173  macro expansion
+     ╎    ╎    ╎    ╎    62    @ChebyshevHelmoltzSolvers/…:174  macro expansion
+     ╎    ╎    ╎    ╎     18    @Base/…rray.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎ 18    @Base/…ray.jl:929  getindex
+     ╎    ╎    ╎    ╎    ╎  13    @Base/…ay.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎   13    @Base/…ay.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎    13    @Base/…ay.jl:98  axes
+   13╎    ╎    ╎    ╎    ╎     13    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎     37    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 37    @Base/…ray.jl:997  setindex!
+   37╎    ╎    ╎    ╎    ╎  37    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎  29    @ChebyshevHelmoltzSolvers/…:185  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   28    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    28    @ChebyshevHelmoltzSolvers/…:186  macro expansion
+     ╎    ╎    ╎    ╎     28    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 28    @Base/…ray.jl:997  setindex!
+   28╎    ╎    ╎    ╎    ╎  28    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎     101   @ChannelFlow/…jl:143  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 101   @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  101   @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   101   @Base/…cast.jl:947  copyto!
+     ╎    ╎    ╎    ╎    101   @Base/…cast.jl:994  copyto!
+     ╎    ╎    ╎    ╎     101   @Base/…loop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    ╎ 101   @Base/…ast.jl:995  macro expansion
+     ╎    ╎    ╎    ╎    ╎  72    @Base/…ast.jl:616  getindex
+     ╎    ╎    ╎    ╎    ╎   72    @Base/…st.jl:620  _getindex
+     ╎    ╎    ╎    ╎    ╎    72    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎     72    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎ 66    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎  66    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎   61    @Base/…st.jl:671  _broadcast_getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    61    @Base/…st.jl:695  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎     61    @Base/…st.jl:696  _getindex
+     ╎    ╎    ╎    ╎    ╎    ╎    ╎ 61    @Base/…st.jl:665  _broadcast_getindex
+   61╎    ╎    ╎    ╎    ╎    ╎    ╎  61    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎    ╎  29    @Base/…nal.jl:745  setindex!
+     ╎    ╎    ╎    ╎    ╎   29    @Base/…ay.jl:997  setindex!
+   29╎    ╎    ╎    ╎    ╎    29    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎     328   @ChannelFlow/…jl:144  solve!(h::ChannelFlow.BatchedI…
+     ╎    ╎    ╎    ╎ 85    @ChebyshevHelmoltzSolvers/…:259  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  85    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎   39    @ChebyshevHelmoltzSolvers/…:260  macro expansion
+     ╎    ╎    ╎    ╎    39    @Base/array.jl:929  getindex
+     ╎    ╎    ╎    ╎     39    @Base/…ray.jl:1377  _to_linear_index
+     ╎    ╎    ╎    ╎    ╎ 39    @Base/…ray.jl:3049  _sub2ind
+     ╎    ╎    ╎    ╎    ╎  39    @Base/…ray.jl:98  axes
+   39╎    ╎    ╎    ╎    ╎   39    @Base/…ay.jl:194  size
+     ╎    ╎    ╎    ╎   46    @ChebyshevHelmoltzSolvers/…:261  macro expansion
+     ╎    ╎    ╎    ╎    34    @Base/array.jl:929  getindex
+   34╎    ╎    ╎    ╎     34    @Base/…ials.jl:920  getindex
+     ╎    ╎    ╎    ╎ 132   @ChebyshevHelmoltzSolvers/…:266  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  97    @ChebyshevHelmoltzSolvers/…:172  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   97    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    32    @ChebyshevHelmoltzSolvers/…:173  macro expansion
+     ╎    ╎    ╎    ╎     18    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 18    @Base/…ray.jl:997  setindex!
+   18╎    ╎    ╎    ╎    ╎  18    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    65    @ChebyshevHelmoltzSolvers/…:174  macro expansion
+     ╎    ╎    ╎    ╎     14    @Base/…rray.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎ 14    @Base/…ray.jl:929  getindex
+     ╎    ╎    ╎    ╎     44    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 44    @Base/…ray.jl:997  setindex!
+   44╎    ╎    ╎    ╎    ╎  44    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎  33    @ChebyshevHelmoltzSolvers/…:185  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   32    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    32    @ChebyshevHelmoltzSolvers/…:186  macro expansion
+     ╎    ╎    ╎    ╎     31    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 31    @Base/…ray.jl:997  setindex!
+   31╎    ╎    ╎    ╎    ╎  31    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎ 107   @ChebyshevHelmoltzSolvers/…:267  solve!(h::Chebyshe…
+     ╎    ╎    ╎    ╎  76    @ChebyshevHelmoltzSolvers/…:172  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   76    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    16    @ChebyshevHelmoltzSolvers/…:173  macro expansion
+     ╎    ╎    ╎    ╎     11    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 11    @Base/…ray.jl:997  setindex!
+   11╎    ╎    ╎    ╎    ╎  11    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎    60    @ChebyshevHelmoltzSolvers/…:174  macro expansion
+     ╎    ╎    ╎    ╎     14    @Base/…rray.jl:316  getindex
+     ╎    ╎    ╎    ╎    ╎ 14    @Base/…ray.jl:929  getindex
+   11╎    ╎    ╎    ╎    ╎  11    @Base/…ls.jl:920  getindex
+     ╎    ╎    ╎    ╎     42    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 42    @Base/…ray.jl:997  setindex!
+   42╎    ╎    ╎    ╎    ╎  42    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    ╎  31    @ChebyshevHelmoltzSolvers/…:185  ldiv!(Q::Chebyshe…
+     ╎    ╎    ╎    ╎   29    @Base/…dloop.jl:77  macro expansion
+     ╎    ╎    ╎    ╎    29    @ChebyshevHelmoltzSolvers/…:186  macro expansion
+     ╎    ╎    ╎    ╎     22    @Base/…rray.jl:386  setindex!
+     ╎    ╎    ╎    ╎    ╎ 22    @Base/…ray.jl:997  setindex!
+   22╎    ╎    ╎    ╎    ╎  22    @Base/…ay.jl:1003  _setindex!
+     ╎    ╎    ╎    29    @ChannelFlow/…jl:105  solve!(solver::StokesSolver{Gri…
+     ╎    ╎    ╎     26    @ChannelFlow/…jl:311  zero_nyquist!(U::SpectralField…
+     ╎    ╎    ╎    ╎ 26    @Base/…dcast.jl:902  materialize!
+     ╎    ╎    ╎    ╎  26    @Base/…dcast.jl:905  materialize!
+     ╎    ╎    ╎    ╎   26    @Base/…cast.jl:955  copyto!
+     ╎    ╎    ╎    ╎    22    @Base/…onal.jl:1185  fill!
+     ╎    ╎    ╎    ╎     22    @Base/…rray.jl:392  setindex!
+     ╎    ╎    ╎    ╎    ╎ 22    @Base/…ray.jl:986  setindex!
+   22╎    ╎    ╎    ╎    ╎  22    @Base/…ray.jl:991  _setindex!
+Total snapshots: 35824. Utilization: 50% across all threads and tasks. Use the `groupby` kwarg to break down by thread and/or task.
