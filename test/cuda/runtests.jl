@@ -3,6 +3,28 @@ const CF=ChannelFlow
 CUDA.allowscalar(false)
 CUDA.versioninfo()
 
+# Exercise both endpoint parities and odd/even Fourier sizes independently.
+# Random coefficients include nonzero endpoints and Nyquist planes, so an
+# incorrect fused weight or filter cannot be hidden by a smooth initial state.
+@testset "Fused transform parity" begin
+    for Nx in (8,9), Nz in (8,9), Ny in (8,17)
+        g = Grid(Nx,Ny,Nz,2π,2π)
+        a = SpectralField(g)
+        randn!(parent(a))
+        da = adapt(CuArray,a)
+        for (planner, backend) in ((CF.plan_cheb,:fftw),(CF.plan_icheb,:fftw))
+            expected, actual = similar(a), similar(da)
+            mul!(expected,planner(a,backend;flags=FFTW.ESTIMATE),a)
+            mul!(actual,planner(da,:cufft),da)
+            @test Array(parent(actual)) ≈ parent(expected) atol=1e-12
+            @test Array(parent(da)) == parent(a)
+        end
+        CF.normalize_forward!(a,0.031)
+        CF.normalize_forward!(da,0.031)
+        @test Array(parent(da)) ≈ parent(a) atol=1e-15
+    end
+end
+
 @testset "CUDA full-step parity" begin
     for form in (CF.RotatingForm(), CF.ConvectiveForm(), CF.DivergenceForm()), N in (8, 9, 16)
         g=Grid(N, 17, N, 2π, 2π)

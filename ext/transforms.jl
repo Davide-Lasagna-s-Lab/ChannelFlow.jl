@@ -26,19 +26,29 @@ function CF._plan_cheb(U::CuSpectral, ::Val{INV}, backend::Symbol; kwargs...) wh
     return CUDAChebyshevPlan{INV,typeof(work),typeof(plan)}(work, plan)
 end
 
+# Fill the even extension in one pass. Each thread owns one coefficient;
+# adjacent threads access adjacent Fourier systems. Endpoint doubling for
+# inverse evaluation is folded into the same write, preserving src.
+function _cheb_extend!(work, a, inverse)
+    i = (blockIdx().x-1)*blockDim().x + threadIdx().x
+    if i <= length(work)
+        B, Ny = size(a)
+        s = (i-1)%B + 1
+        j = (i-1)÷B + 1
+        k = j <= Ny ? j : 2Ny-j
+        @inbounds work[i] = inverse && (k == 1 || k == Ny) ? 2a[s,k] : a[s,k]
+    end
+    return nothing
+end
+
 function LinearAlgebra.mul!(
     dest::CuSpectral,
     p::CUDAChebyshevPlan{INV},
     src::CuSpectral,
 ) where {INV}
     Ny = size(src, 3)
-    a = CF.spectralmatrix(src)
-    @views p.work[:, 1:Ny] .= a
-    @views p.work[:, (Ny+1):end] .= a[:, (Ny-1):-1:2]
-    if INV
-        @views p.work[:, 1] .*= 2
-        @views p.work[:, Ny] .*= 2
-    end
+    @cuda threads=256 blocks=cld(length(p.work),256) _cheb_extend!(
+        p.work, CF.spectralmatrix(src), INV)
     mul!(p.work, p.plan, p.work)
     @views CF.spectralmatrix(dest) .= p.work[:, 1:Ny]
     return dest
@@ -69,10 +79,27 @@ function CF.InverseFFT!(U::CuSpectral{T}; chebbackend = :cufft, kwargs...) where
     return CF.InverseFFT!(plan, CF.plan_icheb(resolved, chebbackend), padded, resolved)
 end
 
+# Normalization, endpoint weights and Nyquist filtering share one pass.
+# This avoids revisiting endpoint/Nyquist planes in four additional kernels.
+function _normalize_forward!(a, normalization, xnyquist, znyquist)
+    i = (blockIdx().x-1)*blockDim().x + threadIdx().x
+    if i <= length(a)
+        nx, nz, ny = size(a)
+        ix = (i-1)%nx + 1
+        iz = ((i-1)÷nx)%nz + 1
+        iy = (i-1)÷(nx*nz) + 1
+        endpoint = iy == 1 || iy == ny ? 0.5 : 1.0
+        @inbounds a[i] = ix == xnyquist || iz == znyquist ?
+            zero(eltype(a)) : a[i]*(normalization*endpoint)
+    end
+    return nothing
+end
+
 function CF.normalize_forward!(U::CuSpectral, normalization)
-    parent(U) .*= normalization
-    @views parent(U)[:, :, 1] .*= 0.5
-    @views parent(U)[:, :, end] .*= 0.5
-    CF.zero_nyquist!(U)
+    Nx, Nz, _ = CF.physicalsize(CF.grid(U), CF.NotPadded())
+    xnyquist = iseven(Nx) ? (Nx >> 1)+1 : 0
+    znyquist = iseven(Nz) ? (Nz >> 1)+1 : 0
+    @cuda threads=256 blocks=cld(length(U),256) _normalize_forward!(
+        parent(U), normalization, xnyquist, znyquist)
     return U
 end

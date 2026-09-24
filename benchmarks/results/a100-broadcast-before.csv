@@ -1,0 +1,4 @@
+device,threads,Nx,Ny,Nz,samples,min_seconds,mean_seconds,host_bytes,host_allocations,commit
+cuda,1,32,33,32,100,0.003917137,0.00406298345,1220064,19098,76cc7d0-baseline
+cuda,1,64,65,64,100,0.006273764,0.006895590650000001,1222896,19275,76cc7d0-baseline
+cuda,1,128,129,128,100,0.020466183,0.02120370964,1226272,19486,76cc7d0-baseline

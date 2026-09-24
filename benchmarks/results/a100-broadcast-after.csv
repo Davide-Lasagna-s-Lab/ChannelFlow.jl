@@ -1,0 +1,4 @@
+device,threads,Nx,Ny,Nz,samples,min_seconds,mean_seconds,host_bytes,host_allocations,commit
+cuda,1,32,33,32,100,0.002830917,0.0035744047400000007,862672,12313,76cc7d0-fused-transforms-working-tree
+cuda,1,64,65,64,100,0.005685882,0.006341647399999999,864640,12436,76cc7d0-fused-transforms-working-tree
+cuda,1,128,129,128,100,0.01990715,0.019992822570000002,866992,12583,76cc7d0-fused-transforms-working-tree

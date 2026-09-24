@@ -1,0 +1,46 @@
+WARNING: failed to select UTF-8 encoding, using ASCII
+Test Summary:          | Pass  Total  Time
+Fused transform parity |   40     40  3.9s
+CUDA toolchain: 
+- runtime 13.4.0, artifact installation
+- driver 590.48.1 for CUDA 13.3, forward-compatible
+- compiler 13.4.92, artifact installation
+
+CUDA libraries: 
+- cuBLAS: 13.8.0
+- cuSPARSE: 12.8.6
+- cuSOLVER: 12.3.4
+- cuFFT: 12.4.0
+- cuRAND: 10.4.4
+- CUPTI: 2026.3.1 (API 13.4.1)
+- NVML: 13.0.0+590.48.1
+
+Julia packages: 
+- CUDACore: 6.4.0
+- GPUArrays: 11.5.14
+- GPUCompiler: 2.8.2
+- KernelAbstractions: 0.9.42
+- CUDA_Driver_jll: 13.3.5+0
+- CUDA_Compiler_jll: 0.6.3+1
+- CUDA_Runtime_jll: 0.25.0+1
+- NVPTX_LLVM_Backend_jll: 23.1.2+0
+
+Toolchain:
+- Julia: 1.12.4
+- LLVM: 18.1.7
+
+1 device:
+  0: NVIDIA A100 80GB PCIe (sm_80, 78.752 GiB / 80.000 GiB available)
+     compiles to sm_80 / PTX 9.4 (LLVM: sm_80 / PTX 9.2)
+Test Summary:         | Pass  Total     Time
+CUDA full-step parity |   54     54  1m00.7s
+Test Summary:                                        | Pass  Total   Time
+CUDA operators, pressure and constrained integration |   43     43  16.7s
+Test Summary:            | Pass  Total  Time
+CUDA exact viscous decay |    1      1  5.4s
+Test Summary:    | Pass  Total  Time
+CUDA diagnostics |    3      3  0.6s
+Test Summary:                | Pass  Total  Time
+CUDA dense backend selection |    5      5  5.8s
+Test Summary:              | Pass  Total   Time
+CUDA larger-grid agreement |   12     12  31.6s
