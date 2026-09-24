@@ -1,0 +1,44 @@
+CUDA toolchain: 
+- runtime 13.4.0, artifact installation
+- driver 590.48.1 for CUDA 13.3, forward-compatible
+- compiler 13.4.92, artifact installation
+
+CUDA libraries: 
+- cuBLAS: 13.8.0
+- cuSPARSE: 12.8.6
+- cuSOLVER: 12.3.4
+- cuFFT: 12.4.0
+- cuRAND: 10.4.4
+- CUPTI: 2026.3.1 (API 13.4.1)
+- NVML: 13.0.0+590.48.1
+
+Julia packages: 
+- CUDACore: 6.4.0
+- GPUArrays: 11.5.14
+- GPUCompiler: 2.8.2
+- KernelAbstractions: 0.9.42
+- CUDA_Driver_jll: 13.3.5+0
+- CUDA_Compiler_jll: 0.6.3+1
+- CUDA_Runtime_jll: 0.25.0+1
+- NVPTX_LLVM_Backend_jll: 23.1.2+0
+
+Toolchain:
+- Julia: 1.12.4
+- LLVM: 18.1.7
+
+1 device:
+  0: NVIDIA A100 80GB PCIe (sm_80, 79.247 GiB / 80.000 GiB available)
+     compiles to sm_80 / PTX 9.4 (LLVM: sm_80 / PTX 9.2)
+Intel(R) Xeon(R) Gold 6336Y CPU @ 2.40GHz
+LBTConfig([ILP64] libopenblas64_.so)
+Status `/iridisfs/scratch/dl1f12/channelflow-docs-final/code/test/cuda/Project.toml`
+  [79e6a3ab] Adapt v4.7.1
+  [052768ef] CUDA v6.4.0
+  [221b9036] ChannelFlow v0.1.0 `../..`
+  [9051723b] ChebyshevHelmoltzSolvers v0.1.0 `https://github.com/Davide-Lasagna-s-Lab/ChebyshevHelmoltzSolvers.jl.git#`
+  [7a1cc6ca] FFTW v1.10.0
+  [d910d432] Flows v1.0.0 `https://github.com/Davide-Lasagna-s-Lab/Flows.jl.git#`
+  [37e2e46d] LinearAlgebra v1.12.0
+  [9a3f8284] Random v1.11.0
+  [8dfed614] Test v1.11.0
+Warning The project dependencies or compat requirements have changed since the manifest was last resolved. It is recommended to `Pkg.resolve()` or consider `Pkg.update()` if necessary.

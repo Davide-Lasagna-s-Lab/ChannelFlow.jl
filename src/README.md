@@ -2,7 +2,7 @@
 
 Read [`problem.jl`](problem.jl) for configuration and
 [`timesteppers/cnrk2.jl`](timesteppers/cnrk2.jl) for the equations advanced each
-stage. The root [README](../README.md) defines the numerical conventions.
+stage. The [numerical-method manual](../docs/src/spatial.md) defines the numerical conventions.
 
 | Files | Responsibility |
 |---|---|

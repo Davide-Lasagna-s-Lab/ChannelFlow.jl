@@ -1,0 +1,15 @@
+[deps]
+ChannelFlow = "221b9036-7d45-47e5-b10e-06d0f61c2a15"
+ChebyshevHelmoltzSolvers = "9051723b-82e1-492c-809d-4ceeb94e2557"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+Flows = "d910d432-2c57-11e9-263c-df934de6853d"
+
+[sources]
+ChannelFlow = {path = ".."}
+ChebyshevHelmoltzSolvers = {url = "https://github.com/Davide-Lasagna-s-Lab/ChebyshevHelmoltzSolvers.jl.git"}
+Flows = {url = "https://github.com/Davide-Lasagna-s-Lab/Flows.jl.git"}
+
+[compat]
+Documenter = "1"
+julia = "1.11"

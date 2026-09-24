@@ -1,59 +1,4 @@
-"""Plot the final-source complete-step sweep and generate its documentation table."""
-from pathlib import Path
-import csv
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-repo = Path(__file__).resolve().parents[1]
-root = repo / "benchmarks/results/final"
-
-def read(name):
-    with (root / name).open() as f:
-        return {int(r["Nx"]): r for r in csv.DictReader(f)}
-
-cpu1, cpu4, gpu = (read(name) for name in ("cpu-1.csv", "cpu-4.csv", "gpu.csv"))
-plt.rcParams.update({"font.size": 10, "axes.spines.top": False,
-                     "axes.spines.right": False, "savefig.dpi": 200})
-fig, axes = plt.subplots(1, 2, figsize=(10, 4), layout="constrained")
-for data, label, color, marker in (
-    (cpu1, "CPU: 1 FFT/BLAS thread", "#1565c0", "o"),
-    (cpu4, "CPU: 4 FFT/BLAS threads", "#00897b", "s"),
-    (gpu, "NVIDIA A100", "#c62828", "^"),
-):
-    x = sorted(data)
-    axes[0].loglog(x, [1000*float(data[n]["min_seconds"]) for n in x],
-                   color=color, marker=marker, markersize=4, label=label)
-for data, label, color, marker in (
-    (cpu1, "CPU: 1 FFT/BLAS thread", "#1565c0", "o"),
-    (cpu4, "CPU: 4 FFT/BLAS threads", "#00897b", "s"),
-):
-    x = sorted(data.keys() & gpu.keys())
-    axes[1].semilogx(x, [float(data[n]["min_seconds"])/float(gpu[n]["min_seconds"]) for n in x],
-                    color=color, marker=marker, markersize=4, label=label)
-axes[0].set_ylabel("Complete CNRK2 step [ms]")
-axes[1].set_ylabel("CPU time / GPU time")
-axes[1].axhline(1, color="0.5", lw=.8)
-for ax in axes:
-    ax.set_xlabel(r"$N_x=N_z$  ($N_y=N_x+1$)")
-    ticks = sorted(gpu) if ax is axes[0] else sorted(cpu1)
-    ax.set_xticks(ticks, labels=ticks)
-    ax.minorticks_off()
-    ax.grid(alpha=.2)
-    ax.legend(frameon=False, fontsize=8)
-for ext in ("svg", "png"):
-    fig.savefig(root / ("timestep-cost."+ext))
-plt.close(fig)
-
-rows = []
-for n in sorted(gpu):
-    g = float(gpu[n]["min_seconds"])
-    c = [float(data[n]["min_seconds"]) if n in data else None for data in (cpu1,cpu4)]
-    fields = [f"{1000*t:.3f}" if t is not None else "—" for t in c]
-    speed = f"{min(c)/g:.2f}×" if all(t is not None for t in c) else "—"
-    rows.append(f"| `{n}×{n+1}×{n}` | {fields[0]} | {fields[1]} | {1000*g:.3f} | {speed} |")
-table = "\n".join(rows)
-text = r'''# CPU and GPU benchmarks
+# CPU and GPU benchmarks
 
 These measurements time one **complete three-stage CNRK2 step**: nonlinear
 products, Fourier/Chebyshev transforms, pressure–velocity coupling, influence/tau
@@ -88,7 +33,13 @@ All series were measured sequentially in the same GPU-node allocation on
 
 | Resolved grid | CPU, 1 thread [ms] | CPU, 4 FFT/BLAS threads [ms] | GPU [ms] | Faster measured CPU / GPU |
 |---|---:|---:|---:|---:|
-TABLE
+| `8×9×8` | 0.261 | 1.593 | 2.533 | 0.10× |
+| `16×17×16` | 2.209 | 13.411 | 2.613 | 0.85× |
+| `32×33×32` | 16.417 | 41.191 | 2.889 | 5.68× |
+| `64×65×64` | 169.633 | 190.692 | 5.745 | 29.53× |
+| `128×129×128` | 1629.038 | 1236.019 | 19.938 | 61.99× |
+| `192×193×192` | — | — | 52.956 | — |
+| `256×257×256` | — | — | 115.950 | — |
 
 The GPU has a fixed launch/dispatch cost, so very small problems can run faster
 on the CPU. Larger grids amortize that cost. The four-thread setting applies
@@ -151,5 +102,3 @@ The [validation suite](validation.md) separately checks accuracy and CPU/GPU
 agreement. Benchmark completion at the GPU-only sizes is a timing/stability
 smoke check, not a high-resolution turbulent validation. See the [developer
 guide](contributing.md) for profiling and numerical-test entry points.
-'''.replace('TABLE',table)
-(repo / 'docs/src/benchmarks.md').write_text(text)
