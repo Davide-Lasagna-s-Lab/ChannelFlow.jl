@@ -146,3 +146,28 @@ end
         @test Array(parent(b)) ≈ parent(a) rtol=2e-9 atol=2e-10
     end
 end
+
+@testset "CUDA larger-grid agreement" begin
+    # Check the same coefficient counts used in the performance sweep, rather
+    # than inferring large-grid correctness from small kernels alone. One step
+    # suffices to exercise all three stage-specific factor banks.
+    for N in (32,64,128)
+        g = Grid(N,N+1,N,2π,2π)
+        cpu = CouetteFlow(g,1/400,.002;fftwflags=FFTW.ESTIMATE)
+        u = VectorField(
+            PhysicalField(g,(x,y,z)->.1*(1-y^2)*exp(cos(x)+cos(z))),
+            PhysicalField(g,(x,y,z)->.05*(1-y^2)^2*cos(z)),
+            PhysicalField(g,(x,y,z)->.2*y*(1-y^2)*sin(z)))
+        U = project!(FFT(u),cpu)
+        state = State(U,pressure(U,cpu))
+        gpu = adapt(CuArray,cpu); device = adapt(CuArray,state)
+        CF.Flows.flow(cpu)(state,(0.0,.002))
+        CF.Flows.flow(gpu)(device,(0.0,.002))
+        for (a,b) in zip((velocity(state).components...,stagepressure(state)),
+                         (velocity(device).components...,stagepressure(device)))
+            @test Array(parent(b)) ≈ parent(a) rtol=1e-8 atol=1e-10
+        end
+        gpu=device=cpu=state=nothing
+        GC.gc();CUDA.reclaim()
+    end
+end
