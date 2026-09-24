@@ -32,4 +32,4 @@ for path in sorted(root.glob('profile-*.csv')):
     if gpu:
         lines += ['', 'Top 15 kernels shown; percentages use all captured device activities.']
     lines.append('')
-(root / 'profiling.md').write_text('\n'.join(lines))
+(root / 'profiling.md').write_text('\n'.join(lines), encoding='utf-8')

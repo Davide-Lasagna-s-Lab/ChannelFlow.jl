@@ -1,0 +1,9 @@
+category,samples
+Fourier transforms,10004
+Chebyshev transforms,9275
+Influence and tau,3044
+Padding and normalization,3001
+Nonlinear products,2599
+Helmholtz solves,1850
+Spectral derivatives,1718
+Stage assembly and runtime,1414

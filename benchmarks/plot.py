@@ -164,6 +164,43 @@ CPU sampling is approximate and does not sample library workers as Julia stacks.
 GPU activity fractions exclude launch overhead and idle gaps; they are not
 fractions of whole-step wall time. Do not add host and device durations together.
 
+### Measured CPU profile
+
+The following exclusive sample shares come from the completed profiling runs
+on the same benchmark source revision (`fe2d4d3`). They describe where execution
+was sampled, rather than separately timed solver phases.
+
+| Category | N=64 | N=128 | N=256 |
+|---|---:|---:|---:|
+| Fourier transforms | 24.6% | 30.4% | 32.7% |
+| Chebyshev transforms | 30.1% | 28.2% | 26.0% |
+| Influence and tau | 9.9% | 9.3% | 11.5% |
+| Padding and normalization | 6.6% | 9.1% | 8.4% |
+| Nonlinear products | 9.7% | 7.9% | 6.8% |
+| Helmholtz solves | 6.2% | 5.6% | 5.9% |
+| Spectral derivatives | 6.8% | 5.2% | 4.7% |
+| Stage assembly and runtime | 6.1% | 4.3% | 3.9% |
+
+At N=256, Fourier and Chebyshev transforms together account for approximately
+59% of CPU samples. Influence/tau correction contributes another 12%; padding
+and normalization account for 8%. These are the principal measured targets for
+further CPU optimization.
+
+### Measured GPU profile
+
+At N=256, the five largest individual kernel entries are three cuFFT kernels
+(10.0%, 9.9%, and 9.0%), the batched Helmholtz solve (9.4%), and a nonlinear
+broadcast kernel (7.5%). A transform can launch several kernels, so these
+individual entries are not totals for the corresponding algorithmic phase.
+Percentages refer to summed device activity, not complete-step wall time.
+
+The [full profiling summary](assets/benchmarks/profiling.md) reports all three
+sizes and links to the raw CPU call trees and CUDA activity reports. CPU folded
+stacks are also available for flamegraph tools:
+[N=64](assets/benchmarks/profile-cpu-1-N64.folded),
+[N=128](assets/benchmarks/profile-cpu-1-N128.folded), and
+[N=256](assets/benchmarks/profile-cpu-1-N256.folded).
+
 ## Data and verification
 
 - [CPU, one thread](assets/benchmarks/cpu-1.csv)
