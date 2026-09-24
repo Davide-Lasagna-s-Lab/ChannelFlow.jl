@@ -173,8 +173,9 @@ For standard, consistently driven Couette and Poiseuille flow the result is
 `nu` and `4nu/3`, respectively, equal to laminar dissipation.
 """
 function laminar_power_input(problem::ChannelFlowProblem;
-                             pressuregradient=get(problem.constraint, :pressuregradient,
-                                 (problem.scheme.nu * real(_bulkmean(problem.scheme.basecurvature)), 0)))
+                             pressuregradient=haskey(problem.constraint, :pressuregradient) ?
+                                 problem.constraint.pressuregradient :
+                                 (problem.scheme.nu * real(_bulkmean(Array(problem.scheme.basecurvature))), 0))
     return power_input(_laminar_velocity(problem), problem.scheme.nu;
                        pressuregradient=pressuregradient)
 end
