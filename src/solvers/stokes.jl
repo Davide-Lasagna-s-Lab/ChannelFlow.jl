@@ -16,7 +16,7 @@ Rows follow flattened `(kx,kz)` FFT storage. The mean slot is overwritten
 by its dedicated solve and excluded Nyquist planes are cleared afterwards.
 Physical wavenumbers include `2π/Lx` and `2π/Lz`.
 
-Require odd `Ny ≥ 3`, positive periodic sizes and finite positive `Lx, Lz`.
+Require odd `Ny ≥ 5`, positive periodic sizes and finite positive `Lx, Lz`.
 Rebuild when the grid, viscosity or temporal shift changes. Factors and
 workspaces are reused, so one instance must not be used concurrently.
 """
@@ -24,6 +24,8 @@ struct StokesSolver{G, S, M}
      grid::G
     modes::S
      mean::M
+
+    StokesSolver(grid, modes, mean) = new{typeof(grid),typeof(modes),typeof(mean)}(grid,modes,mean)
 
     function StokesSolver(  grid::Grid,
                                      nu::Real,

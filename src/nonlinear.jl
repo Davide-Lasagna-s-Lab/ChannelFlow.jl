@@ -78,7 +78,7 @@ end
 function _gencache( ::ConvectiveForm,
                    u::PhysicalField{T},
                    U::SpectralField) where {T}
-    padded = PhysicalField(zeros(T, physicalsize(grid(u), Padded())), grid(u))
+    padded = PhysicalField(fill!(similar(parent(u), T, physicalsize(grid(u), Padded())), 0), grid(u))
     return (VectorField(padded),
             VectorField(padded),
             GradientField(padded),
@@ -89,7 +89,7 @@ end
 function _gencache( ::DivergenceForm,
                    u::PhysicalField{T},
                    U::SpectralField) where {T}
-    padded = PhysicalField(zeros(T, physicalsize(grid(u), Padded())), grid(u))
+    padded = PhysicalField(fill!(similar(parent(u), T, physicalsize(grid(u), Padded())), 0), grid(u))
     return (VectorField(padded),
             GradientField(padded),
             VectorField(U),
@@ -99,7 +99,7 @@ end
 function _gencache( ::RotatingForm,
                    u::PhysicalField{T},
                    U::SpectralField) where {T}
-    padded = PhysicalField(zeros(T, physicalsize(grid(u), Padded())), grid(u))
+    padded = PhysicalField(fill!(similar(parent(u), T, physicalsize(grid(u), Padded())), 0), grid(u))
     return (VectorField(padded),
             VectorField(padded),
             VectorField(padded),
@@ -122,7 +122,7 @@ function (Eq::NonLinearTerm{T, ConvectiveForm})(   t::Real,
     # before either gradient evaluation or inverse transformation. Adding it
     # only to the physical advecting velocity would omit the v*Ub' shear term.
     TMP .= U
-    @views TMP[1][1, 1, :] .+= Eq.baseflow
+    @views parent(TMP[1])[1, 1, :] .+= Eq.baseflow
 
     grad!(GRAD, TMP)
 
@@ -152,7 +152,7 @@ function (Eq::NonLinearTerm{T, DivergenceForm})(   t::Real,
 
     # Form the total velocity, including the base profile in the zero mode.
     N .= U
-    @views N[1][1, 1, :] .+= Eq.baseflow
+    @views parent(N[1])[1, 1, :] .+= Eq.baseflow
 
     Eq.ifft(u, N)
 
@@ -178,7 +178,7 @@ function (Eq::NonLinearTerm{T, RotatingForm})(   t::Real,
     u, n, ω, TMP, Ω = Eq.cache
 
     TMP .= U
-    @views TMP[1][1, 1, :] .+= Eq.baseflow
+    @views parent(TMP[1])[1, 1, :] .+= Eq.baseflow
 
     curl!(Ω, TMP)
 

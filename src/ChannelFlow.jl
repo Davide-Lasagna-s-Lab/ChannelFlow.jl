@@ -15,6 +15,7 @@ Physical arrays have order `(x, z, y)`; spectral arrays have `(kx, kz, n)`.
 module ChannelFlow
 
 using ChebyshevHelmoltzSolvers
+import Adapt
 import ChebyshevHelmoltzSolvers: solve!
 import FFTW
 import Flows
@@ -67,5 +68,6 @@ include("timesteppers/channel.jl")
 include("pressure.jl")
 include("initialization.jl")
 include("postprocessing.jl")
+include("adapt.jl")
 
 end

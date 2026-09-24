@@ -1,23 +1,26 @@
 name = "ChannelFlow"
 uuid = "221b9036-7d45-47e5-b10e-06d0f61c2a15"
-authors = ["Davide Lasagna <davide.lasagna@soton.ac.uk>"]
 version = "0.1.0"
+authors = ["Davide Lasagna <davide.lasagna@soton.ac.uk>"]
 
 [deps]
-Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-Flows = "d910d432-2c57-11e9-263c-df934de6853d"
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 ChebyshevHelmoltzSolvers = "9051723b-82e1-492c-809d-4ceeb94e2557"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+Flows = "d910d432-2c57-11e9-263c-df934de6853d"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
 [sources]
-Flows = {url = "https://github.com/Davide-Lasagna-s-Lab/Flows.jl.git"}
 ChebyshevHelmoltzSolvers = {url = "https://github.com/Davide-Lasagna-s-Lab/ChebyshevHelmoltzSolvers.jl.git"}
+Flows = {url = "https://github.com/Davide-Lasagna-s-Lab/Flows.jl.git"}
 
 [compat]
-FFTW = "1"
+CUDA = "5, 6"
+Adapt = "4.7.1"
 ChebyshevHelmoltzSolvers = "0.1"
+FFTW = "1"
 julia = "1.11"
 
 [extras]
@@ -25,3 +28,9 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test"]
+
+[weakdeps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+
+[extensions]
+ChannelFlowCUDAExt = "CUDA"

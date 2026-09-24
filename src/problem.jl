@@ -10,7 +10,7 @@ export ChannelFlowProblem, CouetteFlow, PoiseuilleFlow
                 pressuregradient=nothing, bulkvelocity=nothing,
                 chebbackend=:fftw, fftwflags=FFTW.MEASURE, fftwtimelimit=FFTW.NO_TIMELIMIT)
 
-Assemble a serial Poiseuille/Couette DNS with a fixed nominal time step. The
+Assemble a Poiseuille/Couette DNS with a fixed nominal time step. The
 domain is supplied by `grid`; `profile(y)` is the stationary streamwise base
 velocity and `nu` is kinematic viscosity. The profile is converted to
 values at the wall-normal collocation points and stored in
@@ -61,6 +61,10 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
         scheme::S
        forcing::F
     constraint::C
+
+    ChannelFlowProblem(grid, baseflow, nonlinear, scheme, forcing, constraint) =
+        new{typeof(grid),typeof(baseflow),typeof(nonlinear),typeof(scheme),typeof(forcing),typeof(constraint)}(
+            grid,baseflow,nonlinear,scheme,forcing,constraint)
 
     function ChannelFlowProblem(            grid::Grid,
                                          profile::Function,

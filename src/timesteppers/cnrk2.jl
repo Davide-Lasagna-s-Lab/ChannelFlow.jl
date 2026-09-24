@@ -51,6 +51,10 @@ struct CNRK2{S,
          baseflow::C
     basecurvature::C
 
+    CNRK2(nu, dt, solvers, Q, N, R, baseflow, curvature) =
+        new{typeof(solvers[1]),typeof(Q[1]),typeof(baseflow)}(
+            nu,dt,solvers,Q,N,R,baseflow,curvature)
+
     function CNRK2(grid::Grid, baseflow::AbstractVector, nu::Real, dt::Real)
         # check for crazy inputs
         isfinite(dt) && dt > 0 || throw(ArgumentError("dt must be finite and positive"))
@@ -191,9 +195,9 @@ function step!(          scheme::CNRK2{S, F},
             derivative!(N[i], P)
             R[i] .= lambda .* U[i] .+ scheme.nu .* R[i] .- N[i] .+ weight .* Q[i]
         end
-        @views R[1][1, 1, :] .+= 2 * scheme.nu .* scheme.basecurvature
-        R[1][1, 1, 1] -= oldgradient[1]
-        R[3][1, 1, 1] -= oldgradient[2]
+        @views parent(R[1])[1, 1, :] .+= 2 * scheme.nu .* scheme.basecurvature
+        @views parent(R[1])[1:1,1:1,1:1] .-= oldgradient[1]
+        @views parent(R[3])[1:1,1:1,1:1] .-= oldgradient[2]
 
         gradients = solve!(scheme.solvers[j], U, P, R;
                            pressuregradient=pressuregradient,

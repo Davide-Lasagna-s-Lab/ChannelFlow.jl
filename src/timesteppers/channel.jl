@@ -33,7 +33,7 @@ function Flows.step!(scheme::CNRK2{S, F, P},
     channel = sys.g
 
     # a shortened terminal step needs factors built for its actual duration.
-    active = dt == scheme.dt ? scheme : CNRK2(channel.grid, channel.baseflow, scheme.nu, dt)
+    active = dt == scheme.dt ? scheme : _same_storage(CNRK2(channel.grid, channel.baseflow, scheme.nu, dt), velocity(state)[1])
 
     # delegate the stepping to the CNRK2 step! method
     step!(active, channel.nlterm, velocity(state), stagepressure(state), t;

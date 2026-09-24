@@ -29,7 +29,7 @@ already satisfying the constraints is unchanged up to solve roundoff.
 Excluded Nyquist planes are set to zero. The projection acts on the
 perturbation field and does not add or remove the base profile.
 
-Require resolved `ComplexF64` fields on one grid, odd `Ny ≥ 3`, independent
+Require resolved `ComplexF64` fields on one grid, odd `Ny ≥ 5`, independent
 component storage and Fourier conjugate symmetry for a real velocity.
 Allocate factors and workspaces on each call: intended for initialisation.
 """
@@ -37,7 +37,7 @@ function project!(U::VectorField{F}, problem::ChannelFlowProblem) where {F<:Spec
 
     # First make the supplied perturbation velocity satisfy continuity,
     # no slip and, when requested, the total bulk-flow constraint.
-    solver = StokesSolver(problem.grid, 1.0, 0.0)
+    solver = _same_storage(StokesSolver(problem.grid, 1.0, 0.0), U[1])
     R, phi = similar(U), similar(U[1])
     
     # Form the complete source before solve! overwrites any velocity component.
@@ -114,7 +114,7 @@ satisfies `P_y = A_y` through degree `Ny-2`, with zero volume mean pressure.
 """
 function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:SpectralField{Float64}}
 
-    # Grid geometry and resolved Fourier dimensions; y is the first array axis.
+    # Grid geometry and resolved Fourier dimensions; y is the last array axis.
     g = grid(A[1])
     Nxh, Nz, Ny = size(A[1])
     Ny >= 3 || throw(ArgumentError("pressure reconstruction requires Ny ≥ 3"))

@@ -114,7 +114,7 @@ function power_input(U::VectorField{<:SpectralField}, nu::Real;
                      pressuregradient::NTuple{2, Real}=(0, 0))
     input = 0.0
     for (i, gradient) in zip((1, 3), pressuregradient)
-        mean = view(parent(U[i]), 1, 1, :)
+        mean = _meanprofile(U[i])
 
         # Uniform wall velocities multiply plane-averaged shear. The minus
         # sign at the lower wall is its outward-normal orientation.
@@ -127,6 +127,8 @@ function power_input(U::VectorField{<:SpectralField}, nu::Real;
     return input
 end
 
+_meanprofile(U::SpectralField) = view(parent(U), 1, 1, :)
+
 #//////////////////////////////////////////////////////////////////////////////#
 #///                         LAMINAR FLOW DIAGNOSTICS                        ///#
 #//////////////////////////////////////////////////////////////////////////////#
@@ -135,7 +137,7 @@ end
 # exact spectral integrals are used for laminar and instantaneous fields.
 function _laminar_velocity(problem::ChannelFlowProblem)
     U = VectorField(SpectralField(problem.grid))
-    U[1][1, 1, :] .= parent(problem.scheme.baseflow)
+    U[1][1, 1, :] .= Array(problem.scheme.baseflow)
     return U
 end
 

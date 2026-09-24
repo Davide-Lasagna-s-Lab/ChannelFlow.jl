@@ -70,7 +70,7 @@ function (fft::ForwardFFT!)(U::SpectralField, u::PhysicalField)
         throw(DimensionMismatch("forward transform requires resolved spectral output"))
     # The nonlinear product is sampled on the padded grid. Transform it into
     # the internal padded spectrum before discarding unresolved modes.
-    FFTW.unsafe_execute!(fft.plan, parent(u), parent(fft.padded))
+    LinearAlgebra.mul!(parent(fft.padded), fft.plan, parent(u))
     # Fourier truncation commutes with the wall-normal transform. Discard
     # unresolved columns first, so the DCT only processes retained modes.
     copy_from_padded!(fft.resolved, fft.padded)
@@ -163,7 +163,7 @@ function (ifft::InverseFFT!)(u::PhysicalField, U::SpectralField)
     fill!(ifft.padded, zero(eltype(ifft.padded)))
     copy_to_padded!(ifft.padded, ifft.resolved, 0.5)
     zero_nyquist!(ifft.padded)
-    FFTW.unsafe_execute!(ifft.plan, parent(ifft.padded), parent(u))
+    LinearAlgebra.mul!(parent(u), ifft.plan, parent(ifft.padded))
     return u
 end
 
@@ -259,16 +259,12 @@ function normalize_forward!(U::SpectralField, normalization)
     xnyquist = iseven(Nx) ? (Nx >> 1) + 1 : 0
     znyquist = iseven(Nz) ? (Nz >> 1) + 1 : 0
 
-    @inbounds for iz = 1:Nz, ix = 1:Nxh
-        if ix == xnyquist || iz == znyquist
-            for iy = 1:Ny
-                U[ix, iz, iy] = 0
-            end
-        else
-            for iy = 1:Ny
-                endpoint = (iy == 1 || iy == Ny) ? 0.5 : 1.0
-                U[ix, iz, iy] *= normalization*endpoint
-            end
+    data = parent(U)
+    @inbounds for iy = 1:Ny, iz = 1:Nz
+        endpoint = (iy == 1 || iy == Ny) ? 0.5 : 1.0
+        @simd for ix = 1:Nxh
+            data[ix,iz,iy] = ix == xnyquist || iz == znyquist ?
+                            zero(eltype(U)) : data[ix,iz,iy]*(normalization*endpoint)
         end
     end
     return U
