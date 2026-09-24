@@ -18,7 +18,7 @@ or per Helmholtz system. They measure the implementation documented by this site
 | Parameters | ``\nu=1/400``, ``\Delta t=0.002``, ``L_x=L_z=2\pi`` |
 | Resolved grid | ``(N_x,N_y,N_z)=(N,N+1,N)`` |
 | Nonlinear grid | 3/2 padding in x and z; unchanged y |
-| CPU transforms | FFTW, one or four FFT/BLAS threads; one Julia thread |
+| CPU transforms | FFTW, one FFT/BLAS thread; one Julia thread |
 | GPU transforms | cuFFT, including even-extension Chebyshev transforms |
 | Sampling | minimum of 100 samples after five warm-up steps |
 
@@ -33,25 +33,27 @@ solver source. The raw CSVs retain the source revision; the
 
 ![Complete timestep cost and CPU/GPU ratio](assets/benchmarks/timestep-cost.svg)
 
-| Resolved grid | CPU, 1 thread [ms] | CPU, 4 FFT/BLAS threads [ms] | GPU [ms] | Faster measured CPU / GPU |
-|---|---:|---:|---:|---:|
-| `8×9×8` | 0.261 | 1.593 | 2.533 | 0.10× |
-| `16×17×16` | 2.209 | 13.411 | 2.613 | 0.85× |
-| `32×33×32` | 16.417 | 41.191 | 2.889 | 5.68× |
-| `64×65×64` | 169.633 | 190.692 | 5.745 | 29.53× |
-| `128×129×128` | 1629.038 | 1236.019 | 19.938 | 61.99× |
-| `192×193×192` | 6581.443 | 3938.942 | 52.922 | 74.43× |
-| `256×257×256` | 15013.735 | 10695.610 | 115.872 | 92.31× |
+| Resolved grid | CPU, 1 thread [ms] | GPU [ms] | CPU / GPU |
+|---|---:|---:|---:|
+| `8×9×8` | 0.261 | 2.533 | 0.10× |
+| `16×17×16` | 2.209 | 2.613 | 0.85× |
+| `32×33×32` | 16.417 | 2.889 | 5.68× |
+| `64×65×64` | 169.633 | 5.745 | 29.53× |
+| `128×129×128` | 1629.038 | 19.938 | 81.70× |
+| `192×193×192` | 6581.443 | 52.922 | 124.36× |
+| `256×257×256` | 15013.735 | 115.872 | 129.57× |
 
 The GPU has a fixed launch/dispatch cost, so very small problems can run faster
-on the CPU. Larger grids amortize that cost. The four-thread setting applies
-to FFTW and BLAS; the remaining CPU kernels use SIMD and are not parallel Julia
-loops. More library threads therefore need not improve small-grid timings.
+on the CPU. Larger grids amortize that cost. The CPU series uses one thread
+throughout, including FFTW and BLAS; CPU kernels may still use SIMD.
 
 Ratios compare this Julia code on the stated CPU and GPU, not C++ Channelflow.
 All seven sizes include CPU and GPU measurements. At the largest size, the A100
-takes approximately **116 ms** per step, versus **10.70 s** with four CPU library
-threads and **15.01 s** with one: approximately **92×** and **130×**, respectively.
+takes approximately **116 ms** per step, versus **15.01 s** on the serial CPU:
+approximately **130×** faster. A ``512\times513\times512`` extension is scheduled;
+no extrapolated timing or speedup is included for that case. Its persistent
+problem storage alone is estimated at about 72 GiB by cubic scaling from N=32,
+excluding states and CUDA workspace. It may reach the A100 memory limit.
 Grid sizes are resolved sizes; padded workspaces consume
 additional memory. No extrapolation to the MKM590 production grid is implied.
 
@@ -79,11 +81,9 @@ are separate from the reported throughput.
 From the repository root in an environment with dependencies installed:
 
 ```sh
-CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 CHANNEL_FFT_THREADS=1 \
+CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256,512 CHANNEL_FFT_THREADS=1 \
   julia --project=. benchmarks/step.jl cpu cpu-1.csv
-CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 CHANNEL_FFT_THREADS=4 \
-  julia --project=. benchmarks/step.jl cpu cpu-4.csv
-CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 \
+CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256,512 \
   julia --project=test/cuda benchmarks/step.jl cuda gpu.csv
 ```
 
@@ -99,7 +99,7 @@ The dependency manifest is provenance, not an environment to activate directly.
 ## Profiling
 
 The scheduler template also profiles complete warmed steps at
-``N=64,128,256``, using one and four FFT/BLAS threads on CPU and the A100.
+``N=64,128,256``, using one FFT/BLAS thread on CPU and the A100.
 These runs are separate from the throughput measurements above.
 
 Each CPU case saves an exclusive category-count CSV, folded call stacks and a
@@ -120,7 +120,6 @@ fractions of whole-step wall time. Do not add host and device durations together
 ## Data and verification
 
 - [CPU, one thread](assets/benchmarks/cpu-1.csv)
-- [CPU, four FFT/BLAS threads](assets/benchmarks/cpu-4.csv)
 - [A100](assets/benchmarks/gpu.csv)
 
 The [validation suite](validation.md) separately checks accuracy and CPU/GPU

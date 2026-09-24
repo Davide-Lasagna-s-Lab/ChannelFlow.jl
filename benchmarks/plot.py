@@ -12,13 +12,12 @@ def read(name):
     with (root / name).open() as f:
         return {int(r["Nx"]): r for r in csv.DictReader(f)}
 
-cpu1, cpu4, gpu = (read(name) for name in ("cpu-1.csv", "cpu-4.csv", "gpu.csv"))
+cpu1, gpu = (read(name) for name in ("cpu-1.csv", "gpu.csv"))
 plt.rcParams.update({"font.size": 10, "axes.spines.top": False,
                      "axes.spines.right": False, "savefig.dpi": 200})
 fig, axes = plt.subplots(1, 2, figsize=(10, 4), layout="constrained")
 for data, label, color, marker in (
     (cpu1, "CPU: 1 FFT/BLAS thread", "#1565c0", "o"),
-    (cpu4, "CPU: 4 FFT/BLAS threads", "#00897b", "s"),
     (gpu, "NVIDIA A100", "#c62828", "^"),
 ):
     x = sorted(data)
@@ -26,7 +25,6 @@ for data, label, color, marker in (
                    color=color, marker=marker, markersize=4, label=label)
 for data, label, color, marker in (
     (cpu1, "CPU: 1 FFT/BLAS thread", "#1565c0", "o"),
-    (cpu4, "CPU: 4 FFT/BLAS threads", "#00897b", "s"),
 ):
     x = sorted(data.keys() & gpu.keys())
     axes[1].loglog(x, [float(data[n]["min_seconds"])/float(gpu[n]["min_seconds"]) for n in x],
@@ -48,10 +46,10 @@ plt.close(fig)
 rows = []
 for n in sorted(gpu):
     g = float(gpu[n]["min_seconds"])
-    c = [float(data[n]["min_seconds"]) if n in data else None for data in (cpu1,cpu4)]
-    fields = [f"{1000*t:.3f}" if t is not None else "—" for t in c]
-    speed = f"{min(c)/g:.2f}×" if all(t is not None for t in c) else "—"
-    rows.append(f"| `{n}×{n+1}×{n}` | {fields[0]} | {fields[1]} | {1000*g:.3f} | {speed} |")
+    c = float(cpu1[n]["min_seconds"]) if n in cpu1 else None
+    cost = f"{1000*c:.3f}" if c is not None else "—"
+    speed = f"{c/g:.2f}×" if c is not None else "—"
+    rows.append(f"| `{n}×{n+1}×{n}` | {cost} | {1000*g:.3f} | {speed} |")
 table = "\n".join(rows)
 text = r'''# CPU and GPU benchmarks
 
@@ -73,7 +71,7 @@ or per Helmholtz system. They measure the implementation documented by this site
 | Parameters | ``\nu=1/400``, ``\Delta t=0.002``, ``L_x=L_z=2\pi`` |
 | Resolved grid | ``(N_x,N_y,N_z)=(N,N+1,N)`` |
 | Nonlinear grid | 3/2 padding in x and z; unchanged y |
-| CPU transforms | FFTW, one or four FFT/BLAS threads; one Julia thread |
+| CPU transforms | FFTW, one FFT/BLAS thread; one Julia thread |
 | GPU transforms | cuFFT, including even-extension Chebyshev transforms |
 | Sampling | minimum of 100 samples after five warm-up steps |
 
@@ -88,19 +86,21 @@ solver source. The raw CSVs retain the source revision; the
 
 ![Complete timestep cost and CPU/GPU ratio](assets/benchmarks/timestep-cost.svg)
 
-| Resolved grid | CPU, 1 thread [ms] | CPU, 4 FFT/BLAS threads [ms] | GPU [ms] | Faster measured CPU / GPU |
-|---|---:|---:|---:|---:|
+| Resolved grid | CPU, 1 thread [ms] | GPU [ms] | CPU / GPU |
+|---|---:|---:|---:|
 TABLE
 
 The GPU has a fixed launch/dispatch cost, so very small problems can run faster
-on the CPU. Larger grids amortize that cost. The four-thread setting applies
-to FFTW and BLAS; the remaining CPU kernels use SIMD and are not parallel Julia
-loops. More library threads therefore need not improve small-grid timings.
+on the CPU. Larger grids amortize that cost. The CPU series uses one thread
+throughout, including FFTW and BLAS; CPU kernels may still use SIMD.
 
 Ratios compare this Julia code on the stated CPU and GPU, not C++ Channelflow.
 All seven sizes include CPU and GPU measurements. At the largest size, the A100
-takes approximately **116 ms** per step, versus **10.70 s** with four CPU library
-threads and **15.01 s** with one: approximately **92×** and **130×**, respectively.
+takes approximately **116 ms** per step, versus **15.01 s** on the serial CPU:
+approximately **130×** faster. A ``512\times513\times512`` extension is scheduled;
+no extrapolated timing or speedup is included for that case. Its persistent
+problem storage alone is estimated at about 72 GiB by cubic scaling from N=32,
+excluding states and CUDA workspace. It may reach the A100 memory limit.
 Grid sizes are resolved sizes; padded workspaces consume
 additional memory. No extrapolation to the MKM590 production grid is implied.
 
@@ -128,11 +128,9 @@ are separate from the reported throughput.
 From the repository root in an environment with dependencies installed:
 
 ```sh
-CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 CHANNEL_FFT_THREADS=1 \
+CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256,512 CHANNEL_FFT_THREADS=1 \
   julia --project=. benchmarks/step.jl cpu cpu-1.csv
-CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 CHANNEL_FFT_THREADS=4 \
-  julia --project=. benchmarks/step.jl cpu cpu-4.csv
-CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 \
+CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256,512 \
   julia --project=test/cuda benchmarks/step.jl cuda gpu.csv
 ```
 
@@ -148,7 +146,7 @@ The dependency manifest is provenance, not an environment to activate directly.
 ## Profiling
 
 The scheduler template also profiles complete warmed steps at
-``N=64,128,256``, using one and four FFT/BLAS threads on CPU and the A100.
+``N=64,128,256``, using one FFT/BLAS thread on CPU and the A100.
 These runs are separate from the throughput measurements above.
 
 Each CPU case saves an exclusive category-count CSV, folded call stacks and a
@@ -169,7 +167,6 @@ fractions of whole-step wall time. Do not add host and device durations together
 ## Data and verification
 
 - [CPU, one thread](assets/benchmarks/cpu-1.csv)
-- [CPU, four FFT/BLAS threads](assets/benchmarks/cpu-4.csv)
 - [A100](assets/benchmarks/gpu.csv)
 
 The [validation suite](validation.md) separately checks accuracy and CPU/GPU

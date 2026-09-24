@@ -28,7 +28,7 @@ Profiler instrumentation affects elapsed time. Use the unprofiled timing sweep
 for throughput, and do not add overlapping host and device activity durations.
 
 The scheduler template profiles N=64,128,256 after the timing sweep, using
-1 and 4 FFT/BLAS threads on CPU and CUDA on GPU. `CHANNEL_PROFILE_STEPS` defaults
+one FFT/BLAS thread on CPU and CUDA on GPU. `CHANNEL_PROFILE_STEPS` defaults
 to 20 warmed steps; `CHANNEL_FFT_THREADS` also applies to CPU profiles. Each run
 writes a full text log plus a CSV (`CHANNEL_PROFILE_CSV` on CPU,
 `CHANNEL_GPU_PROFILE_CSV` on GPU). CPU runs additionally save folded call stacks.
