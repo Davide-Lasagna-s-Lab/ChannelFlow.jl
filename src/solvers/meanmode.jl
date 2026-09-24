@@ -21,7 +21,7 @@ end
 """
     MeanModeSolver(Ny, nu, lambda)
 
-Cache the `(kx, kz) = (0, 0)` Stokes solve on `[-1, 1]`, with homogeneous
+Cache the `(k, l) = (0, 0)` Stokes solve on `[-1, 1]`, with homogeneous
 velocity wall values. `Ny ≥ 4` is the coefficient count, `nu > 0` the
 viscosity and `lambda ≥ 0` the temporal shift; both parameters must be finite
 with strictly positive viscosity.

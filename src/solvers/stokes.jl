@@ -12,7 +12,7 @@ modes on `grid`. `nu` is viscosity and `lambda` the temporal shift, as in
 [`InfluenceModeSolver`](@ref) and [`MeanModeSolver`](@ref).
 
 Store a separate mean-mode solver and one bank of batched influence systems.
-Rows follow flattened `(kx,kz)` FFT storage. The mean slot is overwritten
+Rows follow flattened `(k,l)` FFT storage. The mean slot is overwritten
 by its dedicated solve and excluded Nyquist planes are cleared afterwards.
 Physical wavenumbers include `2π/Lx` and `2π/Lz`.
 
@@ -39,12 +39,12 @@ struct StokesSolver{G, S, M}
 
         mean = MeanModeSolver(Ny, nu, lambda)
         Nxh, _, _ = spectralsize(grid, NotPadded())
-        kx = vec([(2π/Lx)*(ix-1) for ix=1:Nxh, iz=1:Nz])
-        kz = vec([(2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
+        k = vec([(2π/Lx)*(ix-1) for ix=1:Nxh, iz=1:Nz])
+        l = vec([(2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
                   for ix=1:Nxh, iz=1:Nz])
         # The zero slot is overwritten by the separate mean-mode solve.
         # A nonsingular placeholder keeps every field a direct matrix view.
-        modes = BatchedInfluenceSolver(Ny, kx, kz, nu, lambda)
+        modes = BatchedInfluenceSolver(Ny, k, l, nu, lambda)
         return new{typeof(grid), typeof(modes), typeof(mean)}(grid, modes, mean)
     end
 end

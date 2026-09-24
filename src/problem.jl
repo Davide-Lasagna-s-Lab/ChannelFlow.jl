@@ -8,7 +8,7 @@ export ChannelFlowProblem, CouetteFlow, PoiseuilleFlow
     ChannelFlowProblem(grid, profile, nu, dt;
                 form=RotatingForm(), forcing=NoForcing(),
                 pressuregradient=nothing, bulkvelocity=nothing,
-                chebbackend=:fftw, fftwflags=FFTW.MEASURE, fftwtimelimit=FFTW.NO_TIMELIMIT)
+                fftwflags=FFTW.MEASURE, fftwtimelimit=FFTW.NO_TIMELIMIT)
 
 Assemble a Poiseuille/Couette DNS with a fixed nominal time step. The
 domain is supplied by `grid`; `profile(y)` is the stationary streamwise base
@@ -35,11 +35,10 @@ Specify either a constant `pressuregradient=(dPdx, dPdz)` or total
 The `forcing(t, U, F)` callback adds its spectral acceleration to `F`,
 preserving its existing contents and leaving `U` unchanged; see [`step!`](@ref).
 
-Choose `chebbackend=:fftw` (default) or `:gemm` for the wall-normal
-transforms. Periodic transforms always use FFTW; its planning options remain
-controlled by `fftwflags` and `fftwtimelimit`.
+CPU Fourier and Chebyshev transforms use FFTW. Planning options are
+controlled by `fftwflags` and `fftwtimelimit`. GPU transforms use cuFFT.
 
-Create a state and integrate it with the Flows operator:
+Create a state and integrate it with the optional Flows operator:
 ```julia
 channel = ChannelFlowProblem(grid, y -> 1-y^2, nu, dt;
                       pressuregradient=(-2nu, 0))
@@ -47,6 +46,7 @@ state = zero_state(channel.grid)
 # Modified pressure of the laminar profile: |Ub|²/2 (up to a constant).
 stagepressure(state)[1, 1, :] .= parent(chebcoeffs(
     (1 .- channel.grid.y.^2).^2 ./ 2))
+import Flows
 I = Flows.flow(channel)
 I(state, (0.0, 1.0))
 ```
@@ -74,7 +74,6 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
                                          forcing=NoForcing(),
                                 pressuregradient::Union{Nothing, NTuple{2, Real}}=nothing,
                                     bulkvelocity::Union{Nothing, NTuple{2, Real}}=nothing,
-                                     chebbackend::Symbol=:fftw,
                                        fftwflags::Integer=FFTW.MEASURE,
                                    fftwtimelimit::Real=FFTW.NO_TIMELIMIT)
         # Store only the selected mean-flow constraint. Its name is reused
@@ -100,7 +99,7 @@ struct ChannelFlowProblem{G, B, NL, S, F, C}
         # The scalar prototypes supply types and grid information. The
         # nonlinear operator allocates form-specific caches and padded FFT plans.
         nlterm = NonLinearTerm(PhysicalField(grid), P, scheme.baseflow;
-                              form=form, chebbackend=chebbackend,
+                              form=form,
                               fftwflags=fftwflags, fftwtimelimit=fftwtimelimit)
 
         return new{typeof(grid), typeof(baseflow), typeof(nlterm), typeof(scheme), typeof(forcing), typeof(constraint)}(

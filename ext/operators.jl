@@ -8,8 +8,8 @@ function _fourier!(out, a, direction, add, scale)
         nx, nz = size(a, 1), size(a, 2)
         ix = (i-1)%nx
         iz = ((i-1)÷nx)%nz
-        k = direction == 1 ? ix : (iz <= nz÷2 ? iz : iz-nz)
-        value = im*(scale*k)*a[i]
+        mode = direction == 1 ? ix : (iz <= nz÷2 ? iz : iz-nz)
+        value = im*(scale*mode)*a[i]
         out[i] = add ? out[i]+value : value
     end
     return
@@ -31,14 +31,14 @@ function _derivative!(out, a, add, laplace, nx, nz, α², β²)
     s = (blockIdx().x-1)*blockDim().x+threadIdx().x
     if s <= size(a, 1)
         iz = (s-1)÷nx
-        kz = iz <= nz÷2 ? iz : iz-nz
-        k² = α²*((s-1)%nx)^2+β²*kz^2
+        l = iz <= nz÷2 ? iz : iz-nz
+        κ² = α²*((s-1)%nx)^2+β²*l^2
         an=dn=dn2=en=en2=zero(eltype(a))
         for j = size(a, 2):-1:1
             value = a[s, j]
             d = dn2+2j*an
             e = en2+2j*dn
-            result = laplace ? (j==1 ? e/2 : e)-k²*value : (j==1 ? d/2 : d)
+            result = laplace ? (j==1 ? e/2 : e)-κ²*value : (j==1 ? d/2 : d)
             out[s, j] = add ? out[s, j]+result : result
             an=value
             dn2, dn=dn, d
@@ -88,9 +88,9 @@ function _curl!(o1, o2, o3, u1, u2, u3, α, β)
         nx, nz=size(u1, 1), size(u1, 2)
         ix=(i-1)%nx
         iz=((i-1)÷nx)%nz
-        kz=iz<=nz÷2 ? iz : iz-nz
-        o1[i] -= im*kz*β*u2[i]
-        o2[i] = im*(kz*β*u1[i]-ix*α*u3[i])
+        l=iz<=nz÷2 ? iz : iz-nz
+        o1[i] -= im*l*β*u2[i]
+        o2[i] = im*(l*β*u1[i]-ix*α*u3[i])
         o3[i] = im*ix*α*u2[i]-o3[i]
     end
     return

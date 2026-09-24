@@ -9,13 +9,13 @@
 | `src/ffts.jl`, `src/transforms/` | normalization, padding and transform plans |
 | `src/nonlinear.jl` | rotational, convective and divergence forms |
 | `src/solvers/` | modal Stokes, influence, tau and mean-mode constraints |
-| `src/timesteppers/` | CNRK2 and Flows adapter |
+| `src/timesteppers/` | CNRK2 (optional Flows adapter in `ext/ChannelFlowFlowsExt.jl`) |
 | `src/pressure.jl`, `src/initialization.jl` | projection, pressure recovery and initial conditions |
 | `src/postprocessing.jl` | volume-averaged diagnostics |
 | `src/adapt.jl`, `ext/` | storage transfers and CUDA methods |
 
 Keep numerical conventions identical across devices. Velocity components are
-`(u,v,w)` even though array axes are `(x,z,y)` or `(kx,kz,n)`. Nonlinearity
+`(u,v,w)` even though array axes are `(x,z,y)` or `(k,l,n)`. Nonlinearity
 includes the base profile and overwrites its output; forcing adds to it. Stage
 pressure is retained for exact continuation. Problem caches are mutable and
 must not be shared between simultaneous integrations.

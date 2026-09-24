@@ -39,7 +39,6 @@ dependencies explicitly if they are not already available:
 using Pkg
 Pkg.activate("my-channel-simulation")
 Pkg.add(url="https://github.com/Davide-Lasagna-s-Lab/ChebyshevHelmoltzSolvers.jl.git")
-Pkg.add(url="https://github.com/Davide-Lasagna-s-Lab/Flows.jl.git")
 Pkg.develop(path="/path/to/ChannelFlow.jl")
 Pkg.add(["CUDA", "Adapt", "FFTW"])
 ```
@@ -47,3 +46,7 @@ Pkg.add(["CUDA", "Adapt", "FFTW"])
 Run from that environment thereafter. Restart Julia after package updates that
 change types. If an existing notebook reports a missing dependency after an
 update, resolve and instantiate its active environment, then restart its kernel.
+
+Flows.jl is optional. Install it separately to use `Flows.flow` and monitors,
+as shown in the [quick start](quickstart.md); manual `step!` needs neither
+Flows installation nor loading.

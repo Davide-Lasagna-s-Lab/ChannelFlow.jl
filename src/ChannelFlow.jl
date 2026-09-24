@@ -4,13 +4,14 @@
 CPU and NVIDIA GPU Fourier--Chebyshev DNS for plane Couette and Poiseuille flow.
 
 Start with `Grid`, `CouetteFlow` or `PoiseuilleFlow`, and a `State` created by
-`zero_state` or `random_state`. Integrate with `Flows.flow(problem)` and
+`zero_state` or `random_state`. Advance with `step!` (or optionally
+`Flows.flow(problem)` after loading Flows) and
 inspect the velocity with `kinetic_energy` and `dissipation_rate`.
 
 Velocity is stored as a perturbation to `problem.baseflow`. The accompanying
 stage pressure is algebraic; the default `RotatingForm` uses pressure augmented
 by total kinetic energy per unit mass.
-Physical arrays have order `(x, z, y)`; spectral arrays have `(kx, kz, n)`.
+Physical arrays have order `(x, z, y)`; spectral arrays have `(k, l, n)`.
 """
 module ChannelFlow
 
@@ -18,7 +19,6 @@ using ChebyshevHelmoltzSolvers
 import Adapt
 import ChebyshevHelmoltzSolvers: solve!
 import FFTW
-import Flows
 import LinearAlgebra
 import Random
 import Serialization
@@ -59,7 +59,6 @@ include("solvers/stokes.jl")
 include("forcing.jl")
 include("timesteppers/cnrk2.jl")
 include("problem.jl")
-include("timesteppers/channel.jl")
 
 #//////////////////////////////////////////////////////////////////////////////#
 #///                   INITIALIZATION AND POSTPROCESSING                    ///#

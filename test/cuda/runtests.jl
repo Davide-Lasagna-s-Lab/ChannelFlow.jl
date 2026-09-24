@@ -1,3 +1,4 @@
+using Flows
 using ChannelFlow, CUDA, Adapt, FFTW, LinearAlgebra, Random, Test
 const CF=ChannelFlow
 CUDA.allowscalar(false)
@@ -12,10 +13,10 @@ CUDA.versioninfo()
         a = SpectralField(g)
         randn!(parent(a))
         da = adapt(CuArray,a)
-        for (planner, backend) in ((CF.plan_cheb,:fftw),(CF.plan_icheb,:fftw))
+        for planner in (CF.plan_cheb, CF.plan_icheb)
             expected, actual = similar(a), similar(da)
-            mul!(expected,planner(a,backend;flags=FFTW.ESTIMATE),a)
-            mul!(actual,planner(da,:cufft),da)
+            mul!(expected,planner(a;flags=FFTW.ESTIMATE),a)
+            mul!(actual,planner(da),da)
             @test Array(parent(actual)) ≈ parent(expected) atol=1e-12
             @test Array(parent(da)) == parent(a)
         end
@@ -62,13 +63,6 @@ end
         divergence=similar(velocity(device)[1])
         CF.div!(divergence, velocity(device))
         @test maximum(abs, parent(divergence)) < 2e-9
-        # Check the alternative dense GPU Chebyshev backend independently.
-        prototype=velocity(device)[1]
-        reference=similar(prototype)
-        dense=similar(prototype)
-        mul!(reference, CF.plan_cheb(prototype, :cufft), prototype)
-        mul!(dense, CF.plan_cheb(prototype, :gemm), prototype)
-        @test Array(parent(dense)) ≈ Array(parent(reference)) atol=2e-11
     end
 end
 
@@ -116,8 +110,8 @@ end
         device=adapt(CuArray, state)
         # This interval deliberately ends between nominal steps, exercising
         # the Flows adapter and temporary device factors for the final step.
-        CF.Flows.flow(cpu)(state, (0.0, 0.025))
-        CF.Flows.flow(gpu)(device, (0.0, 0.025))
+        Flows.flow(cpu)(state, (0.0, 0.025))
+        Flows.flow(gpu)(device, (0.0, 0.025))
         for (a, b) in zip(
             (velocity(state).components..., stagepressure(state)),
             (velocity(device).components..., stagepressure(device)),
@@ -140,7 +134,7 @@ end
     U=VectorField(copy(profile), zero_state(g).velocity[2], zero_state(g).velocity[3])
     p=adapt(CuArray, cpu)
     s=adapt(CuArray, State(U, pressure(U, cpu)))
-    CF.Flows.flow(p)(s, (0.0, stop))
+    Flows.flow(p)(s, (0.0, stop))
     exact=parent(profile) .* exp(-nu*(π^2/4+1)*stop)
     @test Array(parent(velocity(s)[1])) ≈ exact rtol=2e-8 atol=2e-10
 end
@@ -153,20 +147,6 @@ end
     dU = adapt(CuArray, U)
     @test power_input(dU, 1/400) ≈ power_input(U, 1/400) atol=1e-12
     @test dissipation_rate(dU, 1/400) ≈ dissipation_rate(U, 1/400) atol=1e-12
-end
-
-@testset "CUDA dense backend selection" begin
-    cpu = CouetteFlow(Grid(8,17,8,2π,2π),1/400,.01;
-                      chebbackend=:gemm,fftwflags=FFTW.ESTIMATE)
-    state = roll_state(cpu,.01)
-    gpu = adapt(CuArray,cpu); device = adapt(CuArray,state)
-    @test gpu.nlterm.fft.chebyplan isa CF.GEMMChebyshevPlan
-    CF.Flows.flow(cpu)(state,(0.0,.03))
-    CF.Flows.flow(gpu)(device,(0.0,.03))
-    for (a,b) in zip((velocity(state).components...,stagepressure(state)),
-                     (velocity(device).components...,stagepressure(device)))
-        @test Array(parent(b)) ≈ parent(a) rtol=2e-9 atol=2e-10
-    end
 end
 
 @testset "CUDA larger-grid agreement" begin
@@ -183,8 +163,8 @@ end
         U = project!(FFT(u),cpu)
         state = State(U,pressure(U,cpu))
         gpu = adapt(CuArray,cpu); device = adapt(CuArray,state)
-        CF.Flows.flow(cpu)(state,(0.0,.002))
-        CF.Flows.flow(gpu)(device,(0.0,.002))
+        Flows.flow(cpu)(state,(0.0,.002))
+        Flows.flow(gpu)(device,(0.0,.002))
         for (a,b) in zip((velocity(state).components...,stagepressure(state)),
                          (velocity(device).components...,stagepressure(device)))
             @test Array(parent(b)) ≈ parent(a) rtol=1e-8 atol=1e-10

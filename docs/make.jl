@@ -11,7 +11,7 @@ cp(joinpath(@__DIR__, "..", "validation", "results"),
 makedocs(
     sitename = "ChannelFlow.jl",
     authors = "Davide Lasagna",
-    modules = [ChannelFlow],
+    modules = [ChannelFlow, Base.get_extension(ChannelFlow, :ChannelFlowFlowsExt)],
     checkdocs = :exports,
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", "false") == "true",

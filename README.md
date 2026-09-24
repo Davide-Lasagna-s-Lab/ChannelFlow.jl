@@ -42,7 +42,7 @@ For CPU-only installation and application environments, see the
 ## GPU example
 
 ```julia
-using ChannelFlow, Flows, FFTW, CUDA, Adapt, Random
+using ChannelFlow, FFTW, CUDA, Adapt, Random
 
 CUDA.allowscalar(false)
 Random.seed!(42)
@@ -52,8 +52,10 @@ state = random_state(problem, 0.1)
 
 problem = adapt(CuArray, problem)
 state = adapt(CuArray, state)
-integrate = Flows.flow(problem)
-integrate(state, (0.0, 1.0))
+for j = 0:99
+    step!(problem.scheme, problem.nlterm, velocity(state), stagepressure(state),
+          j*problem.scheme.dt; forcing=problem.forcing, problem.constraint...)
+end
 CUDA.synchronize()
 ```
 
@@ -66,7 +68,7 @@ mean-flow/Reynolds-stress collection and comparison with published data.
 
 [ChebyshevHelmoltzSolvers.jl](https://github.com/Davide-Lasagna-s-Lab/ChebyshevHelmoltzSolvers.jl)
 provides the batched Helmholtz backend and documents its tau discretisation.
-[Flows.jl](https://github.com/Davide-Lasagna-s-Lab/Flows.jl) provides integration
+[Flows.jl](https://github.com/Davide-Lasagna-s-Lab/Flows.jl) optionally provides integration
 and monitors; [FFTW.jl](https://github.com/JuliaMath/FFTW.jl),
 [CUDA.jl](https://cuda.juliagpu.org/stable/) and
 [Adapt.jl](https://github.com/JuliaGPU/Adapt.jl) provide transforms and device support.

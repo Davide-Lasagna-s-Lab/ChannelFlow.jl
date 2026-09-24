@@ -7,7 +7,7 @@ export SpectralField
 """
     SpectralField(data, grid)
 
-Wrap Fourier--Chebyshev coefficients in storage order `(kx, kz, n)`.
+Wrap Fourier--Chebyshev coefficients in storage order `(k, l, n)`.
 Index `n+1` stores the ordinary coefficient multiplying `T_n` in the mapped
 wall-normal coordinate; the third dimension contains coefficients, not nodal
 values. The `x` spectrum is real-transform half-storage and `z` is full-storage.

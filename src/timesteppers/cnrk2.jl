@@ -41,7 +41,7 @@ profile changes. The caller retains velocity and stage pressure between steps.
 """
 struct CNRK2{S, 
              F<:SpectralField, 
-             C<:AbstractVector{<:Real}} <: Flows.AbstractMethod{State, Flows.NormalMode, 3}
+             C<:AbstractVector{<:Real}}
                nu::Float64
                dt::Float64
           solvers::NTuple{3, S}
@@ -115,8 +115,7 @@ end
           forcing=NoForcing(), pressuregradient=nothing, bulkvelocity=nothing)
 
 Advance perturbation velocity `U` and stage pressure `P` by `scheme.dt`.
-Return `(t + scheme.dt, (dPdx, dPdz))`, with the uniform pressure derivatives
-from the final implicit stage. `U` and `P` must be resolved fields on the
+Return the new time `t + scheme.dt`. `U` and `P` must be resolved fields on the
 scheme's grid, with distinct storage that does not overlap its caches.
 
 `nonlinear(tstage, U, N)` must overwrite `N` with signed nonlinear
@@ -204,5 +203,5 @@ function step!(          scheme::CNRK2{S, F},
                            bulkvelocity=bulkvelocity,
                            baseflow=scheme.baseflow)
     end
-    return t+scheme.dt, gradients
+    return t+scheme.dt
 end

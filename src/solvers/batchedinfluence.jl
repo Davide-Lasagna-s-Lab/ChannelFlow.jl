@@ -3,11 +3,11 @@
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    BatchedInfluenceSolver(Ny, kx, kz, nu, lambda)
+    BatchedInfluenceSolver(Ny, k, l, nu, lambda)
 
 Factor independent nonzero Fourier-mode Stokes systems. Each row of the
 input/output matrices is one system; columns contain ordinary Chebyshev
-coefficients. `kx` and `kz` contain physical wavenumbers in the same row order.
+coefficients. `k` and `l` contain physical wavenumbers in the same row order.
 
 The pressure boundary values are determined by an influence matrix imposing
 zero normal-velocity derivatives at both walls. Gibson's tau correction
@@ -21,8 +21,8 @@ struct BatchedInfluenceSolver{H, A, V, C}
     influence::NTuple{4, V} # inverse 2×2 matrix in row-major order
     sigma::NTuple{2, V}     # auxiliary tau residuals
     shift::V
-    kx::V
-    kz::V
+    k::V
+    l::V
     boundary::V            # reusable zero wall data
     work::NTuple{2, C}     # complex pressure/velocity right-hand sides
 end
@@ -42,11 +42,11 @@ function _batchdiff!(out::AbstractMatrix, a::AbstractMatrix)
     return out
 end
 
-function BatchedInfluenceSolver(Ny::Int, kx::Vector{Float64}, kz::Vector{Float64}, nu, lambda)
+function BatchedInfluenceSolver(Ny::Int, k::Vector{Float64}, l::Vector{Float64}, nu, lambda)
     isodd(Ny) && Ny ≥ 5 || throw(ArgumentError("tau correction requires odd Ny ≥ 5"))
-    length(kx) == length(kz) || throw(DimensionMismatch("wavenumber vectors must match"))
-    B = length(kx)
-    κ² = kx.^2 .+ kz.^2
+    length(k) == length(l) || throw(DimensionMismatch("wavenumber vectors must match"))
+    B = length(k)
+    κ² = k.^2 .+ l.^2
     # A zero-mode pressure placeholder is overwritten by the mean-mode solve.
     shift = lambda .+ nu .* κ²
     ph = BatchedHelmoltzSolver(Ny-1, B)
@@ -79,7 +79,7 @@ function BatchedInfluenceSolver(Ny::Int, kx::Vector{Float64}, kz::Vector{Float64
         end
     end
     solver = BatchedInfluenceSolver(ph, vh, responses, influence,
-        (zeros(B),zeros(B)), shift, copy(kx), copy(kz), zero_bc,
+        (zeros(B),zeros(B)), shift, copy(k), copy(l), zero_bc,
         (zeros(ComplexF64,B,Ny),zeros(ComplexF64,B,Ny)))
 
     # Both parities share one auxiliary problem: source (T_{P-1}+T_P)'.
@@ -130,7 +130,7 @@ function solve!(h::BatchedInfluenceSolver, u, v, w, p, Rx, Ry, Rz)
     r,q = h.work
     bc = h.boundary
     _batchdiff!(r,Ry)
-    r .+= im .* h.kx .* Rx .+ im .* h.kz .* Rz
+    r .+= im .* h.k .* Rx .+ im .* h.l .* Rz
     solve!(h.pressure,p,r,bc,bc)
     _batchdiff!(q,p)
     q .-= Ry
@@ -138,9 +138,9 @@ function solve!(h::BatchedInfluenceSolver, u, v, w, p, Rx, Ry, Rz)
     _batchinfluence!(h,p,v)
     _batchdiff!(q,p)
     _batchtau!(h,p,v,q,Ry)
-    r .= im .* h.kx .* p .- Rx
+    r .= im .* h.k .* p .- Rx
     solve!(h.velocity,u,r,bc,bc)
-    r .= im .* h.kz .* p .- Rz
+    r .= im .* h.l .* p .- Rz
     solve!(h.velocity,w,r,bc,bc)
     return u,v,w,p
 end

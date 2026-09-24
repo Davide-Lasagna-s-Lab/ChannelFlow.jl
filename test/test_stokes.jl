@@ -8,7 +8,7 @@
     gradients = (-0.4, 0.15)
     profiles = ((y -> 1-y^2, 2/3), (y -> y, 0.0))
 
-    # Cover both Fourier parities, negative kz, single periodic points and
+    # Cover both Fourier parities, negative l, single periodic points and
     # a grid whose only active mode is the mean (all other slots are Nyquist).
     for (Nx, Nz) in ((6, 6), (5, 5), (6, 5), (5, 6), (1, 5), (5, 1), (1, 1), (2, 2)),
         (profile, base_mean) in profiles
@@ -23,7 +23,7 @@
             end
 
             # Build analytic, divergence-free modes independently of the
-            # solver's index-to-wavenumber mapping. Even-grid Nyquist kz is
+            # solver's index-to-wavenumber mapping. Even-grid Nyquist l is
             # in the negative block here; that slot must be excluded anyway.
             zmodes = vcat(0:fld(Nz-1, 2), -fld(Nz, 2):-1)
             for (iz, mz) in enumerate(zmodes), (ix, mx) in enumerate(0:fld(Nx, 2))
@@ -37,7 +37,7 @@
                     end
                     continue
                 end
-                kx, kz = 2π*mx/Lx, 2π*mz/Lz
+                k, l = 2π*mx/Lx, 2π*mz/Lz
                 meanmode = mx == mz == 0
                 # Treat the mean separately to avoid division by zero and set
                 # a zero-mean pressure gauge. Other modes use a wall-vanishing
@@ -50,26 +50,26 @@
                     d2uf, d2vf, d2wf = y -> -0.4, y -> 0.0, y -> 0.2
                     pf, dpf = y -> 0.3y+0.2*(y^2-1/3), y -> 0.3+0.4y
                 else
-                    k2 = kx^2+kz^2
+                    k2 = k^2+l^2
                     a, b = 0.1/(1+mx^2+mz^2), 0.05im
                     vf = y -> a*(1-y^2)^2
                     dvf = y -> a*(-4y+4y^3)
                     d2vf = y -> a*(-4+12y^2)
                     d3vf = y -> 24a*y
-                    uf = y -> im*kx/k2*dvf(y)+kz*b*(1-y^2)
-                    wf = y -> im*kz/k2*dvf(y)-kx*b*(1-y^2)
-                    d2uf = y -> im*kx/k2*d3vf(y)-2kz*b
-                    d2wf = y -> im*kz/k2*d3vf(y)+2kx*b
+                    uf = y -> im*k/k2*dvf(y)+l*b*(1-y^2)
+                    wf = y -> im*l/k2*dvf(y)-k*b*(1-y^2)
+                    d2uf = y -> im*k/k2*d3vf(y)-2l*b
+                    d2wf = y -> im*l/k2*d3vf(y)+2k*b
                     pf, dpf = y -> 0.3+0.2y+0.1y^2, y -> 0.2+0.2y
                 end
                 # Use analytic second derivatives to manufacture the Stokes
                 # right-hand side. A constant imposed gradient enters only the
                 # mean mode; nonzero modes instead use i*k times the pressure
                 # coefficients.
-                shift = lambda+nu*(kx^2+kz^2)
-                rxf = y -> shift*uf(y)-nu*d2uf(y)+(meanmode ? gradients[1] : im*kx*pf(y))
+                shift = lambda+nu*(k^2+l^2)
+                rxf = y -> shift*uf(y)-nu*d2uf(y)+(meanmode ? gradients[1] : im*k*pf(y))
                 ryf = y -> shift*vf(y)-nu*d2vf(y)+dpf(y)
-                rzf = y -> shift*wf(y)-nu*d2wf(y)+(meanmode ? gradients[2] : im*kz*pf(y))
+                rzf = y -> shift*wf(y)-nu*d2wf(y)+(meanmode ? gradients[2] : im*l*pf(y))
                 for (field, f) in zip((exact.components..., exactP, R.components...),
                                       (uf, vf, wf, pf, rxf, ryf, rzf))
                     @views parent(field)[ix, iz, :] .= parent(coefficients(f, Ny))

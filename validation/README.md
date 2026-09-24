@@ -6,8 +6,8 @@ explains the reference equations, parameters, error norms and limits of each cas
 From the repository root:
 
 ```sh
-julia --project=. -e 'using Pkg; Pkg.instantiate()'
-julia --project=. validation/run.jl
+julia --project=test -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
+julia --project=test validation/run.jl
 python validation/plot.py
 ```
 

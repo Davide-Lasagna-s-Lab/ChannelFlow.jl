@@ -15,7 +15,7 @@ responses, their inverse influence matrix, and the auxiliary pressure/velocity
 pair used by Gibson's tau correction. All coefficients and workspaces use
 `Float64`; the same cache can process real and imaginary parts sequentially.
 
-Construct it with [`InfluenceModeSolver(Ny, kx, kz, nu, lambda)`](@ref) and apply
+Construct it with [`InfluenceModeSolver(Ny, k, l, nu, lambda)`](@ref) and apply
 it with [`solve!`](@ref). The mean mode requires a separate solver.
 """
 struct InfluenceModeSolver{H, C}
@@ -31,18 +31,18 @@ struct InfluenceModeSolver{H, C}
                sigma0::Vector{Float64}  # auxiliary tau coefficients at Ny-2, Ny-1
                lambda::Float64          # full shift: constructor lambda + nu*kappa2
                  work::C                # derivative and right-hand-side workspace
-                   kx::Float64          # physical streamwise wavenumber
-                   kz::Float64          # physical spanwise wavenumber
+                   k::Float64          # physical streamwise wavenumber
+                   l::Float64          # physical spanwise wavenumber
                 cache::NTuple{4, C}     # real p, v, div(R), Ry for complex solves
 
     """
-        InfluenceModeSolver(Ny, kx, kz, nu, lambda)
+        InfluenceModeSolver(Ny, k, l, nu, lambda)
 
     Construct and factorise the pressure/velocity systems for a fixed Fourier mode
     and time-stepping coefficient. `Ny ≥ 5` is the odd number of Chebyshev
-    coefficients, `kx` and `kz` are physical wavenumbers (including the factors
+    coefficients, `k` and `l` are physical wavenumbers (including the factors
     `2π/Lx` and `2π/Lz`), `nu` is viscosity, and `lambda` is the temporal shift.
-    The mode must be nonzero; its squared wavenumber is `kappa2 = kx² + kz²`.
+    The mode must be nonzero; its squared wavenumber is `kappa2 = k² + l²`.
 
     With `D = d/dy`, the scalar operators are `D² - kappa2` for pressure and
     `nu*D² - shift` for velocity, where `shift = lambda + nu*kappa2`. The stored
@@ -58,14 +58,14 @@ struct InfluenceModeSolver{H, C}
     influence matrix that fails the scale or relative-determinant checks.
     """
     function InfluenceModeSolver(    Ny::Int,
-                                     kx::Real,
-                                     kz::Real,
+                                     k::Real,
+                                     l::Real,
                                      nu::Real,
                                  lambda::Real)
         Ny ≥ 5 && isodd(Ny) ||
             throw(ArgumentError("Gibson's tau correction requires odd Ny ≥ 5"))
-        kx, kz = Float64(kx), Float64(kz)
-        kappa2 = kx^2 + kz^2
+        k, l = Float64(k), Float64(l)
+        kappa2 = k^2 + l^2
         kappa2 > 0 ||
             throw(ArgumentError("InfluenceModeSolver requires kappa2 > 0; handle the mean mode separately"))
 
@@ -126,7 +126,7 @@ struct InfluenceModeSolver{H, C}
 
         solver = new{typeof(pressure), typeof(pplus)}(
             pressure, velocity, pplus, pminus, vplus, vminus, influence_inverse,
-            pzero, vzero, zeros(2), shift, work, kx, kz, cache)
+            pzero, vzero, zeros(2), shift, work, k, l, cache)
         _influence_correction!(solver, pzero, vzero)
 
         # Both terms must use the influence-corrected auxiliary solution.
@@ -185,11 +185,11 @@ end
 
 Solve one nonzero complex Fourier mode of the primitive-variable Stokes system
 ```text
-(solver.lambda - nu*D²) (u, v, w) + (i*kx*p, Dp, i*kz*p) = (Rx, Ry, Rz),
-i*kx*u + Dv + i*kz*w = 0,
+(solver.lambda - nu*D²) (u, v, w) + (i*k*p, Dp, i*l*p) = (Rx, Ry, Rz),
+i*k*u + Dv + i*l*w = 0,
 u(±1) = v(±1) = w(±1) = 0.
 ```
-Here `D = d/dy` and `solver.lambda` includes `nu*(kx² + kz²)`. This is
+Here `D = d/dy` and `solver.lambda` includes `nu*(k² + l²)`. This is
 the modal solve performed by Channelflow's `TauSolver::solve`.
 
 All input and output fields are `AbstractVector{ComplexF64}` with the solver's
@@ -214,8 +214,8 @@ function solve!(solver::InfluenceModeSolver,
         throw(DimensionMismatch("mode coefficients must match the solver's degree"))
     pc, vc, r, ry = solver.cache
 
-    # Re(div R) = D Re(Ry) - kx Im(Rx) - kz Im(Rz);
-    # Im(div R) = D Im(Ry) + kx Re(Rx) + kz Re(Rz).
+    # Re(div R) = D Re(Ry) - k Im(Rx) - l Im(Rz);
+    # Im(div R) = D Im(Ry) + k Re(Rx) + l Re(Rz).
     # Keep the real/imaginary selection scalar: iterating over function
     # objects here makes broadcast construction type-unstable in this hot loop.
     for imaginary in (false, true)
@@ -224,8 +224,8 @@ function solve!(solver::InfluenceModeSolver,
         end
         diff!(r, ry)
         @inbounds for n in eachindex(r)
-            r[n] += imaginary ? solver.kx*real(Rx[n]) + solver.kz*real(Rz[n]) :
-                               -solver.kx*imag(Rx[n]) - solver.kz*imag(Rz[n])
+            r[n] += imaginary ? solver.k*real(Rx[n]) + solver.l*real(Rz[n]) :
+                               -solver.k*imag(Rx[n]) - solver.l*imag(Rz[n])
         end
         solve!(solver, pc, vc, r, ry)
 
@@ -242,7 +242,7 @@ function solve!(solver::InfluenceModeSolver,
 
     # The horizontal momentum sources are i*k*p - R. Reuse the p/v
     # workspaces for their real/imaginary parts and the cached velocity factors.
-    for (out, source, k) in ((u, Rx, solver.kx), (w, Rz, solver.kz))
+    for (out, source, k) in ((u, Rx, solver.k), (w, Rz, solver.l))
         pc .= -k .* imag.(p) .- real.(source)
         vc .=  k .* real.(p) .- imag.(source)
         solve!(solver.velocity, ry, pc, 0, 0)
@@ -267,8 +267,8 @@ The particular problems are
 ```
 where `D = d/dy`. For a momentum source `R`, `r` is the corresponding real
 or imaginary part of its full Fourier divergence
-`i*kx*Rx + D*Ry + i*kz*Rz`, and `Ry` is the matching part of the wall-normal
-source. Here `kx` and `kz` are physical wavenumbers.
+`i*k*Rx + D*Ry + i*l*Rz`, and `Ry` is the matching part of the wall-normal
+source. Here `k` and `l` are physical wavenumbers.
 
 The influence correction imposes `v = Dv = 0` at both walls. The subsequent
 tau correction accounts for the two highest momentum residual coefficients

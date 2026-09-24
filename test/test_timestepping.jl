@@ -25,6 +25,9 @@
     @test problem.nlterm isa NonLinearTerm{Float64, RotatingForm}
     state = zero_state(g)
     U, P = velocity(state), stagepressure(state)
+    @test step!(problem.scheme, problem.nlterm, U, P, 0.0;
+                forcing=problem.forcing, problem.constraint...) == dt
+    empty!(times)
     flow = Flows.flow(problem)
     # Two nominal steps and a shortened final step exercise adapter dispatch
     # and stage sampling; no physical time-evolution benchmark is used here.

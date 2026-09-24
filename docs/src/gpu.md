@@ -1,5 +1,9 @@
 # GPU execution
 
+For a complete runnable simulation, start with the
+[GPU quick start](quickstart.md#GPU-quick-start). This page explains device
+transfer, transform implementation and performance considerations.
+
 Install CUDA.jl in the environment once. Construct the problem and initial
 condition on the CPU, then transfer them explicitly:
 
@@ -25,13 +29,10 @@ full-field host transfers. The constant-bulk-velocity interface currently retrie
 mode information and its two pressure gradients on the host each stage.
 GPU timings must include a final `CUDA.synchronize()`.
 
-The device Chebyshev backend uses cuFFT on an even extension by default.
-Construct the CPU problem with `chebbackend=:gemm` before adaptation to select
-cuBLAS matrix multiplication for the complete GPU simulation.
-Dense matrix multiplication through cuBLAS is also available through
-`ChannelFlow.plan_cheb(U, :gemm)` and `ChannelFlow.plan_icheb(U, :gemm)`. CPU Chebyshev transforms default to FFTW's
-DCT-I (`:fftw`). CPU periodic transforms always use FFTW; GPU periodic
-transforms use cuFFT. CUDA is optional and is loaded through a Julia extension.
+The device Chebyshev transform uses cuFFT on an even extension. CPU Chebyshev
+transforms use FFTW's DCT-I. Periodic transforms use FFTW on CPU and cuFFT on
+GPU. The field's storage determines which implementation is used; no backend
+selection is needed. CUDA is optional and is loaded through a Julia extension.
 
 ## Data ownership and performance
 
@@ -40,7 +41,7 @@ Helmholtz factors, homogeneous responses and work arrays are reused by every
 stage. Recreating the problem or transferring full fields each step defeats
 this design. A separate problem is needed for each concurrently evolving trajectory.
 
-A spectral array has shape `(kx,kz,n)`. A zero-copy matrix view places independent
+A spectral array has shape `(k,l,n)`. A zero-copy matrix view places independent
 Fourier systems in rows and Chebyshev coefficients in columns. Adjacent device
 threads therefore access adjacent systems during coefficient recurrences.
 

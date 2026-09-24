@@ -133,7 +133,7 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
     solution = similar(work)
 
     # NONZERO FOURIER MODES
-    # Solve (Dyy - kx² - kz²) P = div(A) with wall-normal momentum conditions.
+    # Solve (Dyy - k² - l²) P = div(A) with wall-normal momentum conditions.
     for iz = 1:Nz, ix = 1:Nxh
 
         # The singular mean mode is handled below; Nyquist planes are excluded.
@@ -142,9 +142,9 @@ function _pressure_poisson(A::VectorField{F}, v::F, nu::Real) where {F<:Spectral
          (iseven(Nz) && iz == (Nz >> 1)+1)) && continue
 
         # x contains the nonnegative half-spectrum; z follows signed FFT order.
-        kx = (2π/Lx)*(ix-1)
-        kz = (2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
-        update!(solver, 1.0, kx^2 + kz^2)
+        k = (2π/Lx)*(ix-1)
+        l = (2π/Lz)*(iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz)
+        update!(solver, 1.0, k^2 + l^2)
 
         rhs = view(parent(P), ix, iz, :)
         normal = view(parent(A[2]), ix, iz, :)

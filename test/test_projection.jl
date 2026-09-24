@@ -102,9 +102,9 @@ end
     @test parent(stagepressure(a)) == parent(stagepressure(b))
     @test any(norm(parent(component)) > 0 for component in velocity(a).components)
     check_constraints(velocity(a))
-    # The spectrum represents real data, including the kx=0 conjugate pairs.
+    # The spectrum represents real data, including the k=0 conjugate pairs.
     # A real-space round trip must preserve the full retained spectrum,
-    # including conjugate pairs on the kx=0 plane. This catches complex
+    # including conjugate pairs on the k=0 plane. This catches complex
     # coefficients that cannot represent a real velocity field.
     for U in velocity(a).components
         @test parent(spectral(g, physical_values(U))) ≈ parent(U) atol=2e-11

@@ -9,7 +9,7 @@ separately; the Julia solver is unchanged.
 - Couette flow, walls y=±1, Lx=Lz=2π, ν=1/400, Δt=0.002.
 - Three-stage CNRK2, rotational nonlinearity, tau correction, fixed zero pressure gradient.
 - Julia resolved grid `(N,N+1,N)` corresponds to C++ physical grid
-  `(3N/2,N+1,3N/2)` with `DealiasXZ`. Upstream retains |kx|,|kz|≤N/2−1.
+  `(3N/2,N+1,3N/2)` with `DealiasXZ`. Upstream retains |k|,|l|≤N/2−1.
   Neither run dealiasses y. Comparing equal constructor sizes would be unfair.
 - `seed.jl` exports the same projected perturbation velocity and modified
   pressure used by the Julia timing driver. A second file contains a Julia

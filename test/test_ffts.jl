@@ -13,7 +13,7 @@
         @test fft(U, u) === U
         # Exact coefficient amplitudes fix normalisation, axis order and signs.
         # The y factors are T_0, T_1 and T_2. A cosine contributes 1/2 at
-        # kx=+1; sine contributes -i/2 at kz=+1 and +i/2 at kz=-1. Their
+        # k=+1; sine contributes -i/2 at l=+1 and +i/2 at l=-1. Their
         # products are -i/4 and +i/4 at row 3, x slot 2, and z slots 2 and
         # end. This analytic oracle prevents matching forward/inverse scaling
         # errors from hiding in a round trip.
@@ -94,18 +94,13 @@ end
     end
 end
 
-@testset "Chebyshev backends with coefficient-last storage" begin
-    # Independent backend implementations must return the same normalized
-    # coefficients, not merely invert their own normalization error.
+@testset "Coefficient-last spectral matrix view" begin
+    # The solver view must share storage and preserve the Fourier index order.
     g = Grid(10,17,12,2π,3π)
-    u = sampled(g,(x,y,z) -> exp(cos(x))*sin(2z/3)*(1+y+y^4))
-    reference = FFT(u; chebbackend=:fftw)
-    gemm = FFT(u; chebbackend=:gemm)
-    @test parent(gemm) ≈ parent(reference) atol=2e-13
-    @test parent(IFFT(gemm;chebbackend=:gemm)) ≈ parent(IFFT(reference)) atol=2e-12
-    matrix = CF.spectralmatrix(gemm)
+    U = SpectralField(g)
+    matrix = CF.spectralmatrix(U)
     @test size(matrix) == (6*12,17)
-    @test pointer(matrix) == pointer(parent(gemm))
+    @test pointer(matrix) == pointer(parent(U))
     matrix[2,3] = 2+3im
-    @test gemm[2,1,3] == 2+3im
+    @test U[2,1,3] == 2+3im
 end

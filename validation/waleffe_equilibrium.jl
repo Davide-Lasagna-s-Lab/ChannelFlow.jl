@@ -42,9 +42,9 @@ function waleffe_equilibrium(branch, Ny, N)
         spectrum = FFTW.rfft(raw,(2,3))/1024
         @test maximum(abs,spectrum[:,17,:]) < 1e-12
         @test maximum(abs,spectrum[:,:,17]) < 1e-12
-        for kz=-15:15, kx=0:15
-            parent(velocity(state)[i])[kx+1,mod(kz,N)+1,1:34] .=
-                spectrum[:,kx+1,mod(kz,32)+1]
+        for l=-15:15, k=0:15
+            parent(velocity(state)[i])[k+1,mod(l,N)+1,1:34] .=
+                spectrum[:,k+1,mod(l,32)+1]
         end
     end
     # The file contains total Couette velocity. Subtract y=T_1 only from

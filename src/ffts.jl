@@ -15,22 +15,21 @@ const FFT_DIMS = (1, 2)
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    ForwardFFT!(u; chebbackend=:fftw, flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
+    ForwardFFT!(u; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
 Plan the Fourier--Chebyshev transform from physical storage `(x, z, y)` to
-spectral storage `(kx, kz, n)`. Fourier amplitudes are normalised by the padded
+spectral storage `(k, l, n)`. Fourier amplitudes are normalised by the padded
 periodic size; Chebyshev coefficients use the ordinary `sum(a_n*T_n)` series.
 """
 struct ForwardFFT!{P, C, A, T}
              plan::P  # padded physical grid to Fourier space
-        chebyplan::C  # dense or FFTW wall-normal transform
+        chebyplan::C  # wall-normal DCT-I transform
            padded::A  # complete padded spectrum produced by the plan
          resolved::A  # Fourier-truncated input to the Chebyshev transform
     normalization::T  # inverse periodic size and Chebyshev degree
 end
 
 function ForwardFFT!(        u::PhysicalField{T};
-                   chebbackend::Symbol=:fftw,
                          flags::Integer=FFTW.EXHAUSTIVE,
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # Only periodic dimensions are padded. All Ny Chebyshev coefficients
@@ -45,7 +44,7 @@ function ForwardFFT!(        u::PhysicalField{T};
     # The wall-normal backend works only on retained Fourier systems.
     # It writes the final coefficients into the caller's output field.
     resolved = SpectralField(zeros(Complex{T}, spectralsize(grid(u), NotPadded())), grid(u))
-    chebyplan = plan_cheb(resolved, chebbackend; flags=flags, timelimit=timelimit)
+    chebyplan = plan_cheb(resolved; flags=flags, timelimit=timelimit)
     return ForwardFFT!(plan, chebyplan, padded, resolved,
                        inv(T(Nxp * Nzp * (Ny-1))))
 end
@@ -104,9 +103,9 @@ end
 #//////////////////////////////////////////////////////////////////////////////#
 
 """
-    InverseFFT!(U; chebbackend=:fftw, flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
+    InverseFFT!(U; flags=FFTW.EXHAUSTIVE, timelimit=FFTW.NO_TIMELIMIT)
 
-Plan the inverse transform from resolved spectral storage `(kx, kz, n)` to the
+Plan the inverse transform from resolved spectral storage `(k, l, n)` to the
 3/2-padded physical storage `(xp, zp, y)`. The resolved input is preserved
 by evaluating the wall-normal transform into a separate resolved buffer,
 then embedding those values into the padded Fourier spectrum. FFTW's `brfft`
@@ -114,13 +113,12 @@ may overwrite that padded buffer. This order skips DCTs of zero systems.
 """
 struct InverseFFT!{P, C, A}
          plan::P  # padded spectrum to the padded physical grid
-    chebyplan::C  # dense or FFTW wall-normal transform
+    chebyplan::C  # wall-normal DCT-I transform
        padded::A  # zero-padded spectrum used as destructive brfft input
      resolved::A  # retained systems for the wall-normal transform
 end
 
 function InverseFFT!(        U::SpectralField{T};
-                   chebbackend::Symbol=:fftw,
                          flags::Integer=FFTW.EXHAUSTIVE,
                      timelimit::Real=FFTW.NO_TIMELIMIT) where {T}
     # The inverse plan must use exactly the same padded layout as the forward
@@ -132,7 +130,7 @@ function InverseFFT!(        U::SpectralField{T};
     plan = FFTW.plan_brfft(parent(padded), Nxp, FFT_DIMS;
                            flags=flags, timelimit=timelimit)
     resolved = SpectralField(zeros(eltype(U), spectralsize(grid(U), NotPadded())), grid(U))
-    chebyplan = plan_icheb(resolved, chebbackend;
+    chebyplan = plan_icheb(resolved;
                                     flags=flags, timelimit=timelimit)
     return InverseFFT!(plan, chebyplan, padded, resolved)
 end
@@ -236,7 +234,7 @@ end
     copy_to_padded!(dest, src, scale=1)
 
 Embed a compact resolved spectrum in a zeroed padded spectrum. The stored
-nonnegative `kx` modes remain a prefix of dimension one. Nonnegative `kz`
+nonnegative `k` modes remain a prefix of dimension one. Nonnegative `l`
 modes stay at the start of dimension two; negative modes move to its end.
 Multiply copied coefficients by `scale`; entries outside the copied blocks
 are left untouched, so the caller must zero `dest` before padding.

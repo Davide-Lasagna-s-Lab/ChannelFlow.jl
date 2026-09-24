@@ -28,7 +28,7 @@ step between batches when a uniformly sampled record is required for spectra.
 
 ```julia
 for step in first_step+1:last_step
-    t, gradients = step!(problem.scheme, problem.nlterm,
+    t = step!(problem.scheme, problem.nlterm,
         velocity(state), stagepressure(state), t;
         forcing=problem.forcing, problem.constraint...)
     if step % save_every == 0

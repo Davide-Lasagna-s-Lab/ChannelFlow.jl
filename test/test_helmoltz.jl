@@ -35,15 +35,15 @@ end
 function check_stokes(solver, u, v, w, p, Rx, Ry, Rz, nu)
     P = length(p) - 1
     dp = derivative(p)
-    divergence = im*solver.kx .* u .+ parent(derivative(v)) .+
-                 im*solver.kz .* w
+    divergence = im*solver.k .* u .+ parent(derivative(v)) .+
+                 im*solver.l .* w
     # Incompressibility applies to all coefficients, including the highest
     # degrees; it is not relaxed by the momentum tau treatment.
     @test norm(divergence, Inf) < 2e-10
 
-    for (field, source, gradp) in ((u, Rx, im*solver.kx .* p),
+    for (field, source, gradp) in ((u, Rx, im*solver.k .* p),
                                    (v, Ry, dp),
-                                   (w, Rz, im*solver.kz .* p))
+                                   (w, Rz, im*solver.l .* p))
         residual = solver.lambda .* field .-
                    nu .* parent(derivative(derivative(field))) .+
                    gradp .- source
@@ -70,15 +70,15 @@ end
     @test_throws ArgumentError InfluenceModeSolver(10, 1, 1, 0.1, 2)
     @test_throws ArgumentError InfluenceModeSolver(9, 0, 0, 0.1, 2)
 
-    for Ny in (9, 17, 33), (kx, kz) in ((1.25, 0.0), (0.0, -2.0),
+    for Ny in (9, 17, 33), (k, l) in ((1.25, 0.0), (0.0, -2.0),
                                         (1.25, -1.75), (1.25, 1.75))
-        @testset "Ny=$Ny, k=($kx,$kz)" begin
+        @testset "Ny=$Ny, k=($k,$l)" begin
             nu, lambda = 0.03, 2.5
-            solver = InfluenceModeSolver(Ny, kx, kz, nu, lambda)
-            kappa2 = kx^2 + kz^2
+            solver = InfluenceModeSolver(Ny, k, l, nu, lambda)
+            kappa2 = k^2 + l^2
             shift = lambda + nu*kappa2
             # Choose v with a double zero at both walls. Setting
-            # (u,w)=i*(kx,kz)*dv/kappa2+(kz,-kx)*q cancels dv in the
+            # (u,w)=i*(k,l)*dv/kappa2+(l,-k)*q cancels dv in the
             # divergence; q supplies an independent transverse component. Both
             # tangential velocities vanish at the walls. Complex amplitudes
             # exercise real and imaginary solves.
@@ -88,8 +88,8 @@ end
             d3vfun(y) = (0.7+0.2im)*(24y+0.2*(-12+60y^2))
             qfun(y) = (0.15-0.1im)*(1-y^2)*(1+0.3y)
             d2qfun(y) = (0.15-0.1im)*(-2-1.8y)
-            ufun(y) = im*kx/kappa2*dvfun(y) + kz*qfun(y)
-            wfun(y) = im*kz/kappa2*dvfun(y) - kx*qfun(y)
+            ufun(y) = im*k/kappa2*dvfun(y) + l*qfun(y)
+            wfun(y) = im*l/kappa2*dvfun(y) - k*qfun(y)
             pfun(y) = (0.4-0.3im)*(1+y+0.2y^3)
             dpfun(y) = (0.4-0.3im)*(1+0.6y^2)
 
@@ -99,12 +99,12 @@ end
             # implementation cannot make an incorrect solution pass this
             # comparison.
             Rx = coefficients(y -> shift*ufun(y) -
-                                   nu*(im*kx/kappa2*d3vfun(y)+kz*d2qfun(y)) +
-                                   im*kx*pfun(y), Ny)
+                                   nu*(im*k/kappa2*d3vfun(y)+l*d2qfun(y)) +
+                                   im*k*pfun(y), Ny)
             Ry = coefficients(y -> shift*vfun(y)-nu*d2vfun(y)+dpfun(y), Ny)
             Rz = coefficients(y -> shift*wfun(y) -
-                                   nu*(im*kz/kappa2*d3vfun(y)-kx*d2qfun(y)) +
-                                   im*kz*pfun(y), Ny)
+                                   nu*(im*l/kappa2*d3vfun(y)-k*d2qfun(y)) +
+                                   im*l*pfun(y), Ny)
             source = map(x -> copy(x), (Rx, Ry, Rz))
             responses = map(x -> copy(x),
                             (solver.pressure_plus, solver.pressure_minus,

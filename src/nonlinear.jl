@@ -23,7 +23,7 @@ struct RotatingForm    <: NonlinearityForm end
 
 """
     NonLinearTerm(u, U, baseflow;
-                  chebbackend=:fftw, fftwflags=FFTW.EXHAUSTIVE,
+                  fftwflags=FFTW.EXHAUSTIVE,
                   fftwtimelimit=FFTW.NO_TIMELIMIT,
                   form=RotatingForm())
 
@@ -55,13 +55,12 @@ struct NonLinearTerm{T, FORM<:NonlinearityForm, CACHE, IFFT, FFT, B<:AbstractVec
     function NonLinearTerm(             u::PhysicalField{T},
                                        U::SpectralField{T},
                                 baseflow::AbstractVector{T};
-                             chebbackend::Symbol=:fftw,
                                fftwflags::Integer=FFTW.EXHAUSTIVE,
                            fftwtimelimit::Real=FFTW.NO_TIMELIMIT,
                                     form::NonlinearityForm=RotatingForm()) where {T}
         cache = _gencache(form, u, U)
-        ifft = InverseFFT!(U; chebbackend=chebbackend, flags=fftwflags, timelimit=fftwtimelimit)
-        fft  = ForwardFFT!(u; chebbackend=chebbackend, flags=fftwflags, timelimit=fftwtimelimit)
+        ifft = InverseFFT!(U; flags=fftwflags, timelimit=fftwtimelimit)
+        fft  = ForwardFFT!(u; flags=fftwflags, timelimit=fftwtimelimit)
         return new{T,
                    typeof(form),
                    typeof(cache),

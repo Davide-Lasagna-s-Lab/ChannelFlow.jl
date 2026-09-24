@@ -79,7 +79,7 @@ end
 
     g = Grid(8, 81, 1, 2π, 2π)
     nu, amplitude, T = 1/8000, 1e-7, 50.0
-    # Positive kx=1 stores half the complex amplitude of a real wave. The
+    # Positive k=1 stores half the complex amplitude of a real wave. The
     # negative harmonic is implicit in the real FFT. All other modes start
     # at zero, but the nonlinear DNS is free to generate them during evolution.
     initial = zero_state(g)

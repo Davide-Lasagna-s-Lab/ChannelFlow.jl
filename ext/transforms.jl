@@ -9,18 +9,8 @@ struct CUDAChebyshevPlan{INVERSE,A,P}
     plan::P # in-place cuFFT along the coefficient axis
 end
 
-function CF._plan_cheb(U::CuSpectral, ::Val{INV}, backend::Symbol; kwargs...) where {INV}
+function CF._plan_cheb(U::CuSpectral, ::Val{INV}; flags=nothing, timelimit=nothing) where {INV}
     Ny = size(U, 3)
-    if backend == :gemm
-        matrix = ComplexF64[2cospi((i-1)*(j-1)/(Ny-1)) for i = 1:Ny, j = 1:Ny]
-        if !INV
-            matrix[:, 1] ./= 2
-            matrix[:, end] ./= 2
-        end
-        return CF.GEMMChebyshevPlan(CuArray(matrix))
-    end
-    backend in (:cufft, :fftw, :auto) ||
-        throw(ArgumentError("CUDA Chebyshev backend must be :cufft or :gemm"))
     work = CUDA.zeros(eltype(U), size(U, 1)*size(U, 2), 2(Ny-1))
     plan = CUDA.CUFFT.plan_fft!(work, (2,))
     return CUDAChebyshevPlan{INV,typeof(work),typeof(plan)}(work, plan)
@@ -54,7 +44,7 @@ function LinearAlgebra.mul!(
     return dest
 end
 
-function CF.ForwardFFT!(u::CuPhysical{T}; chebbackend = :cufft, kwargs...) where {T}
+function CF.ForwardFFT!(u::CuPhysical{T}; flags=nothing, timelimit=nothing) where {T}
     g = CF.grid(u)
     Nx, Nz, Ny = CF.physicalsize(g, CF.Padded())
     input = CUDA.zeros(T, Nx, Nz, Ny)
@@ -63,20 +53,20 @@ function CF.ForwardFFT!(u::CuPhysical{T}; chebbackend = :cufft, kwargs...) where
     plan = CUDA.CUFFT.plan_rfft(input, CF.FFT_DIMS)
     return CF.ForwardFFT!(
         plan,
-        CF.plan_cheb(resolved, chebbackend),
+        CF.plan_cheb(resolved),
         padded,
         resolved,
         inv(T(Nx*Nz*(Ny-1))),
     )
 end
 
-function CF.InverseFFT!(U::CuSpectral{T}; chebbackend = :cufft, kwargs...) where {T}
+function CF.InverseFFT!(U::CuSpectral{T}; flags=nothing, timelimit=nothing) where {T}
     g = CF.grid(U)
     padded = CF.SpectralField(CUDA.zeros(Complex{T}, CF.spectralsize(g, CF.Padded())), g)
     resolved = CF.SpectralField(CUDA.zeros(Complex{T}, CF.spectralsize(g, CF.NotPadded())), g)
     Nx = CF.physicalsize(g, CF.Padded())[1]
     plan = CUDA.CUFFT.plan_brfft(parent(padded), Nx, CF.FFT_DIMS)
-    return CF.InverseFFT!(plan, CF.plan_icheb(resolved, chebbackend), padded, resolved)
+    return CF.InverseFFT!(plan, CF.plan_icheb(resolved), padded, resolved)
 end
 
 # Normalization, endpoint weights and Nyquist filtering share one pass.

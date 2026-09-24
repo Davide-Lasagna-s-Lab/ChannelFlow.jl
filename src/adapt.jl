@@ -18,8 +18,8 @@ function Adapt.adapt_structure(to, h::BatchedInfluenceSolver)
         Adapt.adapt(to, h.influence),
         Adapt.adapt(to, h.sigma),
         Adapt.adapt(to, h.shift),
-        Adapt.adapt(to, h.kx),
-        Adapt.adapt(to, h.kz),
+        Adapt.adapt(to, h.k),
+        Adapt.adapt(to, h.l),
         Adapt.adapt(to, h.boundary),
         Adapt.adapt(to, h.work),
     )

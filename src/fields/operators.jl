@@ -15,9 +15,9 @@ function ddx1!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     Lx, _, _ = domainsize(grid(OUT))
     α = 2π/Lx
     if add
-        @loop_jk_i size(OUT) OUT[_j, _k, _i] += im * j * α * U[_j, _k, _i]
+        @loop_jk_i size(OUT) OUT[_j, _k, _i] += im * k * α * U[_j, _k, _i]
     else
-        @loop_jk_i size(OUT) OUT[_j, _k, _i]  = im * j * α * U[_j, _k, _i]
+        @loop_jk_i size(OUT) OUT[_j, _k, _i]  = im * k * α * U[_j, _k, _i]
     end
     return OUT
 end
@@ -75,9 +75,9 @@ function ddx3!(OUT::S, U::S, add::Bool=false) where {S<:SpectralField}
     _, _, Lz = domainsize(grid(OUT))
     β = 2π/Lz
     if add
-        @loop_jk_i size(U) OUT[_j, _k, _i] += im * k * β * U[_j, _k, _i]
+        @loop_jk_i size(U) OUT[_j, _k, _i] += im * l * β * U[_j, _k, _i]
     else
-        @loop_jk_i size(U) OUT[_j, _k, _i]  = im * k * β * U[_j, _k, _i]
+        @loop_jk_i size(U) OUT[_j, _k, _i]  = im * l * β * U[_j, _k, _i]
     end
     return OUT
 end
@@ -89,7 +89,7 @@ end
 """
     laplacian!(OUT::S, U::S) where {S<:SpectralField}
 
-Overwrite `OUT` with `∂yy U - (α²*kx² + β²*kz²)*U` in coefficient space.
+Overwrite `OUT` with `∂yy U - (α²*k² + β²*l²)*U` in coefficient space.
 Fuse two Chebyshev derivative recurrences, equivalent to Channelflow's
 `diff2`, to avoid a temporary field. `OUT` and `U` may be the same field.
 """
@@ -104,36 +104,36 @@ function laplacian!(OUT::S, U::S) where {S<:SpectralField}
     if !Base.mightalias(parent(OUT),parent(U))
         # Eliminate the intermediate first derivative from the two backward
         # recurrences. Already-written Laplacian entries recover D²U by
-        # adding k²U. Coefficient planes are contiguous and vectorizable.
+        # adding κ²U. Coefficient planes are contiguous and vectorizable.
         a,b = parent(U),parent(OUT)
         @inbounds for j = Ny:-1:1, iz = 1:Nz
-            kz = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
+            l = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
             @simd for ix = 1:Nxh
-                k² = α²*(ix-1)^2+β²*kz^2
+                κ² = α²*(ix-1)^2+β²*l^2
                 d2 = zero(eltype(U))
                 if j+2 <= Ny
                     d2 = 4j*(j+1)*a[ix,iz,j+2] +
-                         (2(j+1)/(j+2))*(b[ix,iz,j+2]+k²*a[ix,iz,j+2])
+                         (2(j+1)/(j+2))*(b[ix,iz,j+2]+κ²*a[ix,iz,j+2])
                 end
                 if j+4 <= Ny
-                    d2 -= (j/(j+2))*(b[ix,iz,j+4]+k²*a[ix,iz,j+4])
+                    d2 -= (j/(j+2))*(b[ix,iz,j+4]+κ²*a[ix,iz,j+4])
                 end
-                b[ix,iz,j] = (j==1 ? d2/2 : d2)-k²*a[ix,iz,j]
+                b[ix,iz,j] = (j==1 ? d2/2 : d2)-κ²*a[ix,iz,j]
             end
         end
         return OUT
     end
 
     @inbounds for iz = 1:Nz, ix = 1:Nxh
-        kx = ix-1
-        kz = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
-        k² = α²*kx^2 + β²*kz^2
+        k = ix-1
+        l = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
+        κ² = α²*k^2 + β²*l^2
         a_next = d_next = d_next2 = e_next = e_next2 = zero(eltype(U))
         for n = Ny-1:-1:0
             a = U[ix, iz, n+1]
             d = d_next2 + scale*(n+1)*a_next
             e = e_next2 + scale*(n+1)*d_next
-            OUT[ix, iz, n+1] = (n == 0 ? e/2 : e) - k²*a
+            OUT[ix, iz, n+1] = (n == 0 ? e/2 : e) - κ²*a
             a_next = a
             d_next2, d_next = d_next, d
             e_next2, e_next = e_next, e
@@ -180,11 +180,11 @@ function curl!(OUT::VectorField{S},
     Lx, _, Lz = domainsize(grid(U[1]))
     α, β = 2π/Lx, 2π/Lz
     @inbounds for iy = 1:Ny, iz = 1:Nz, ix = 1:Nxh
-        kx = ix-1
-        kz = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
-        OUT[1][ix, iz, iy] -= im*kz*β*U[2][ix, iz, iy]
-        OUT[2][ix, iz, iy]  = im*(kz*β*U[1][ix, iz, iy] - kx*α*U[3][ix, iz, iy])
-        OUT[3][ix, iz, iy]  = im*kx*α*U[2][ix, iz, iy] - OUT[3][ix, iz, iy]
+        k = ix-1
+        l = iz <= (Nz >> 1)+1 ? iz-1 : iz-1-Nz
+        OUT[1][ix, iz, iy] -= im*l*β*U[2][ix, iz, iy]
+        OUT[2][ix, iz, iy]  = im*(l*β*U[1][ix, iz, iy] - k*α*U[3][ix, iz, iy])
+        OUT[3][ix, iz, iy]  = im*k*α*U[2][ix, iz, iy] - OUT[3][ix, iz, iy]
     end
     return OUT
 end

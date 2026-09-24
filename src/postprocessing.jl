@@ -42,8 +42,8 @@ function LinearAlgebra.dot(U::SpectralField{T}, V::SpectralField{T}) where {T}
     work = zeros(Complex{T}, Ny)
     result = zero(T)
     for iz = 1:Nz, ix = 1:Nxh
-        # Exclude the same Nyquist planes as the transforms. Positive kx
-        # represents both members of a conjugate pair; kx=0 appears once.
+        # Exclude the same Nyquist planes as the transforms. Positive k
+        # represents both members of a conjugate pair; k=0 appears once.
         ((iseven(Nx) && ix == Nxh) ||
          (iseven(Nz) && iz == (Nz >> 1)+1)) && continue
         u = view(parent(U), ix, iz, :)

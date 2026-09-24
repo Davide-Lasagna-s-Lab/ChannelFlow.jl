@@ -9,13 +9,13 @@ stage. The [numerical-method manual](../docs/src/spatial.md) defines the numeric
 | `grids.jl` | Domain, Lobatto points, resolved/padded storage sizes |
 | `fields/` | Physical/spectral/vector/tensor containers, operators, versioned I/O |
 | `state.jl` | Caller-owned perturbation velocity and stage pressure |
-| `ffts.jl`, `transforms/chebyshev.jl` | Transform plans, padding, normalisation, FFTW/GEMM backends |
+| `ffts.jl`, `transforms/chebyshev.jl` | Transform plans, padding, normalisation, FFTW and cuFFT transforms |
 | `nonlinear.jl` | Three nonlinear forms, total-velocity assembly and reusable caches |
 | `solvers/batchedinfluence.jl` | Batched pressure/velocity solves, wall influence and tau correction |
 | `solvers/meanmode.jl` | Mean pressure gauge and gradient/flux constraints |
 | `solvers/stokes.jl` | Full-field zero-copy matrix views and modal assembly |
 | `solvers/influence.jl` | Scalar nonzero-mode reference used by analytic comparison tests |
-| `timesteppers/` | Three-stage CNRK2 and Flows adapter, including shortened terminal steps |
+| `timesteppers/` | Three-stage CNRK2; optional Flows adapter lives in `ext/ChannelFlowFlowsExt.jl` |
 | `initialization.jl`, `pressure.jl` | Initial states, projection and instantaneous pressure |
 | `postprocessing.jl` | Physical-volume inner product, energy, dissipation and power input |
 | `adapt.jl` | Transfers of fields and cached numerical data |
@@ -25,7 +25,7 @@ stage. The [numerical-method manual](../docs/src/spatial.md) defines the numeric
 
 The Flows adapter passes a caller-owned `State` to CNRK2. Each stage computes
 nonlinearity on padded physical arrays, assembles the momentum RHS, and solves
-Stokes. A spectral field is `(kx,kz,n)`: `spectralmatrix` exposes it as
+Stokes. A spectral field is `(k,l,n)`: `spectralmatrix` exposes it as
 `(system,coefficient)` without copying. The Helmholtz backend processes those
 rows together. Homogeneous influence and tau responses are cached separately
 from mutable RHS buffers. The zero mode is overwritten with its own equations.

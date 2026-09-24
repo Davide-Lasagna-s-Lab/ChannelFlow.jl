@@ -9,10 +9,11 @@ can rule out a mathematical error shared by both implementations.
 
 ## Reproduce the figures
 
-From the repository root, with the Julia project instantiated:
+From the repository root, with the test environment instantiated (it includes optional Flows integration):
 
 ```sh
-julia --project=. validation/run.jl
+julia --project=test -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
+julia --project=test validation/run.jl
 python validation/plot.py  # Python, NumPy and Matplotlib
 ```
 
@@ -42,7 +43,7 @@ three-stage CNRK2, tau correction and zero imposed pressure gradient.
 
 The grid conventions differ: Julia's resolved ``(N,N+1,N)`` corresponds to
 C++'s **padded physical** ``(3N/2,N+1,3N/2)`` with `DealiasXZ`. Both retain
-``|k_x|,|k_z|\le N/2-1``; no wall-normal dealiasing is applied. Using equal
+``|k|,|l|\le N/2-1``; no wall-normal dealiasing is applied. Using equal
 constructor arguments would compare different Fourier resolutions.
 
 The same projected velocity and modified pressure are exported from Julia on
