@@ -1,5 +1,6 @@
 # Sampling and kernel profiles of warmed, complete CNRK2 time steps.
 using ChannelFlow, FFTW, LinearAlgebra, Profile
+include("profile_summary.jl")
 const DEVICE=isempty(ARGS) ? "cpu" : ARGS[1]
 if DEVICE=="cuda"
     @eval using CUDA, Adapt
@@ -14,6 +15,7 @@ function profile_cpu(p, s)
     Profile.@profile for _ = 1:200
         advance()
     end
+    save_profile_summary(get(ENV,"CHANNEL_PROFILE_CSV",joinpath(@__DIR__,"results","cpu-phases.csv")))
     println("CPU FLAT PROFILE")
     Profile.print(format = :flat, sortedby = :count, mincount = 5)
     println("CPU CALL TREE")
