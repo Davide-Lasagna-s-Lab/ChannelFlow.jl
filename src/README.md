@@ -47,5 +47,5 @@ do not copy field data back to the host.
 - Save CPU fields with layout metadata; convert old layouts only when loading.
 
 Tests in `test/` use manufactured functions and scalar references. Independent
-physical validations live in `test/physics/`; device tests live in `test/cuda/`.
+physical validations live in `validation/`; device tests live in `test/cuda/`.
 Benchmarks measure warmed complete steps, with device synchronization included.

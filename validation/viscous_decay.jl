@@ -68,11 +68,13 @@
                     numerical = nu .* physical_values(shear)
                     exact = parent(sampled(g, (x,y,z) ->
                         nu*A*alpha*cos(alpha*(y+1))*cos(z)*exp(-mu*t)))
-                    @test maximum(abs, numerical[[1,end],:,:]-exact[[1,end],:,:]) <
+                    @test maximum(abs, numerical[:,:,[1,end]]-exact[:,:,[1,end]]) <
                           1e-3*nu*A*alpha*exp(-mu*t)
                     # beta=1 has zero periodic mean, so no perturbation flux
                     # or unintended change of the sustained base is allowed.
                     @test maximum(abs, parent(U[1])[1, 1, :]) < 1e-10
+                    record_validation("decay"; flow=name, n, dt, t, mu,
+                        energy_ratio=energy(u)/E0, exact_energy=exp(-2mu*t), error)
                     t == T && push!(errors,error)
                 end
             end

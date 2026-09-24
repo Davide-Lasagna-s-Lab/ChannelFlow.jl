@@ -129,6 +129,9 @@ end
                 @test -phase/t ≈ -imag(reference) rtol=2e-3
                 @test energy(U)/E0 ≈ exp(2real(reference)*t) rtol=5e-3
                 @test maximum(abs,parent(U[3])) < 1e-13
+                record_validation("ts_history"; dt, t, amplitude=abs(modal), phase,
+                    growth=log(abs(modal))/t, frequency=-phase/t,
+                    energy_ratio=energy(U)/E0, exact_energy=exp(2real(reference)*t))
                 check_constraints(U)
             end
             # Compare the full coefficient field, including generated modes,
@@ -138,6 +141,8 @@ end
             exact .*= exp(reference*T)
             error = sqrt(sum(sum(abs2,parent(velocity(state)[i])-parent(exact[i]))
                              for i=1:3)/sum(sum(abs2,parent(exact[i])) for i=1:3))
+            record_validation("ts_convergence"; dt, error, eigenvalue_real=real(mode.s),
+                eigenvalue_imag=imag(mode.s), eigenpair_residual=mode.residual)
             push!(errors,error)
             @test error < 5e-3
             @info "TS benchmark" dt relative_field_error=error energy_gain=energy(velocity(state))/E0

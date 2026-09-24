@@ -133,6 +133,9 @@ end
                             @test abs(current.dissipation/baseline.dissipation-1) < bound
                             @test abs(current.input/baseline.input-1) < bound
                             check_constraints(velocity(state))
+                            record_validation("waleffe"; branch, Ny, N, dt, t, defect, drift,
+                                energy=current.energy, energy_initial=baseline.energy,
+                                dissipation=current.dissipation, input=current.input)
                             @info "Waleffe equilibrium" branch Ny N dt t defect drift
                         end
                         push!(finals,velocity(state))

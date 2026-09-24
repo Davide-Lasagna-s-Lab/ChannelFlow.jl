@@ -26,3 +26,23 @@ CHANNEL_PROFILE_N=64 julia --project=test/cuda benchmarks/profile.jl cuda > gpu-
 
 Profiler instrumentation affects elapsed time. Use the unprofiled timing sweep
 for throughput, and do not add overlapping host and device activity durations.
+
+The scheduler template profiles N=64,128,256 after the timing sweep, using
+1 and 4 FFT/BLAS threads on CPU and CUDA on GPU. `CHANNEL_PROFILE_STEPS` defaults
+to 20 warmed steps; `CHANNEL_FFT_THREADS` also applies to CPU profiles. Each run
+writes a full text log plus a CSV (`CHANNEL_PROFILE_CSV` on CPU,
+`CHANNEL_GPU_PROFILE_CSV` on GPU). CPU runs additionally save folded call stacks.
+The initial condition and numerical configuration match `step.jl`.
+
+Generate a readable breakdown from these outputs:
+
+```sh
+python benchmarks/profile_report.py benchmarks/results/final
+```
+
+Read `results/final/profiling.md` for CPU sample shares and the most expensive
+GPU kernels. GPU device-time shares do not include host overhead or idle gaps;
+the full text log includes host API timings. CPU sample counts are estimates,
+and library worker threads are not profiled as Julia call stacks.
+
+For a matching serial C++ comparison, see [the upstream Channelflow driver](../validation/channelflow/README.md).

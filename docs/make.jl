@@ -5,6 +5,9 @@ assets = joinpath(@__DIR__, "src", "assets", "benchmarks")
 mkpath(dirname(assets))
 cp(joinpath(@__DIR__, "..", "benchmarks", "results", "final"), assets; force=true)
 
+cp(joinpath(@__DIR__, "..", "validation", "results"),
+   joinpath(@__DIR__, "src", "assets", "validation"); force=true)
+
 makedocs(
     sitename = "ChannelFlow.jl",
     authors = "Davide Lasagna",

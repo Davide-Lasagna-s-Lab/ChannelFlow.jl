@@ -29,6 +29,10 @@ boundary-response construction; the present manual focuses on their role in DNS.
 
 ## Physical reference cases
 
+- **Mortensen, M. (2017).** *A spectral-Galerkin turbulent channel flow solver
+  for large-scale simulations.* [Preprint](https://arxiv.org/abs/1701.03787).
+  Section 5 supplies the Poiseuille instability reference used in validation.
+
 - **Moser, R. D., Kim, J. & Mansour, N. N. (1999).** *Direct numerical simulation
   of turbulent channel flow up to Reτ = 590*, Physics of Fluids, 11, 943–945.
   [Paper](https://doi.org/10.1063/1.869966),

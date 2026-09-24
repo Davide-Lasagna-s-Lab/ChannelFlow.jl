@@ -1,0 +1,16 @@
+Julia 1.12.6
+Solver revision: 84fa90318e48062e20892739da073ab7f5ae46f0
+Working-tree changes:  M .gitignore
+ M benchmarks/README.md
+ M docs/make.jl
+ M src/README.md
+ D test/physics/data/README.md
+ D test/physics/data/RRC.a1.14.g2.5.R400.LB.tar.gz
+ D test/physics/data/RRC.a1.14.g2.5.R400.UB.tar.gz
+ M test/physics/runtests.jl
+ D test/physics/test_tollmien_schlichting.jl
+ D test/physics/test_viscous_decay.jl
+ D test/physics/test_waleffe_equilibrium.jl
+?? benchmarks/channelflow/
+?? validation/
+FFTW threads: 1; BLAS threads: 1; precision: Float64/ComplexF64

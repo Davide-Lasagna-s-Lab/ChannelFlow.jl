@@ -1,13 +1,4 @@
-using ChannelFlow
-using ChebyshevHelmoltzSolvers: diff!
-using FFTW
-using LinearAlgebra
-using Test
-import Flows
-const CF = ChannelFlow
-include("../helpers.jl")
-include("test_viscous_decay.jl")
-
-include("test_tollmien_schlichting.jl")
-
-include("test_waleffe_equilibrium.jl")
+# The reproducible physical validations are also the CI regression suite.
+# Keep generated outputs out of the checkout during routine test runs.
+ENV["CHANNEL_VALIDATION_OUTPUT"] = mktempdir()
+include("../../validation/run.jl")
