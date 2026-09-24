@@ -4,7 +4,7 @@ CUDA.allowscalar(false)
 CUDA.versioninfo()
 
 @testset "CUDA full-step parity" begin
-    for form in (CF.RotatingForm(), CF.ConvectiveForm(), CF.DivergenceForm()), N in (8, 16)
+    for form in (CF.RotatingForm(), CF.ConvectiveForm(), CF.DivergenceForm()), N in (8, 9, 16)
         g=Grid(N, 17, N, 2π, 2π)
         cpu=CouetteFlow(g, 1/400, 0.01; form = form, fftwflags = FFTW.ESTIMATE)
         Random.seed!(12)
