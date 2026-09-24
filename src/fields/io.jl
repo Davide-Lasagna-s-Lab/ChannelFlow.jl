@@ -9,7 +9,8 @@ export savefield, loadfield
 
 Save a `PhysicalField`, `SpectralField`, `VectorField`, `GradientField`, or
 `State` to a binary Julia Serialization file, replacing an existing file.
-Preserve numerical types, data, padding, grids and shared references. A state
+Store versioned `(x,z,y)` layout metadata. Preserve numerical types, data,
+padding, grids and shared references. A state
 includes both velocity and stage pressure; no transforms are performed.
 Return `path`. The input is not modified.
 
@@ -28,6 +29,7 @@ end
 
 Load a field or state written by [`savefield`](@ref). Its type and grid are
 restored automatically, with independent storage from the original object.
+Legacy unversioned coefficient-first files are converted on load.
 Only load trusted files: Julia deserialization is not a safe input validator.
 
 To resume integration, construct the problem using the loaded state's grid,

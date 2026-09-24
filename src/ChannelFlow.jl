@@ -1,7 +1,7 @@
 """
     ChannelFlow
 
-Serial Fourier--Chebyshev DNS for plane Couette and Poiseuille flow.
+CPU and NVIDIA GPU Fourier--Chebyshev DNS for plane Couette and Poiseuille flow.
 
 Start with `Grid`, `CouetteFlow` or `PoiseuilleFlow`, and a `State` created by
 `zero_state` or `random_state`. Integrate with `Flows.flow(problem)` and

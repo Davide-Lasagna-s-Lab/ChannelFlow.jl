@@ -9,9 +9,9 @@ export SpectralField
 
 Wrap Fourier--Chebyshev coefficients in storage order `(kx, kz, n)`.
 Index `n+1` stores the ordinary coefficient multiplying `T_n` in the mapped
-wall-normal coordinate; the first dimension contains coefficients, not nodal
+wall-normal coordinate; the third dimension contains coefficients, not nodal
 values. The `x` spectrum is real-transform half-storage and `z` is full-storage.
-Fourier padding changes only the second and third dimensions.
+Fourier padding changes only the first and second dimensions.
 """
 struct SpectralField{T<:AbstractFloat,
                      A<:DenseArray{Complex{T}, 3},

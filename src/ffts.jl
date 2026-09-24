@@ -42,7 +42,7 @@ function ForwardFFT!(        u::PhysicalField{T};
     # Execution later uses any real array with this type and layout.
     plan = FFTW.plan_rfft(zeros(T, Nxp, Nzp, Ny), FFT_DIMS;
                           flags=flags, timelimit=timelimit)
-    # The wall-normal backend works only on retained Fourier columns.
+    # The wall-normal backend works only on retained Fourier systems.
     # It writes the final coefficients into the caller's output field.
     resolved = SpectralField(zeros(Complex{T}, spectralsize(grid(u), NotPadded())), grid(u))
     chebyplan = plan_cheb(resolved, chebbackend; flags=flags, timelimit=timelimit)
@@ -72,7 +72,7 @@ function (fft::ForwardFFT!)(U::SpectralField, u::PhysicalField)
     # the internal padded spectrum before discarding unresolved modes.
     LinearAlgebra.mul!(parent(fft.padded), fft.plan, parent(u))
     # Fourier truncation commutes with the wall-normal transform. Discard
-    # unresolved columns first, so the DCT only processes retained modes.
+    # unresolved systems first, so the DCT only processes retained modes.
     copy_from_padded!(fft.resolved, fft.padded)
     LinearAlgebra.mul!(U, fft.chebyplan, fft.resolved)
 
@@ -110,13 +110,13 @@ Plan the inverse transform from resolved spectral storage `(kx, kz, n)` to the
 3/2-padded physical storage `(xp, zp, y)`. The resolved input is preserved
 by evaluating the wall-normal transform into a separate resolved buffer,
 then embedding those values into the padded Fourier spectrum. FFTW's `brfft`
-may overwrite that padded buffer. This order skips DCTs of zero columns.
+may overwrite that padded buffer. This order skips DCTs of zero systems.
 """
 struct InverseFFT!{P, C, A}
          plan::P  # padded spectrum to the padded physical grid
     chebyplan::C  # dense or FFTW wall-normal transform
        padded::A  # zero-padded spectrum used as destructive brfft input
-     resolved::A  # retained columns for the wall-normal transform
+     resolved::A  # retained systems for the wall-normal transform
 end
 
 function InverseFFT!(        U::SpectralField{T};
@@ -155,8 +155,8 @@ function (ifft::InverseFFT!)(u::PhysicalField, U::SpectralField)
         throw(DimensionMismatch("inverse transform requires padded physical output"))
     size(U) == spectralsize(grid(ifft.padded), NotPadded()) ||
         throw(DimensionMismatch("inverse transform requires resolved spectral input"))
-    # Transform only retained Fourier columns. Padding commutes with this
-    # DCT; transforming zero columns on the padded grid wastes most of its work.
+    # Transform only retained Fourier systems. Padding commutes with this
+    # DCT; transforming zero systems on the padded grid wastes most of its work.
     LinearAlgebra.mul!(ifft.resolved, ifft.chebyplan, U)
 
     # Preserve U and provide a disposable, zero-padded buffer to brfft.

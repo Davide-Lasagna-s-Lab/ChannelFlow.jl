@@ -1,52 +1,51 @@
 # Source guide
 
-All source files contribute to the `ChannelFlow` module; there are no nested
-modules. `ChannelFlow.jl` lists them in dependency order.
+Read [`problem.jl`](problem.jl) for configuration and
+[`timesteppers/cnrk2.jl`](timesteppers/cnrk2.jl) for the equations advanced each
+stage. The root [README](../README.md) defines the numerical conventions.
 
-| Start here | Responsibility |
+| Files | Responsibility |
 |---|---|
-| [grids.jl](grids.jl) | Geometry, Lobatto nodes, resolved and padded sizes |
-| [fields/](fields/) | Scalar/vector/tensor storage and spatial operators |
-| [indexing.jl](indexing.jl) | FFT mode indices and contiguous column iteration |
-| [state.jl](state.jl) | Perturbation velocity and algebraic stage pressure, owned by the caller |
-| [ffts.jl](ffts.jl) | Public transform plans, allocating transforms, padding and filtering |
-| [transforms/chebyshev.jl](transforms/chebyshev.jl) | Dense/FFTW wall-normal transform backends |
-| [nonlinear.jl](nonlinear.jl) | Nonlinear forms, their caches, and base-flow addition |
-| [solvers/influence.jl](solvers/influence.jl) | Nonzero-mode pressure/velocity solves, influence matrix and tau correction |
-| [solvers/meanmode.jl](solvers/meanmode.jl) | Mean mode, pressure gauge and fixed-gradient/fixed-flux constraints |
-| [solvers/stokes.jl](solvers/stokes.jl) | Full Fourier assembly and views of Chebyshev columns |
-| [timesteppers/cnrk2.jl](timesteppers/cnrk2.jl) | Three-stage CNRK2 caches and step assembly |
-| [problem.jl](problem.jl) | Problem configuration and Couette/Poiseuille constructors |
-| [timesteppers/channel.jl](timesteppers/channel.jl) | Flows construction and stepping adapters |
-| [initialization.jl](initialization.jl) | Zero, random and roll states |
-| [pressure.jl](pressure.jl) | Divergence-free projection and pressure reconstruction |
-| [postprocessing.jl](postprocessing.jl) | Energy, dissipation and power input |
+| `grids.jl` | Domain, Lobatto points, resolved/padded storage sizes |
+| `fields/` | Physical/spectral/vector/tensor containers, operators, versioned I/O |
+| `state.jl` | Caller-owned perturbation velocity and stage pressure |
+| `ffts.jl`, `transforms/chebyshev.jl` | Transform plans, padding, normalisation, FFTW/GEMM backends |
+| `nonlinear.jl` | Three nonlinear forms, total-velocity assembly and reusable caches |
+| `solvers/batchedinfluence.jl` | Batched pressure/velocity solves, wall influence and tau correction |
+| `solvers/meanmode.jl` | Mean pressure gauge and gradient/flux constraints |
+| `solvers/stokes.jl` | Full-field zero-copy matrix views and modal assembly |
+| `solvers/influence.jl` | Scalar nonzero-mode reference used by analytic comparison tests |
+| `timesteppers/` | Three-stage CNRK2 and Flows adapter, including shortened terminal steps |
+| `initialization.jl`, `pressure.jl` | Initial states, projection and instantaneous pressure |
+| `postprocessing.jl` | Physical-volume inner product, energy, dissipation and power input |
+| `adapt.jl` | Transfers of fields and cached numerical data |
+| `../ext/` | Optional CUDA plans, kernels, mean constraints and pressure reconstruction |
 
-## Conventions to read first
+## Following a timestep
 
-- Physical directions are `(x, y, z)`; array storage is `(y, x, z)` in physical
-  space and `(n, kx, kz)` in spectral space. The first axis is contiguous.
-- `State` stores perturbation velocity. The stationary streamwise base profile
-  belongs to `ChannelFlowProblem` and is added when evaluating total velocity.
-- `RotatingForm()` is the default; `stagepressure(state)` then includes
-  `|u_total|²/2`. It is Gibson's pressure-like field `q`, not an independently
-  evolved state variable.
-  `project!` returns the projected velocity; `pressure` reconstructs the
-  physical or modified pressure used to initialise a state.
-- A problem owns factors and workspaces, not a trajectory. Reused caches are
-  mutable and must not be shared by concurrent calls.
-- Postprocessing reports volume averages. Pass the cached base-flow coefficients explicitly for total
-  quantities. Power includes moving-wall and uniform-pressure work, but not
-  additional body-force work. With fixed flux, supply the actual computed
-  uniform pressure gradients.
+The Flows adapter passes a caller-owned `State` to CNRK2. Each stage computes
+nonlinearity on padded physical arrays, assembles the momentum RHS, and solves
+Stokes. A spectral field is `(kx,kz,n)`: `spectralmatrix` exposes it as
+`(system,coefficient)` without copying. The Helmholtz backend processes those
+rows together. Homogeneous influence and tau responses are cached separately
+from mutable RHS buffers. The zero mode is overwritten with its own equations.
 
-## Following one step
+GPU execution uses the same high-level stage and nonlinear code. CUDA methods
+replace storage-specific operations; the dependency supplies its own batched
+Helmholtz kernels. Grids remain host metadata. Standard fixed-gradient stages
+do not copy field data back to the host.
 
-`Flows.flow(problem)` calls the adapter in `timesteppers/channel.jl`, then
-`step!` in `timesteppers/cnrk2.jl`. Each stage evaluates `nonlinear.jl`, builds
-the Crank--Nicolson right-hand side, and calls `StokesSolver`. The
-Fourier solver delegates the mean mode to `MeanModeSolver` and all active
-nonzero modes to `InfluenceModeSolver`.
+## Contracts worth preserving
 
-Keep manufactured numerical checks in `test/` and physical validation cases in
-`test/physics/`.
+- Components remain `(u,v,w)` even though physical array axes are `(x,z,y)`.
+- Velocity in a `State` is a perturbation. Nonlinearity adds the base profile.
+- Nonlinearity overwrites its output; forcing adds to that output.
+- Rotational form uses modified pressure. Restart pressure is stage history;
+  reconstructed instantaneous pressure is an initialization/diagnostic operation.
+- A problem owns mutable caches. Do not share it between simultaneous calls.
+- Spectral coefficients use one-based arrays and ordinary Chebyshev series.
+- Save CPU fields with layout metadata; convert old layouts only when loading.
+
+Tests in `test/` use manufactured functions and scalar references. Independent
+physical validations live in `test/physics/`; device tests live in `test/cuda/`.
+Benchmarks measure warmed complete steps, with device synchronization included.
