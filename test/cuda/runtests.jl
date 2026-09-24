@@ -132,3 +132,17 @@ end
     @test power_input(dU, 1/400) ≈ power_input(U, 1/400) atol=1e-12
     @test dissipation_rate(dU, 1/400) ≈ dissipation_rate(U, 1/400) atol=1e-12
 end
+
+@testset "CUDA dense backend selection" begin
+    cpu = CouetteFlow(Grid(8,17,8,2π,2π),1/400,.01;
+                      chebbackend=:gemm,fftwflags=FFTW.ESTIMATE)
+    state = roll_state(cpu,.01)
+    gpu = adapt(CuArray,cpu); device = adapt(CuArray,state)
+    @test gpu.nlterm.fft.chebyplan isa CF.GEMMChebyshevPlan
+    CF.Flows.flow(cpu)(state,(0.0,.03))
+    CF.Flows.flow(gpu)(device,(0.0,.03))
+    for (a,b) in zip((velocity(state).components...,stagepressure(state)),
+                     (velocity(device).components...,stagepressure(device)))
+        @test Array(parent(b)) ≈ parent(a) rtol=2e-9 atol=2e-10
+    end
+end

@@ -20,7 +20,9 @@ function Adapt.adapt_structure(to::Type{<:CuArray}, p::CF.ChannelFlowProblem)
     U = scheme.N[1]
     u = CF.PhysicalField(CUDA.zeros(Float64, CF.physicalsize(p.grid, CF.Padded())), p.grid)
     form = typeof(p.nlterm).parameters[2]()
-    nl = CF.NonLinearTerm(u, U, scheme.baseflow; form = form, chebbackend = :cufft)
+    # Preserve an explicitly selected dense backend when moving the problem.
+    backend = p.nlterm.fft.chebyplan isa CF.GEMMChebyshevPlan ? :gemm : :cufft
+    nl = CF.NonLinearTerm(u, U, scheme.baseflow; form = form, chebbackend = backend)
     return CF.ChannelFlowProblem(
         p.grid,
         p.baseflow,

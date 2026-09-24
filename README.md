@@ -90,6 +90,8 @@ mode information and its two pressure gradients on the host each stage.
 GPU timings must include a final `CUDA.synchronize()`.
 
 The device Chebyshev backend uses cuFFT on an even extension by default.
+Construct the CPU problem with `chebbackend=:gemm` before adaptation to select
+cuBLAS matrix multiplication for the complete GPU simulation.
 Dense matrix multiplication through cuBLAS is also available through
 `ChannelFlow.plan_cheb(U, :gemm)` and `ChannelFlow.plan_icheb(U, :gemm)`. CPU Chebyshev transforms default to FFTW's
 DCT-I (`:fftw`). CPU periodic transforms always use FFTW; GPU periodic
