@@ -6,7 +6,7 @@ function profile_cuda(p, s)
     end
     CUDA.synchronize()
     result = CUDA.@profile begin
-        for _ = 1:3
+        for _ = 1:PROFILE_STEPS
             advance()
         end
         CUDA.synchronize()
@@ -15,15 +15,11 @@ function profile_cuda(p, s)
     show(IOContext(stdout, :limit => false), result)
     println()
 
+    # All captured events belong to the warmed profiling region above.
     # CUDA 6 exposes event tables in seconds. Preserve device activity grouped
     # by kernel name; host API times overlap execution and must not be added.
-    firstsync = findfirst(==("cuCtxSynchronize"), result.host.name)
-    lastsync = findlast(==("cuCtxSynchronize"), result.host.name)
-    firstid = result.host.id[firstsync+1]
-    lastid = result.host.id[lastsync-1]
     groups = Dict{String,Tuple{Float64,Int}}()
     for i in eachindex(result.device.id)
-        firstid <= result.device.id[i] <= lastid || continue
         name = string(result.device.name[i])
         time, count = get(groups, name, (0.0, 0))
         groups[name] = (time + result.device.stop[i] - result.device.start[i], count+1)

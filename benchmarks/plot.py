@@ -29,7 +29,7 @@ for data, label, color, marker in (
     (cpu4, "CPU: 4 FFT/BLAS threads", "#00897b", "s"),
 ):
     x = sorted(data.keys() & gpu.keys())
-    axes[1].semilogx(x, [float(data[n]["min_seconds"])/float(gpu[n]["min_seconds"]) for n in x],
+    axes[1].loglog(x, [float(data[n]["min_seconds"])/float(gpu[n]["min_seconds"]) for n in x],
                     color=color, marker=marker, markersize=4, label=label)
 axes[0].set_ylabel("Complete CNRK2 step [ms]")
 axes[1].set_ylabel("CPU time / GPU time")
@@ -77,8 +77,10 @@ or per Helmholtz system. They measure the implementation documented by this site
 | GPU transforms | cuFFT, including even-extension Chebyshev transforms |
 | Sampling | minimum of 100 samples after five warm-up steps |
 
-All series were measured sequentially in the same GPU-node allocation on
-2026-09-24. The raw CSVs retain the exact solver source revision; the
+Measurements were taken sequentially on the same node on 2026-09-24, in two
+allocations: N=8–128 in job `1643121`, and N=192–256 in job `1643303`. Each
+grid size has paired CPU/GPU measurements from its allocation, using the same
+solver source. The raw CSVs retain the source revision; the
 [environment](assets/benchmarks/environment.txt) and
 [dependency manifest](assets/benchmarks/Manifest.toml) record the software stack.
 
@@ -96,8 +98,10 @@ to FFTW and BLAS; the remaining CPU kernels use SIMD and are not parallel Julia
 loops. More library threads therefore need not improve small-grid timings.
 
 Ratios compare this Julia code on the stated CPU and GPU, not C++ Channelflow.
-CPU measurements stop at ``128\times129\times128``. The GPU-only sizes have no
-reported CPU speedup. Grid sizes are resolved sizes; padded workspaces consume
+All seven sizes include CPU and GPU measurements. At the largest size, the A100
+takes approximately **116 ms** per step, versus **10.70 s** with four CPU library
+threads and **15.01 s** with one: approximately **92×** and **130×**, respectively.
+Grid sizes are resolved sizes; padded workspaces consume
 additional memory. No extrapolation to the MKM590 production grid is implied.
 
 ## What is timed
@@ -124,9 +128,9 @@ are separate from the reported throughput.
 From the repository root in an environment with dependencies installed:
 
 ```sh
-CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128 CHANNEL_FFT_THREADS=1 \
+CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 CHANNEL_FFT_THREADS=1 \
   julia --project=. benchmarks/step.jl cpu cpu-1.csv
-CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128 CHANNEL_FFT_THREADS=4 \
+CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 CHANNEL_FFT_THREADS=4 \
   julia --project=. benchmarks/step.jl cpu cpu-4.csv
 CHANNEL_SAMPLES=100 CHANNEL_SIZES=8,16,32,64,128,192,256 \
   julia --project=test/cuda benchmarks/step.jl cuda gpu.csv
@@ -141,6 +145,27 @@ The repository provides `benchmarks/iridis.slurm` as a scheduler template and
 `benchmarks/plot.py` to regenerate the figure and this table from the saved CSVs.
 The dependency manifest is provenance, not an environment to activate directly.
 
+## Profiling
+
+The scheduler template also profiles complete warmed steps at
+``N=64,128,256``, using one and four FFT/BLAS threads on CPU and the A100.
+These runs are separate from the throughput measurements above.
+
+Each CPU case saves an exclusive category-count CSV, folded call stacks and a
+text report with the flat profile and call tree. GPU cases save kernel durations
+and call counts, plus the CUDA profiler's host and device activity report.
+`CHANNEL_PROFILE_STEPS` controls the number of profiled steps (default: 20).
+Generate a readable summary with:
+
+```sh
+python benchmarks/profile_report.py benchmarks/results/final
+```
+
+The generated `profiling.md` lists CPU sample shares and GPU kernel-time shares.
+CPU sampling is approximate and does not sample library workers as Julia stacks.
+GPU activity fractions exclude launch overhead and idle gaps; they are not
+fractions of whole-step wall time. Do not add host and device durations together.
+
 ## Data and verification
 
 - [CPU, one thread](assets/benchmarks/cpu-1.csv)
@@ -148,7 +173,7 @@ The dependency manifest is provenance, not an environment to activate directly.
 - [A100](assets/benchmarks/gpu.csv)
 
 The [validation suite](validation.md) separately checks accuracy and CPU/GPU
-agreement. Benchmark completion at the GPU-only sizes is a timing/stability
+agreement. Benchmark completion at the largest sizes is a timing/stability
 smoke check, not a high-resolution turbulent validation. See the [developer
 guide](contributing.md) for profiling and numerical-test entry points.
 '''.replace('TABLE',table)

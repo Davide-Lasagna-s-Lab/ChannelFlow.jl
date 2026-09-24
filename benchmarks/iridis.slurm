@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --time=02:00:00
 #SBATCH --job-name=channel-benchmark
 #SBATCH --output=channel-benchmark-%j.log
@@ -17,11 +17,19 @@ export CHANNEL_SAMPLES=100 CHANNEL_SOURCE_COMMIT=$(git rev-parse HEAD)
 mkdir -p benchmarks/results/final
 julia --startup-file=no --project=test/cuda test/cuda/runtests.jl
 for threads in 1 4; do
-    CHANNEL_SIZES=8,16,32,64,128 CHANNEL_FFT_THREADS=$threads julia --startup-file=no --project=test/cuda \
+    CHANNEL_SIZES=8,16,32,64,128,192,256 CHANNEL_FFT_THREADS=$threads julia --startup-file=no --project=test/cuda \
       benchmarks/step.jl cpu benchmarks/results/final/cpu-$threads.csv
 done
 CHANNEL_SIZES=8,16,32,64,128,192,256 \
     julia --startup-file=no --project=test/cuda benchmarks/step.jl cuda benchmarks/results/final/gpu.csv
-CHANNEL_PROFILE_CSV=benchmarks/results/xeon-phases.csv \
-    julia --startup-file=no --project=test/cuda benchmarks/profile.jl cpu > benchmarks/results/xeon-profile.txt
-julia --startup-file=no --project=test/cuda benchmarks/profile.jl cuda > benchmarks/results/a100-profile.txt
+# Profiles run separately, after all uninstrumented measurements.
+for N in 64 128 256; do
+    for threads in 1 4; do
+        prefix=benchmarks/results/final/profile-cpu-$threads-N$N
+        CHANNEL_PROFILE_N=$N CHANNEL_FFT_THREADS=$threads CHANNEL_PROFILE_CSV=$prefix.csv \
+            julia --startup-file=no --project=test/cuda benchmarks/profile.jl cpu > "$prefix.txt" 2>&1
+    done
+    prefix=benchmarks/results/final/profile-gpu-N$N
+    CHANNEL_PROFILE_N=$N CHANNEL_GPU_PROFILE_CSV=$prefix.csv \
+        julia --startup-file=no --project=test/cuda benchmarks/profile.jl cuda > "$prefix.txt" 2>&1
+done

@@ -1,6 +1,8 @@
 # Sampling and kernel profiles of warmed, complete CNRK2 time steps.
 using ChannelFlow, FFTW, LinearAlgebra, Profile
 include("profile_summary.jl")
+include("initial.jl")
+const PROFILE_STEPS = parse(Int, get(ENV, "CHANNEL_PROFILE_STEPS", "20"))
 const DEVICE=isempty(ARGS) ? "cpu" : ARGS[1]
 if DEVICE=="cuda"
     @eval using CUDA, Adapt
@@ -12,7 +14,7 @@ function profile_cpu(p, s)
         advance()
     end
     Profile.clear()
-    Profile.@profile for _ = 1:200
+    Profile.@profile for _ = 1:PROFILE_STEPS
         advance()
     end
     save_profile_summary(get(ENV,"CHANNEL_PROFILE_CSV",joinpath(@__DIR__,"results","cpu-phases.csv")))
@@ -23,8 +25,11 @@ function profile_cpu(p, s)
 end
 function main()
     N=parse(Int, get(ENV, "CHANNEL_PROFILE_N", "64"))
-    FFTW.set_num_threads(1)
-    BLAS.set_num_threads(1)
+    threads = parse(Int, get(ENV, "CHANNEL_FFT_THREADS", "1"))
+    FFTW.set_num_threads(threads)
+    BLAS.set_num_threads(threads)
+    println("device=$DEVICE grid=($N,$(N+1),$N) FFT/BLAS threads=$threads steps=$PROFILE_STEPS")
+    println("Julia $(VERSION); host=$(gethostname()); source=$(get(ENV, "CHANNEL_SOURCE_COMMIT", "unspecified"))")
     p=CouetteFlow(
         Grid(N, N+1, N, 2π, 2π),
         1/400,
@@ -32,7 +37,7 @@ function main()
         fftwflags = FFTW.MEASURE,
         fftwtimelimit = 1,
     )
-    s=roll_state(p, 0.1)
+    s=initial(p.grid, p)
     if DEVICE=="cuda"
         CUDA.allowscalar(false)
         profile_cuda(adapt(CuArray, p), adapt(CuArray, s))
