@@ -59,12 +59,36 @@ revision. Hardware and dependency information accompanies the measurements.
 Times depend on FFT planning, libraries, hardware and problem shape; they are
 not a claim of speedup against C++ Channelflow.
 
-### Xeon Gold 6336Y and NVIDIA A100 80 GB PCIe
+### Latest GPU results: fused transforms (`fe2d4d3`)
+
+The 2026-09-24 A100 comparison uses 100 samples per size and measures the full
+step. The optimized transform implementation is now part of `main`.
+
+![A100 transform fusion: timestep cost and speedup](results/broadcast-fusion.svg)
+
+| Resolved `(Nx,Ny,Nz)` | Before [ms] | Fused transforms [ms] | Time reduction |
+|---|---:|---:|---:|
+| `(32,33,32)` | 3.917 | 2.831 | 27.7% |
+| `(64,65,64)` | 6.274 | 5.686 | 9.4% |
+| `(128,129,128)` | 20.466 | 19.907 | 2.7% |
+
+Both variants ran sequentially in one GPU allocation. These measurements
+supersede the older GPU timings at these three sizes; other sizes have not
+been remeasured. The CPU code is unchanged. The old CPU/GPU ratio and profile
+plots below remain historical results, not measurements of the fused kernels.
+The new GPU run reports approximately 0.86 MB of host allocations per step.
+All 40 new transform checks and 118 existing GPU checks passed.
+
+See the [comparison report](results/broadcast-fusion.md), with raw timing files
+and validation output. The raw candidate label retains `working-tree` because
+measurement preceded commit `fe2d4d3`.
+
+### Earlier size sweep: Xeon Gold 6336Y and NVIDIA A100 80 GB PCIe
 
 Measured on IRIDIS X (`rose03`), with four allocated CPU cores, Julia 1.12.4,
 CUDA.jl 6 and double precision. The CPU and GPU sweeps ran sequentially in the
 same allocation. The CSVs record numerical source revision `b691db9`.
-Subsequent changes preserve this default timestep path; they add documentation,
+Changes through `76cc7d0` preserve this default timestep path; they add documentation,
 profile export fixes, tests and preservation of optional GEMM backend selection.
 The benchmark driver includes the later Git-metadata lookup fix (`ae41cb8`).
 
@@ -93,7 +117,7 @@ including CUDA runtime bookkeeping; this counter does not measure
 device allocation. Cached field/factor storage stays on the device. Reducing
 launch overhead is still worthwhile, especially for small grids.
 
-### Where the time goes
+### Where the time went before transform fusion
 
 The profile uses `64×65×64`. CPU percentages below count each sampled CNRK2
 stack once and exclude idle threads. Library work inherits the containing
@@ -128,7 +152,8 @@ for speedups. The [raw GPU report](results/a100-profile.txt) and
 
 The main remaining optimization opportunities are reducing transform/data
 movement on CPU, fusing small GPU kernels, and exploring CUDA graphs for a
-fixed step. The current measurements do not establish gains for those changes.
+fixed step. The new comparison above measures transform fusion; CUDA graphs and further
+data-movement optimizations remain unmeasured.
 
 ### Provenance and validation
 

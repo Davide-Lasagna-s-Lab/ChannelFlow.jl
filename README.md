@@ -405,6 +405,13 @@ Time-stepping currently uses double precision. Problem instances own mutable
 workspaces and cannot be used concurrently; independent trajectories need
 independent problem caches.
 
+The latest A100 optimization fuses Chebyshev transform preparation and forward
+normalization. Minimum complete-step times over 100 samples are **2.83 ms** at
+`32×33×32`, **5.69 ms** at `64×65×64`, and **19.91 ms** at `128×129×128`:
+reductions of 27.7%, 9.4%, and 2.7% against the preceding GPU implementation.
+
+![A100 complete-step transform-fusion benchmark](benchmarks/results/broadcast-fusion.svg)
+
 See [benchmarks](benchmarks/README.md) for reproducible full-step timings,
 profiling, hardware details, and the measured source revision. See the
 [source guide](src/README.md) to navigate the implementation.

@@ -2,7 +2,8 @@
 
 Measured on 2026-09-24 on an NVIDIA A100 80 GB PCIe, IRIDIS X, Julia
 1.12.4 and CUDA 6.4.0. The baseline uses the existing transform implementation;
-the candidate adds the uncommitted `ext/transforms.jl` changes to `76cc7d0`.
+the candidate is the transform implementation committed as `fe2d4d3`, based on
+`76cc7d0`. Raw CSV labels reflect that measurement preceded the commit.
 The remote baseline differs from the local transform file only in field comments.
 
 ## Changes
@@ -17,6 +18,8 @@ The transform convention, coefficients, cuFFT plans and numerical method are
 unchanged. CPU methods are untouched.
 
 ## Complete CNRK2 step
+
+![Complete-step cost and speedup](broadcast-fusion.svg)
 
 `benchmarks/step.jl` measures a complete rotational-form Couette step, with five
 warm-up steps and 100 timed samples per size. Each sample restores the same state

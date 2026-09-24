@@ -47,6 +47,36 @@ fig.savefig(root / "timestep-cost.svg")
 fig.savefig(root / "timestep-cost.png")
 plt.close(fig)
 
+# Keep the matched before/after experiment separate from the older CPU/GPU
+# sweep: combining revisions would imply a comparison we did not measure.
+if (root / "a100-broadcast-after.csv").exists():
+    before = {int(r["Ny"]): float(r["min_seconds"])
+              for r in rows("a100-broadcast-before.csv")}
+    after = {int(r["Ny"]): float(r["min_seconds"])
+             for r in rows("a100-broadcast-after.csv")}
+    x = sorted(before.keys() & after.keys())
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.5), layout="constrained")
+    for values, label, marker, color in (
+        (before, "Before fusion", "o", "#757575"),
+        (after, "Fused transforms", "^", "#c62828"),
+    ):
+        axes[0].loglog(x, [1000*values[n] for n in x],
+                       marker=marker, color=color, markersize=4, label=label)
+    axes[1].semilogx(x, [before[n]/after[n] for n in x],
+                    marker="^", color="#c62828", markersize=4)
+    axes[1].axhline(1, color="0.5", lw=.8)
+    axes[0].set_ylabel("Complete timestep [ms]")
+    axes[1].set_ylabel("Before / after time")
+    axes[0].legend(frameon=False)
+    for ax in axes:
+        ax.set_xlabel(r"$N_y$  ($N_x=N_z=N_y-1$)")
+        ax.set_xticks(x, labels=x)
+        ax.minorticks_off()
+        ax.grid(alpha=.2)
+    fig.savefig(root / "broadcast-fusion.svg")
+    fig.savefig(root / "broadcast-fusion.png")
+    plt.close(fig)
+
 for name in ("apple-m5-phases", "xeon-phases"):
     path = root / (name + ".csv")
     if not path.exists():
