@@ -5,11 +5,9 @@ using ChannelFlow, FFTW, LinearAlgebra, Printf, Profile
 const CF=ChannelFlow
 const DEVICE=length(ARGS)>0 ? ARGS[1] : "cpu"
 const OUTPUT=length(ARGS)>1 ? ARGS[2] : joinpath(@__DIR__, "results", "steps.csv")
-const SOURCE_COMMIT=get(
-    ENV,
-    "CHANNEL_SOURCE_COMMIT",
-    readchomp(`git -C $(@__DIR__) rev-parse HEAD`),
-)
+const SOURCE_COMMIT = get(ENV, "CHANNEL_SOURCE_COMMIT") do
+    readchomp(`git -C $(@__DIR__) rev-parse HEAD`)
+end
 const SAMPLES=parse(Int, get(ENV, "CHANNEL_SAMPLES", "100"))
 const SIZES=parse.(Int, split(get(ENV, "CHANNEL_SIZES", "8,16,24,32,48,64,96,128"), ','))
 const NTHREADS=parse(Int, get(ENV, "CHANNEL_FFT_THREADS", "1"))
