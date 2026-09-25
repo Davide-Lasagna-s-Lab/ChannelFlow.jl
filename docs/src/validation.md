@@ -46,6 +46,8 @@ C++'s **padded physical** ``(3N/2,N+1,3N/2)`` with `DealiasXZ`. Both retain
 ``|k|,|l|\le N/2-1``; no wall-normal dealiasing is applied. Using equal
 constructor arguments would compare different Fourier resolutions.
 
+### Initial state and comparison procedure
+
 The same projected velocity and modified pressure are exported from Julia on
 the common padded physical grid, then transformed by C++. Each code advances
 one step from that state. The input to projection is
@@ -59,36 +61,73 @@ one step from that state. The input to projection is
 \end{pmatrix}.
 ```
 
-We report maximum physical-space differences. For pressure, subtract the
-constant difference at one grid point before taking the maximum:
+Projection supplies a divergence-free initial perturbation satisfying the wall
+conditions. Both implementations receive the same initial velocity and stage
+pressure; the C++ field is not independently initialised from an analytical
+formula. After one complete CNRK2 step, including all three stages, both
+velocities are evaluated on the same physical grid. This exercises the
+transforms, nonlinear term, implicit viscous solve and pressure–velocity
+coupling together. Conversion between the file representation and each
+solver's storage layout is part of this comparison.
+
+### Velocity error and interpretation
+
+The figure reports the maximum absolute velocity difference after one full
+step, over all three components and the common padded physical grid:
 
 ```math
-\epsilon_u=\max_{i,x,y,z}|u_i^{\mathrm{Julia}}-u_i^{\mathrm{C++}}|,
-\qquad
-\epsilon_q=\max_{x,y,z}|q^{\mathrm{Julia}}-q^{\mathrm{C++}}-c|.
+\epsilon_u(N)=\max_{i,x,y,z}
+\left|u_i^{\mathrm{Julia}}(\Delta t)-u_i^{\mathrm{C++}}(\Delta t)\right|.
 ```
 
-This gauge correction is necessary because pressure is determined only up to
-a spatial constant. In the rotational formulation ``q=p+|\boldsymbol{V}|^2/2``
-(up to the implementation's spatially uniform gauge).
+![Maximum one-step velocity difference between Julia and C++](assets/validation/cpp.svg)
 
-![One-step comparison with C++](assets/validation/cpp.svg)
+The measured resolutions are ``N=16,32,64,128,192,256``; ``N=8`` is excluded
+from this comparison. Maximum velocity differences range from
+``1.2\times10^{-15}`` to ``7.6\times10^{-15}``, consistent with agreement
+near floating-point roundoff for this state. This plot is an implementation
+consistency check, not a convergence curve towards an exact solution.
+It does not establish long-time agreement, turbulent-statistics convergence,
+or timestep accuracy for a production run with a different ``\Delta t``.
 
-At the better-resolved grid, the velocity agrees near roundoff and pressure
-to approximately ``10^{-11}``. Low-resolution discrepancies need not have the
-same roundoff floor. This is a **one-step consistency check for this state and
-configuration**, not a long-time trajectory or turbulent-statistics comparison.
+The error is an absolute componentwise maximum, not a relative error or a
+volume-integrated norm. Velocities use the wall speed as their reference scale.
+The compared fields are perturbations; adding the identical Couette base flow
+to both leaves their difference unchanged. The horizontal axis is the resolved
+periodic point count before padding, with ``N_y=N+1``. Both axes are logarithmic.
+The line simply connects the measured cases: small variations at this error
+level should not be interpreted as a convergence rate.
+
+| Resolved ``N`` | Maximum velocity difference ``\epsilon_u`` |
+|---:|---:|
+| 16 | ``7.61544\times10^{-15}`` |
+| 32 | ``1.96024\times10^{-15}`` |
+| 64 | ``1.62565\times10^{-15}`` |
+| 128 | ``1.21084\times10^{-15}`` |
+| 192 | ``2.84048\times10^{-15}`` |
+| 256 | ``1.73027\times10^{-15}`` |
+
+The downloadable CSV also retains modified-pressure diagnostics after removal
+of a constant gauge offset; pressure is not shown in this figure.
+
 Timings from the parity driver are not the performance benchmark; see
 [complete-step benchmarks](benchmarks.md).
+
+### Reproduction and measured data
 
 ```sh
 bash validation/channelflow/build.sh /scratch/channelflow-cpp /path/to/fftw
 bash validation/channelflow/run.sh /scratch/channelflow-cpp/step-release
+python validation/channelflow/plot_errors.py
 ```
 
 The [comparison instructions](https://github.com/Davide-Lasagna-s-Lab/ChannelFlow.jl/blob/main/validation/channelflow/README.md)
 record compiler settings and the binary exchange format.
 [Download the measured errors](assets/validation/cpp.csv).
+These results were collected by IRIDIS job **1643454**;
+[compiler and upstream-revision provenance](assets/validation/cpp/provenance.txt).
+Run only `python validation/channelflow/plot_errors.py` to redraw saved results
+without executing either solver.
 
 ## Exact viscous decay
 

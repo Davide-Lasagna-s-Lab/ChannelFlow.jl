@@ -65,10 +65,14 @@ From the repository root, after the build:
 
 ```sh
 bash validation/channelflow/run.sh /scratch/path/channelflow-cpp/step-release
-python validation/plot.py
+python validation/channelflow/plot_errors.py
 ```
 
-This regenerates one-step errors for N=8,16,32, preserving raw stdout/stderr in
+This regenerates one-step errors for N=16,32,64,128,192,256, preserving raw stdout/stderr in
 `validation/results/cpp/` and summarizing errors in `validation/results/cpp.csv`.
 Only the complete-step errors enter the validation figure, not the timing
 columns from these short checks. Re-run both codes with the same seed files.
+
+The validation figure shows only maximum velocity differences; N=8 is excluded.
+Pressure diagnostics remain in the CSV. The standalone plotting script reads
+saved results and does not execute either solver.

@@ -68,11 +68,6 @@ ax[1].set(xlabel=r'$t$',ylabel=r'$|I/D-1|$')
 for a in ax: a.legend(fontsize=8,frameon=False)
 save(fig,'waleffe')
 
-rows=read('cpp')
-fig, ax=plt.subplots(figsize=(5,3.6),layout='constrained')
-for field,label in [('0','Velocity'),('1','Modified pressure (gauge removed)')]:
-    subset=[r for r in rows if r['field']==field]
-    ax.semilogy(val(subset,'N'),val(subset,'max_abs_error'),'o-',label=label)
-ax.set(xlabel=r'Resolved $N_x=N_z$ ($N_y=N_x+1$)',ylabel='Maximum absolute one-step difference',xticks=[8,16,32])
-ax.legend(fontsize=8,frameon=False)
-save(fig,'cpp')
+# Keep the C++ velocity comparison independently reproducible.
+import runpy
+runpy.run_path(str(Path(__file__).parent / "channelflow" / "plot_errors.py"))

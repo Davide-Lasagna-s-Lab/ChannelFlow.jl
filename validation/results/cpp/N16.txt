@@ -1,2 +1,2 @@
-field=0 max_abs_error=7.51656e-15 gauge_offset=0 max_reference=0.0840486
-field=1 max_abs_error=4.90228e-11 gauge_offset=-0.332492 max_reference=0.33413
+field=0 max_abs_error=7.61544e-15 gauge_offset=0 max_reference=0.0840486
+field=1 max_abs_error=8.34958e-11 gauge_offset=-0.332492 max_reference=0.33413
