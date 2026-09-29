@@ -10,6 +10,7 @@ const CuInfluence = CF.BatchedInfluenceSolver{H,A} where {H,A<:CuArray}
 
 include("transforms.jl")
 include("operators.jl")
+include("symmetries.jl")
 include("stokes.jl")
 include("pressure.jl")
 CF._same_storage(object, ::CuSpectral) = Adapt.adapt(CuArray, object)

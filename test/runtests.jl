@@ -31,3 +31,5 @@ include("helpers.jl")
     include("test_postprocessing.jl")
     include("test_timestepping.jl")
 end
+
+include("test_symmetries.jl")
